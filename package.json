@@ -24,10 +24,6 @@
     "react-intl-po": "^2.1.1",
     "react-scripts": "^1.0.10"
   },
-  "engines": {
-    "node": "16.15.1",
-    "npm": "8.11.0"
-  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
