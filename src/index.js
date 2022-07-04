@@ -11,12 +11,15 @@ import DashboardContainer from './containers/dashboard.container';
 import FirebaseContainer from './containers/firebase.container';
 import TestContainer from './containers/test.container';
 import InformationDkContainer from './containers/information/infomationDK.container';
+import SettingContainer from './containers/setting.container';
+import Global from './containers/global';
 import { addLocaleData, IntlProvider } from 'react-intl';
 import en from 'react-intl/locale-data/en';
 import es from 'react-intl/locale-data/es';
 // Our translated strings
 import localeData from './translation/translation.json';
 import { messaging } from './firebase';
+
 
 addLocaleData([...en, ...es]);
 
@@ -34,6 +37,8 @@ ReactDOM.render(
           <Route path="/fb" component={FirebaseContainer}/>
           <Route path="/test" component={TestContainer}/>
           <Route path="/info-dk" component={InformationDkContainer}/>
+          <Route path="/setting" component={SettingContainer}/>
+          <Route path="/global" component={global}/>
         </div>
       </ConnectedRouter>
     </IntlProvider>

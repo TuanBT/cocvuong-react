@@ -64,12 +64,12 @@ class InformationDkContainer extends Component {
     $(".tbl-tournament-info").html("");
     $(".tbl-tournament-info").append($(".tbl-header-tournament-info").html());
     $('#schema-bracket').html("");
-    let matchNum = 0;
+    // let matchNum = 0;
     let nameWin = "";
     let fighters = [];
     for (let i = 0; i < this.tournamentObj.tournament.length; i++) {
       if (this.tournamentObj.tournament[i].match.category === category || category === "ALL") {
-        matchNum++;
+        // matchNum++;
         let tournament = this.tournamentObj.tournament[i];
         if (!fighters.includes(tournament.fighters.redFighter.name) && !tournament.fighters.redFighter.name.includes("W.") && !tournament.fighters.redFighter.name.includes("L.")) {
           fighters.push(tournament.fighters.redFighter.name);
