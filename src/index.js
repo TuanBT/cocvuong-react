@@ -10,7 +10,7 @@ import LoginContainer from './containers/login.container';
 import DashboardContainer from './containers/dashboard.container';
 import FirebaseContainer from './containers/firebase.container';
 import TestContainer from './containers/test.container';
-import InformationDkContainer from './containers/information/infomationDK.container';
+import InformationDkContainer from './containers/infomationDK.container';
 import SettingContainer from './containers/setting.container';
 import Global from './containers/global';
 import { addLocaleData, IntlProvider } from 'react-intl';

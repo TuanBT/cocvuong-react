@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
 import $ from 'jquery';
-import { database } from '../../firebase';
-import logo from '../../assets/img/logo.png';
-import "../../assets/css/style.css";
-import '../../assets/lib/table/style.css';
-import '../../assets/lib/table/basictable.css';
+import { database } from '../firebase';
+import logo from '../assets/img/logo.png';
+import "../assets/css/style.css";
+import '../assets/lib/table/style.css';
+import '../assets/lib/table/basictable.css';
 
 class InformationDkContainer extends Component {
   constructor(props) {
