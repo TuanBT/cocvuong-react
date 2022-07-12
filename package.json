@@ -1,11 +1,12 @@
 {
   "homepage": "https://tuanbt.github.io/cocvuong/",
-  "name": "react-seed",
+  "name": "cocvuong",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "axios": "^0.16.2",
+    "axios": "^0.27.2",
     "firebase": "^8.2.3",
+    "gh-pages": "^3.2.3",
     "jquery": "^3.6.0",
     "react": "^15.6.1",
     "react-dom": "^15.6.1",
@@ -15,14 +16,11 @@
     "react-router": "^4.1.1",
     "react-router-dom": "^4.1.1",
     "react-router-redux": "^5.0.0-alpha.6",
+    "react-scripts": "^1.0.10",
     "redux": "^3.7.1",
     "redux-actions": "^2.2.1",
     "redux-logger": "^3.0.6",
-    "redux-thunk": "^2.2.0",
-    "gh-pages": "^3.2.3",
-    "react-intl-cra": "^0.2.7",
-    "react-intl-po": "^2.1.1",
-    "react-scripts": "^1.0.10"
+    "redux-thunk": "^2.2.0"
   },
   "engines": {
     "node": "14.20.0"
@@ -33,10 +31,6 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build",
     "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject",
-    "extract": "react-intl-cra 'src/**/*.jsx' 'output/messages.json'",
-    "extract:pot": "react-intl-po json2pot 'output/messages.json' -o 'output/messages.pot'",
-    "extract:pot-c": "react-intl-po json2pot 'output/messages.json' -c 'id' -o 'output/messages-c.pot'",
-    "extract:po-c": "react-intl-po po2json 'input/*.po' -c 'id' -m 'output/messages.json' -o 'output/translation.json'"
+    "eject": "react-scripts eject"
   }
 }
