@@ -8,6 +8,7 @@ import { ConnectedRouter } from 'react-router-redux';
 import TestContainer from './containers/test.container';
 import InformationDkContainer from './containers/infomationDK.container';
 import SettingContainer from './containers/setting.container';
+import GiamDinhHdContainer from './containers/giamdinhHD.container';
 import Global from './containers/global';
 import { messaging } from './firebase';
 
@@ -19,6 +20,7 @@ ReactDOM.render(
           <Route path="/test" component={TestContainer}/>
           <Route path="/info-dk" component={InformationDkContainer}/>
           <Route path="/setting" component={SettingContainer}/>
+          <Route path="/gd-hd" component={GiamDinhHdContainer}/>
           <Route path="/global" component={global}/>
         </div>
       </ConnectedRouter>

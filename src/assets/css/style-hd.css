@@ -1,0 +1,317 @@
+body {
+    background-attachment: fixed;
+    margin: 5px;
+    color: #636e72;
+    background: #ecf0f1;
+}
+
+/* ---------Start Chấm quyền-------------- */
+
+.information {
+    width: 100%;
+    height: 10%;
+    /* background-color: burlywood; */
+}
+
+.info {
+    width: 45%;
+    height: 100%;
+    /* background-color: olivedrab; */
+    float: left;
+}
+
+.timer-area {
+    width: 10%;
+    height: 100%;
+    /* background-color: turquoise; */
+    float: left;
+    padding: 10px 0px 0px 0px;
+}
+
+.logo-area {
+    width: 45%;
+    height: 100%;
+    /* background-color: lime; */
+    float: left;
+}
+
+.match-detail {
+    width: 100%;
+    height: 30%;
+    /* background-color: darkorange; */
+}
+
+.match-title {
+    width: 100%;
+    height: 60%;
+    /* background-color: seagreen; */
+    font-size: 8vh;
+    color: #2980b9;
+    position: relative;
+}
+
+.match-fighter {
+    width: 100%;
+    height: 40%;
+    /* background-color: tomato; */
+    text-align: center;
+    position: relative;
+}
+
+.spec-fighter {
+    width: 1%;
+    height: 100%;
+    /* background-color: skyblue; */
+    float: left;
+}
+
+.fighter-detail {
+    width: 23%;
+    height: 100%;
+    margin: 0 1% 0 1%;
+    /* background-color: steelblue; */
+    /* float: left; */
+    display: inline-block;
+    border-radius: 5px;
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    border: 1px solid #7f8c8d;
+    color: #2980b9;
+}
+
+.fighter-name {
+    width: 100%;
+    height: 50%;
+    font-size: 3.5vh;
+    font-weight: bold;
+}
+
+.fighter-code {
+    width: 100%;
+    height: 50%;
+    font-size: 3.5vh;
+    color: #3498db;
+}
+
+.referee-score-area {
+    width: 100%;
+    height: 20%;
+    color: #636e72;
+    /* background-color: bisque; */
+}
+
+.referee-sub-area {
+    height: 100%;
+    width: 33%;
+    /* background-color: beige; */
+    float: left;
+    /* color: #2980b9; */
+}
+
+.referee-title {
+    width: 100%;
+    height: 30%;
+    /* background-color: cornflowerblue; */
+    font-size: 3.5vh;
+    border: none;
+}
+
+.referee-sub-score {
+    width: 100%;
+    height: 70%;
+    /* background-color: violet; */
+    font-size: 9vh;
+    /* box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    border: 1px solid #7f8c8d; */
+}
+
+.spec-score {
+    width: 0.5%;
+    height: 100%;
+    /* background-color: lightgreen; */
+    float: left;
+}
+
+.main-score {
+    width: 100%;
+    height: 40%;
+    /* background-color: aquamarine; */
+    font-size: 25vh;
+    color: #d63031;
+}
+
+#averageScore{
+    cursor: pointer;
+}
+
+.tournament-quyen-name{
+    color: #c0392b;
+    font-size: 4vh;
+}
+
+.logo-quyen{
+    float: right;
+    height: 100%;
+    /* width: 80%; */
+}
+
+.fighter-code{
+    border-bottom: 0px;
+}
+
+.timer-text{
+    height: 100%;
+    font-size: 3vw;
+}
+
+.match-prev .info-text {
+    left: 50%;
+    font-size: 15vh;
+}
+
+.match-prev
+{
+    color: #95a5a6;
+    float: left;
+    position: relative;
+    width: 15%;
+}
+
+.match-prev:hover
+{
+    color: #636e72;
+}
+
+.match-next{
+    color: #95a5a6;
+    float: right;
+    position: relative;
+    width: 15%;
+}
+
+.match-next .info-text{
+    font-size: 15vh;
+}
+
+.match-next:hover
+{
+    color: #636e72;
+}
+
+.match-name-no{
+    width: 70%;
+    height: 100%;
+    position: relative;
+    float: left;
+}
+
+/* ---------End Chấm quyền---------------- */
+
+
+.container.cal {
+    width: 340px;
+    height: 508px;
+    border-radius: 20px;
+    border-radius: 18px;
+    background: #e0e0e0;
+    box-shadow: 5px 5px 10px #c1c1c1,
+      -5px -5px 10px #c1c1c1;
+    margin: 0 auto;
+    padding: 16px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  
+  .container .result {
+    width: 100%;
+    height: 100px;
+    border-radius: 10px;
+    border-radius: 18px;
+    background: #e0e0e0;
+    box-shadow: 5px 5px 10px #c1c1c1,
+      -5px -5px 10px #c1c1c1;
+  }
+  
+  .container .result p {
+    font-size: 25pt;
+    overflow-y: auto;
+    text-align: right;
+    color: #000000;
+    padding-right: 10px;
+  }
+  
+  .container .buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 1em;
+    /* margin-left: 1em; */
+  }
+  
+  .container .buttons .button,
+  .container .buttons .num-button {
+    cursor: pointer;
+    text-align: center;
+    width: 78px;
+    font-size: 30px;
+    height: 78px;
+    display: grid;
+    place-content: center;
+    border-radius: 20px;
+    border-radius: 18px;
+    background: #e0e0e0;
+    /* box-shadow:  5px 5px 10px #c1c1c1,
+               -5px -5px 10px #c1c1c1; */
+    border: none;
+  }
+  
+  .button:hover {
+    color: #3498db;
+    border-radius: 20px;
+    background: #d11a1a;
+    box-shadow: 5px 5px 10px #c1c1c1,
+      -5px -5px 10px #ffffff;
+  
+  }
+  
+  /*  Big Button */
+  .container .buttons .zero {
+    grid-column: 1/ 3;
+    width: 100%;
+    font-size: 20px;
+    color: #000000;
+    border-radius: 10px;
+    border-radius: 18px;
+    background: #e0e0e0;
+    box-shadow: 5px 5px 10px #c1c1c1,
+      -5px -5px 10px #c1c1c1;
+  }
+  
+  .container .buttons .eraser{
+    background: #7f8c8d;
+    color: white;
+  }
+  
+  .container .buttons .enter{
+    background: #1abc9c;
+      color: white;
+  }
+  
+  .action-btn {
+    color: grey;
+    font-weight: bold;
+  }
+  
+  .calc-action-btn {
+    color: #000000;
+    font-size: 60px;
+    font-weight: bold;
+  }
+  
+  
+  .referee-result-box {
+    font-size: 60px;
+  }
