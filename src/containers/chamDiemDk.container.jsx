@@ -4,7 +4,7 @@ import { database } from '../firebase';
 import logo from '../assets/img/logo.png';
 import sound from '../assets/sound/bell-school.wav';
 import "../assets/css/style.css";
-import {NotificationContainer, NotificationManager} from 'react-notifications';
+// import {NotificationContainer, NotificationManager} from 'react-notifications';
 
 class InformationDkContainer extends Component {
   constructor(props) {
