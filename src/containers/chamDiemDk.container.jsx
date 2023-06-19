@@ -296,7 +296,7 @@ class InformationDkContainer extends Component {
   }
 
   showModalChooseMatch() {
-    $('#modalChooseMatch').modal('show');
+    this.showModalChooseMatch();
   }
 
   //Gõ số để đi đến trận đấu
@@ -310,7 +310,7 @@ class InformationDkContainer extends Component {
         toast.error("Vui lòng nhập số thứ tự trận đấu lớn hơn 1!");
         return;
       }
-      $('#modalChooseMatch').modal('hide');
+      this.hideModalChooseMatch();
       this.matchNoCurrent = matchChoose;
       this.restoreMatch();
     }
@@ -325,12 +325,12 @@ class InformationDkContainer extends Component {
     } else {
       $('#modalConfirm .modal-title').html("Xác nhận");
       $('#modalConfirm .modal-body').html("Bạn muốn dừng trận đấu và đến trận đấu kế tiếp?");
-      $('#modalConfirm').modal('show');
+      this.showModalConfirm();
 
       $("#buttonConfirmOK").click(function () {
         this.matchNoCurrent++;
         this.restoreMatch();
-        $('#modalConfirm').modal('hide');
+        this.hideModalConfirm();
       })
     }
     console.log("nextMatch() End");
@@ -344,12 +344,12 @@ class InformationDkContainer extends Component {
     } else {
       $('#modalConfirm .modal-title').html("Xác nhận");
       $('#modalConfirm .modal-body').html("Bạn muốn dừng trận đấu và về trận đấu trước đó?");
-      $('#modalConfirm').modal('show');
+      this.showModalConfirm()
 
       $("#buttonConfirmOK").click(function () {
         this.matchNoCurrent--;
         this.restoreMatch();
-        $('#modalConfirm').modal('hide');
+        this.hideModalConfirm();
       })
     }
     console.log("prevMatch() End");
@@ -392,8 +392,7 @@ class InformationDkContainer extends Component {
 
       $('#modalConfirm .modal-title').html("<i class='fa-solid fa-clipboard-check'></i> Xác nhận kết quả <b>THẮNG</b>");
       $('#modalConfirm .modal-body').html("<h3 style='color: red'><i class='fa-solid fa-medal'></i> " + this.convertWL(this.match.fighters.redFighter.name) + " (" + this.match.fighters.redFighter.code + ")</h3>");
-      $('#modalConfirm').modal('show');
-
+      this.showModalConfirm();
 
       $("#buttonConfirmOK").click(function () {
         if (this.temporaryWin == "red") {
@@ -409,7 +408,7 @@ class InformationDkContainer extends Component {
             $(".blue-score").css("background-color", "blue");
             $(".blue-score").css("color", this.whiteColor);
           }, 1000);
-          $('#modalConfirm').modal('hide');
+          this.hideModalConfirm();
         }
       })
     }
@@ -427,7 +426,7 @@ class InformationDkContainer extends Component {
 
       $('#modalConfirm .modal-title').html("<i class='fa-solid fa-clipboard-check'></i> Xác nhận kết quả <b>THẮNG</b>");
       $('#modalConfirm .modal-body').html("<h3 style='color: blue'><i class='fa-solid fa-medal'></i> " + this.convertWL(this.match.fighters.blueFighter.name) + " (" + this.match.fighters.blueFighter.code + ")</h3>");
-      $('#modalConfirm').modal('show');
+      this.showModalConfirm();
 
       $("#buttonConfirmOK").click(function () {
         if (this.temporaryWin == "blue") {
@@ -443,7 +442,7 @@ class InformationDkContainer extends Component {
             $(".blue-score").css("background-color", "blue");
             $(".blue-score").css("color", this.whiteColor);
           }, 1000);
-          $('#modalConfirm').modal('hide');
+          this.hideModalConfirm();
         }
       })
     }
@@ -649,7 +648,7 @@ class InformationDkContainer extends Component {
   }
 
   showShortcut() {
-    $("#modalShortcut").modal("show");
+    this.showModalShortcut();
   }
 
   startTimer = () => {
@@ -757,6 +756,25 @@ class InformationDkContainer extends Component {
     }
     sound.play();
   }
+
+  showModalChooseMatch = () => {
+    $('#modalChooseMatch').removeClass('modal display-none').addClass('modal display-block');
+  };
+  hideModalChooseMatch = () => {
+    $('#modalChooseMatch').removeClass('modal display-block').addClass('modal display-none');;
+  };
+  showModalConfirm = () => {
+    $('#modalConfirm').removeClass('modal display-none').addClass('modal display-block');
+  };
+  hideModalConfirm = () => {
+    $('#modalConfirm').removeClass('modal display-block').addClass('modal display-none');;
+  };
+  showModalShortcut = () => {
+    $('#modalShortcut').removeClass('modal display-none').addClass('modal display-block');
+  };
+  hideModalShortcut = () => {
+    $('#modalShortcut').removeClass('modal display-block').addClass('modal display-none');;
+  };
 
 
   render() {
@@ -951,39 +969,12 @@ class InformationDkContainer extends Component {
             </div>
           </div>
 
-
-
-          <div className="modal fade" id="passwordModal" tabIndex="-1" role="dialog">
-            <div className="modal-dialog" role="document">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-lock"></i> Vui lòng nhập mật khẩu</h5>
-                  <button type="button" className="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                  </button>
-                </div>
-                <div className="modal-body">
-                  <div className="input-group mb-3">
-                    <div className="input-group-prepend">
-                      <span className="input-group-text"><i className="fa fa-key" aria-hidden="true"></i></span>
-                    </div>
-                    <input type="password" className="form-control" placeholder="Mật khẩu" id="txtPassword" />
-                  </div>
-                </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-primary ok-button" onClick={this.verifyPassword}>OK</button>
-                  <button type="button" className="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="modal fade" id="modalChooseMatch" tabIndex="-" role="dialog">
+          <div className="modal display-none" id="modalChooseMatch" tabIndex="-" role="dialog">
             <div className="modal-dialog" role="document">
               <div className="modal-content">
                 <div className="modal-header">
                   <h5 className="modal-title" id="modalLabel">Trọn trận đấu</h5>
-                  <button type="button" className="close" data-dismiss="modal" aria-label="Close">
+                  <button type="button" className="close" data-dismiss="modal" onClick={this.hideModalChooseMatch} aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                   </button>
                 </div>
@@ -997,18 +988,18 @@ class InformationDkContainer extends Component {
                 </div>
                 <div className="modal-footer">
                   <button type="button" className="btn btn-primary" onClick={this.chooseMatch}>OK</button>
-                  <button type="button" className="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                  <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hideModalChooseMatch}>Cancel</button>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="modal fade" id="modalConfirm" tabIndex="-1" role="dialog">
+          <div className="modal display-none" id="modalConfirm" tabIndex="-1" role="dialog">
             <div className="modal-dialog" role="document">
               <div className="modal-content">
                 <div className="modal-header">
                   <h5 className="modal-title"></h5>
-                  <button type="button" className="close" data-dismiss="modal" aria-label="Close">
+                  <button type="button" className="close" data-dismiss="modal" onClick={this.hideModalConfirm} aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                   </button>
                 </div>
@@ -1017,18 +1008,18 @@ class InformationDkContainer extends Component {
                 </div>
                 <div className="modal-footer">
                   <button type="button" className="btn btn-primary" id="buttonConfirmOK">OK</button>
-                  <button type="button" className="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                  <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hideModalConfirm}>Cancel</button>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="modal fade" id="modalShortcut" tabIndex="-1" role="dialog">
+          <div className="modal display-none" id="modalShortcut" tabIndex="-1" role="dialog">
             <div className="modal-dialog" role="document">
               <div className="modal-content">
                 <div className="modal-header">
                   <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-keyboard"></i> Các phím tắt</h5>
-                  <button type="button" className="close" data-dismiss="modal" aria-label="Close">
+                  <button type="button" className="close" data-dismiss="modal" onClick={this.hideModalShortcut} aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                   </button>
                 </div>
@@ -1101,7 +1092,7 @@ class InformationDkContainer extends Component {
                   </table>
                 </div>
                 <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" data-dismiss="modal">Close</button>
+                  <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hideModalShortcut}>Close</button>
                 </div>
               </div>
             </div>
