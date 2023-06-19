@@ -4,7 +4,8 @@ import { database } from '../firebase';
 import logo from '../assets/img/logo.png';
 import sound from '../assets/sound/bell-school.wav';
 import "../assets/css/style.css";
-// import {NotificationContainer, NotificationManager} from 'react-notifications';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 class InformationDkContainer extends Component {
   constructor(props) {
@@ -306,9 +307,7 @@ class InformationDkContainer extends Component {
 
     if (matchChoose != null && matchChoose != "") {
       if (matchChoose < 1 || matchChoose > this.tournamentObj.length) {
-        $.showNotification({
-          body: "Vui lòng nhập số thứ tự trận đấu trong khoảng 1 ~ " + (this.tournamentObj.length), type: "danger"
-        })
+        toast.error("Vui lòng nhập số thứ tự trận đấu lớn hơn 1!");
         return;
       }
       $('#modalChooseMatch').modal('hide');
@@ -387,9 +386,7 @@ class InformationDkContainer extends Component {
   redWin = () => {
     console.log("redWin() Start");
     if (this.match.match.win == "blue") {
-      $.showNotification({
-        body: "ĐỎ đã thắng, bạn không thể thay đổi kết quả được!", type: "danger"
-      })
+      toast.error("XANH đã thắng, bạn không thể thay đổi kết quả được!");
     } else {
       this.temporaryWin = "red";
 
@@ -419,13 +416,12 @@ class InformationDkContainer extends Component {
     console.log("redWin() End");
   }
 
+
+
   blueWin = () => {
     console.log("blueWin() Start");
     if (this.match.match.win == "red") {
-      // $.showNotification({
-      //   body: "ĐỎ đã thắng, bạn không thể thay đổi kết quả được!", type: "danger"
-      // })
-      // NotificationManager.error('ĐỎ đã thắng, bạn không thể thay đổi kết quả được!');
+      toast.error("ĐỎ đã thắng, bạn không thể thay đổi kết quả được!");
     } else {
       this.temporaryWin = "blue";
 
@@ -1117,6 +1113,7 @@ class InformationDkContainer extends Component {
             <source src={sound} type="audio/ogg" />
           </audio>
         </div>
+        <ToastContainer />
 
       </div>
     );

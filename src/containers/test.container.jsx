@@ -1,36 +1,39 @@
 import React, { Component } from 'react';
-import { database } from '../firebase';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 class TestContainer extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {values : "Init"}
-
-    this.ref = database.ref('/room');
+    this.state = { values: "Init" }
 
     this.displays = this.displays.bind(this);
 
-
-    this.ref.on('value', (snapshot) => {
-      const value = snapshot.val();
-      this.setState({ values: JSON.stringify(value) })
-      console.log(this.state.values);
+    toast.error("Error Notification !", {
+      position: toast.POSITION.TOP_LEFT
     });
+
   }
 
+  notify = () => toast.success("Wow so easy!");
 
-  displays() {
+  displays = () => {
     return 'display';
   }
 
   render() {
     return (
       <div>
-        <div onLoad=''></div>
-        <div>{this.displays()}</div>
+        <h2>TEST PAGE</h2>
+        <div>{this.displays}</div>
         <h1>{this.state.values}</h1>
-        <h2>TEST</h2>
+        
+
+        <button onClick={this.notify}>Notify!</button>
+        {/* https://fkhadra.github.io/react-toastify/positioning-toast */}
+        <ToastContainer />
+
       </div>
     );
   }
