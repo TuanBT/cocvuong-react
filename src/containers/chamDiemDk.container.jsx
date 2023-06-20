@@ -3,7 +3,6 @@ import $ from 'jquery';
 import { database } from '../firebase';
 import logo from '../assets/img/logo.png';
 import sound from '../assets/sound/bell-school.wav';
-import "../assets/css/style.css";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -145,7 +144,7 @@ class InformationDkContainer extends Component {
       }
     }
 
-    this.ref.child('setting').on('value', function (snapshot) {
+    this.ref.child('setting').on('value',  (snapshot) => {
       me.settingObj = snapshot.val();
       $('#tournamentName').html(me.settingObj.tournamentName);
 
@@ -294,11 +293,7 @@ class InformationDkContainer extends Component {
     this.ref.child('tournament/' + this.matchNoCurrentIndex).update(this.match);
     console.log("saveMatch() End");
   }
-
-  showModalChooseMatch() {
-    this.showModalChooseMatch();
-  }
-
+  
   //Gõ số để đi đến trận đấu
   chooseMatch = () => {
     console.log("chooseMatch() Start");
@@ -327,7 +322,7 @@ class InformationDkContainer extends Component {
       $('#modalConfirm .modal-body').html("Bạn muốn dừng trận đấu và đến trận đấu kế tiếp?");
       this.showModalConfirm();
 
-      $("#buttonConfirmOK").click(function () {
+      $("#buttonConfirmOK").click( () => {
         this.matchNoCurrent++;
         this.restoreMatch();
         this.hideModalConfirm();
@@ -647,7 +642,7 @@ class InformationDkContainer extends Component {
     console.log("makeTimer() End");
   }
 
-  showShortcut() {
+  showShortcut =()=> {
     this.showModalShortcut();
   }
 
@@ -780,7 +775,7 @@ class InformationDkContainer extends Component {
   render() {
     return (
       <div>
-        <div style={{ height: '100vh' }}>
+        <div className="body" style={{ height: '100vh' }}>
           <div className="info-area">
             <div className="info-match-left-area">
               <div className="referee-score-area-top">
@@ -917,7 +912,7 @@ class InformationDkContainer extends Component {
               </div>
               <div className="logo">
                 <span className="info-text">
-                  {/* <a href="#" onClick={this.showShortcut}><img src={logo} height="100%" /></a> */}
+                  <a href="#" onClick={this.showShortcut}><img src={logo} height="100%"  style={{width : '30vh'}}/></a>
                 </span>
               </div>
               <div className="match-type">
@@ -1098,7 +1093,6 @@ class InformationDkContainer extends Component {
             </div>
           </div>
         </div>
-
         <div style={{ display: 'none' }}>
           <audio id="reggSound">
             <source src={sound} type="audio/ogg" />

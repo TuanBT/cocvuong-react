@@ -5,11 +5,16 @@
     font-style: normal
 }
 
-body {
+.style-hd-body {
+    font-family: "Open Sans", "Segoe UI", sans-serif;
     background-attachment: fixed;
-    margin: 5px;
+    margin: 0px;
     color: #636e72;
     background: #ecf0f1;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    text-align: left;
 }
 
 /* ---------Start Chấm quyền-------------- */
@@ -27,7 +32,7 @@ body {
     float: left;
 }
 
-.timer-area {
+.style-hd-timer-area {
     width: 10%;
     height: 100%;
     /* background-color: turquoise; */
@@ -87,21 +92,21 @@ body {
     color: #2980b9;
 }
 
-.fighter-name {
+.style-hd-fighter-name {
     width: 100%;
     height: 50%;
     font-size: 3.5vh;
     font-weight: bold;
 }
 
-.fighter-code {
+.style-hd-fighter-code {
     width: 100%;
     height: 50%;
     font-size: 3.5vh;
     color: #3498db;
 }
 
-.referee-score-area {
+.style-hd-referee-score-area {
     width: 100%;
     height: 20%;
     color: #636e72;
@@ -116,7 +121,7 @@ body {
     /* color: #2980b9; */
 }
 
-.referee-title {
+.style-hd-referee-title {
     width: 100%;
     height: 30%;
     /* background-color: cornflowerblue; */
@@ -165,45 +170,72 @@ body {
     /* width: 80%; */
 }
 
-.fighter-code{
+.style-hd-fighter-code{
     border-bottom: 0px;
 }
 
-.timer-text{
+.style-hd-timer-text{
     height: 100%;
     font-size: 3vw;
+    font-family: clockicons;
+    float: left;
+    width: 100%;
+    cursor: pointer;
+    border-radius: 20px;
+    color: white;
+    background-color: #bdc3c7;
 }
 
-.match-prev .info-text {
+.style-hd-match-prev .info-text {
     left: 50%;
     font-size: 15vh;
 }
 
-.match-prev
+.style-hd-match-prev
 {
+    height: 100%;
+    left: 0;
+    cursor: pointer;
+    z-index: 1;
+    -webkit-transition: all 0.3s ease-in-out;
+    -moz-transition: all 0.3s ease-in-out;
+    -o-transition: all 0.3s ease-in-out;
+    transition: all 0.3s ease-in-out;
+    opacity: 0.5;
+
     color: #95a5a6;
     float: left;
     position: relative;
     width: 15%;
 }
 
-.match-prev:hover
+.style-hd-match-prev:hover
 {
     color: #636e72;
 }
 
-.match-next{
+.style-hd-match-next{
+    height: 100%;
+    right: 0;
+    cursor: pointer;
+    z-index: 1;
+    -webkit-transition: all 0.3s ease-in-out;
+    -moz-transition: all 0.3s ease-in-out;
+    -o-transition: all 0.3s ease-in-out;
+    transition: all 0.3s ease-in-out;
+    opacity: 0.5;
+
     color: #95a5a6;
     float: right;
     position: relative;
     width: 15%;
 }
 
-.match-next .info-text{
+.style-hd-match-next .info-text{
     font-size: 15vh;
 }
 
-.match-next:hover
+.style-hd-match-next:hover
 {
     color: #636e72;
 }
