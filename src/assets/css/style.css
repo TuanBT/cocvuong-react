@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300&display=swap');
+
 @font-face {
     font-family: clockicons;
     src: url(../font/clockicons/clockicons.woff2) format('woff2');
@@ -96,7 +98,7 @@ html {
 .match-category {
     float: left;
     height: 25%;
-    width: 35%;
+    width: 40%;
     font-size: 4vh;
     border-top: 1px solid #bdc3c7;
     border-left: 1px solid #bdc3c7;
@@ -106,7 +108,7 @@ html {
 .match-type {
     float: left;
     height: 25%;
-    width: 35%;
+    width: 30%;
     font-size: 4vh;
     box-sizing: border-box;
     -moz-box-sizing: border-box;
@@ -274,7 +276,7 @@ html {
 }
 
 .icon-win-red {
-    cursor: pointer;
+    
     z-index: 1;
     -webkit-transition: all 0.3s ease-in-out;
     -moz-transition: all 0.3s ease-in-out;
@@ -330,6 +332,7 @@ html {
 }
 
 .info-text-fighter-name-red {
+    cursor: pointer;
     position: relative;
     float: left;
     top: 50%;
@@ -338,6 +341,7 @@ html {
 }
 
 .info-text-fighter-name-blue {
+    cursor: pointer;
     position: relative;
     float: right;
     top: 50%;
@@ -407,19 +411,34 @@ html {
     position: relative;
 }
 
+.red-score-refereeSc.gdp{
+    width: 40%;
+}
+
+.blue-score-refereeSc.gdp{
+    width: 40%;
+}
+
 .red-score-refereeSc {
     height: 100%;
     width: 50%;
-    background: red;
     float: left;
     z-index: 0;
     position: relative;
-    background: #ecf0f1;
+    background: red;
     color: red;
     box-sizing: border-box;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
     border: 1px solid red;
+}
+
+.referee-score .red-score-refereeSc{
+    background: #ecf0f1;
+}
+
+.referee-score .blue-score-refereeSc{
+    background: #ecf0f1;
 }
 
 .addition {
@@ -478,11 +497,10 @@ html {
 .blue-score-refereeSc {
     height: 100%;
     width: 50%;
-    background: blue;
     float: right;
     z-index: 0;
     position: relative;
-    background: #ecf0f1;
+    background: blue;
     color: blue;
     box-sizing: border-box;
     -moz-box-sizing: border-box;
@@ -617,8 +635,11 @@ html {
 }
 
 .score-gd-area {
-    height: 90%;
-    font-size: 35vh;
+    height: 100%;
+    /* height: -moz-calc(100% - 126px);
+    height: -webkit-calc(100% - 126px);
+    height: calc(100% - 126px); */
+    font-size: 30vh;
     color: white;
 }
 
@@ -667,57 +688,61 @@ html {
     background: rgba(0, 0, 0, 0.3);
 } */
 
-.add-score.red:hover{
+/* .add-score.red:hover{
     color: #ecf0f1;
     background: red;
-}
+} */
 .add-score.red:active{
     background: rgba(255, 0, 0, 0.5);
+    color: #ecf0f1;
 }
 
-.add-score.blue:hover{
+/* .add-score.blue:hover{
     color: #ecf0f1;
     background: blue;
-}
+} */
 .add-score.blue:active{
-    /* color: #3498db; */
+    color: #ecf0f1;
     background: rgba(0, 0, 255, 0.5);
 }
 
 
 .one{
     float: left;
-    width: 50%;
-    height: 80%;
+    width: 100%;
+    height: 50%;
     box-sizing: border-box;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
     /* border-left: 1px solid #bdc3c7; */
+    background: #ecf0f1;
 }
 
 .two{
     float: left;
-    width: 50%;
-    height: 80%;
+    width: 100%;
+    height: 50%;
+    background: #ecf0f1;
 }
 
 .zero{
     float: left;
     width: 100%;
-    height: 20%;
+    height: 10%;
     font-size: 10vh;
     box-sizing: border-box;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
-    border-top: 1px solid #bdc3c7;
+    border-bottom: 1px solid #bdc3c7;
+    background: #ecf0f1;
 }
 
 .add-score.one.red{
-    border-left: 1px solid #bdc3c7;
+    border-bottom: 1px solid #bdc3c7;
 }
 
 .add-score.one.blue{
-    border-right: 1px solid #bdc3c7;
+    border-bottom: 1px solid #bdc3c7;
 }
 
 /* ---------End Giám định---------------- */
@@ -925,6 +950,7 @@ textarea {
 
 .text-pomegrante{
     color: #c0392b;
+    font-size: 4vh;
 }
 
 .text-midnight-blue{
@@ -933,8 +959,8 @@ textarea {
 
 .blog-header {
     line-height: 1;
-    border-bottom: 1px solid #e5e5e5;
-}
+    /* border-bottom: 1px solid #e5e5e5; */
+  }
 
 .modal {
     position: fixed;
