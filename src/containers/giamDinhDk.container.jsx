@@ -10,158 +10,286 @@ class GiamDinhDkContainer extends Component {
     super(props);
     const me = this;
     this.ref = database.ref();
+
+    this.round = me.fistRound;
+    this.matchNoCurrent;
+    this.matchNoCurrentIndex;
     this.tournamentObj;
+    this.settingObj;
+    this.match;
+    this.scoreTimer;
+    this.matchMartial;
+    this.teamMartial;
+    this.matchMartialNoCurrent = 1;
+    this.refereeMartialScore = '';
+
+    this.refereeName = "";
+    this.referreIndex = -1;
+    this.path = "";
+    this.refereeScore = {
+      "redScore": 0,
+      "blueScore": 0
+    }
+    this.refereeMartialScore = "";
+    this.matchNoCurrentIndex;
+    this.teamNoCurrentIndex;
+
+    this.ref.child('setting').on('value', (snapshot) => {
+      me.settingObj = snapshot.val();
+      $('#tournamentName').html(me.settingObj.tournamentName);
+      this.showChooseRefereeNoModal();
+    })
 
   }
 
+  chooseRefereeNo = () => {
+    let refereeNo = $("input:radio[name ='optionsReferee']:checked").val();
+    if (refereeNo != null && refereeNo != "") {
+      this.hideChooseRefereeNoModal();
 
+      if (refereeNo == "1") {
+        this.refereeName = "Giám định I";
+        this.referreIndex = 0;
+      }
+      else if (refereeNo == "2") {
+        this.refereeName = "Giám định II";
+        this.referreIndex = 1;
+      }
+      else if (refereeNo == "3") {
+        this.refereeName = "Giám định III";
+        this.referreIndex = 2;
+      }
+      $("#gd-name").html(this.refereeName);
 
+      this.ref.child("lastMatch/no").on('value', (snapshot) => {
+        //Kiểm tra kết nối internet
+        this.ref.child('.info/connected').on('value', (snapshot) => {
+          if (!snapshot.val() === true) {
+            $('#internet-status').show();
+          } else {
+            $('#internet-status').hide();
+          }
+        })
 
+        let matchCurrentNoIndex = snapshot.val() - 1;
+        let matchCurrentNo = matchCurrentNoIndex + 1
+        $("#gd-match").html("Trận số " + matchCurrentNo);
+        this.path = "referee/" + this.referreIndex;
+      })
+
+      this.ref.child("lastMatchMartial").on('value', (snapshot) => {
+        //Kiểm tra kết nối internet
+        this.ref.child('.info/connected').on('value', (snapshot) => {
+          if (!snapshot.val() === true) {
+            $('#internet-status').show();
+          } else {
+            $('#internet-status').hide();
+          }
+        })
+
+        let lastMatchMartial = snapshot.val();
+
+        this.matchNoCurrentIndex = lastMatchMartial.matchMartialNo - 1;
+        this.teamNoCurrentIndex = lastMatchMartial.teamMartialNo - 1;
+
+        this.ref.child("tournamentMartial/" + this.matchNoCurrentIndex).once('value', (snapshot) => {
+          $("#match-martial-name").html(snapshot.val().match.name);
+          $("#match-martial-no").html(snapshot.val().team[this.teamNoCurrentIndex].no);
+        })
+
+        this.pathMartial = "tournamentMartial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex + "/refereeMartial/" + this.referreIndex;
+      })
+    }
+  }
+
+  redAddition = (score) => {
+    this.refereeScore.redScore = score;
+    this.ref.child(this.path).update(this.refereeScore);
+    if (score >= 0) {
+      toast.error("+" + score + " điểm cho ĐỎ");
+    } else {
+      toast.error(score + " điểm cho ĐỎ");
+    }
+
+    this.refereeScore.redScore = 0;
+    this.refereeScore.blueScore = 0;
+  }
+
+  blueAddition = (score) => {
+    this.refereeScore.blueScore = score;
+    this.ref.child(this.path).update(this.refereeScore);
+    if (score >= 0) {
+      toast.info("+" + score + " điểm cho XANH");
+    } else {
+      toast.info(score + " điểm cho XANH");
+    }
+    this.refereeScore.redScore = 0;
+    this.refereeScore.blueScore = 0;
+  }
+
+  showShortcut = () => {
+    this.showModalShortcut();
+  }
+
+  showChooseRefereeNoModal = () => {
+    $('#chooseRefereeNoModal').removeClass('modal display-none').addClass('modal display-block');
+  };
+  hideChooseRefereeNoModal = () => {
+    $('#chooseRefereeNoModal').removeClass('modal display-block').addClass('modal display-none');;
+  };
+  showModalShortcut = () => {
+    $('#modalShortcut').removeClass('modal display-none').addClass('modal display-block');
+  };
+  hideModalShortcut = () => {
+    $('#modalShortcut').removeClass('modal display-block').addClass('modal display-none');;
+  };
 
   render() {
     return (
       <div>
-<div style={{ height: '100vh' }}>
-        {/* <div className="vsc-initialized" style={{margin: '0px'}}> */}
-        <div className="vsc-initialized">
-          <div className="gd-info">
-            <header className="blog-header p-3">
-              <div className="col-12 text-center">
-                <span className="text-muted">
-                  <a href="#" onClick={this.showShortcut}><img src={logo} alt="FPT University - FVC - Bùi Tiến Tuân"
-                    // className="img-fluid" style={{height: '50px'}} /></a>
-                    className="img-fluid" /></a>
-                </span>
-              </div>
-            </header>
-            <header className="blog-header p-3">
-              <div className="row justify-content-between align-items-center">
-
+        <div className="body" style={{ height: '100vh' }}>
+          <div className="vsc-initialized" style={{ height: '100%' }}>
+            <div className="gd-info">
+              <header className="blog-header p-3">
                 <div className="col-12 text-center">
-                  <h1 className="blog-header-logo text-midnight-blue" id="gd-name">&nbsp;</h1>
-                  <h1 className="blog-header-logo" id="gd-match">&nbsp;</h1>
+                  <span className="text-muted">
+                    <a href="#" onClick={this.showShortcut}><img src={logo} alt="FPT University - FVC - Bùi Tiến Tuân"
+                      className="img-fluid" style={{ height: '50px' }} /></a>
+                  </span>
                 </div>
+              </header>
+              <header className="blog-header p-3">
+                <div className="row justify-content-between align-items-center">
 
+                  <div className="col-12 text-center">
+                    <h1 className="blog-header-logo text-midnight-blue" id="gd-name">&nbsp;</h1>
+                    <h1 className="blog-header-logo" id="gd-match">&nbsp;</h1>
+                  </div>
+
+                </div>
+              </header>
+            </div>
+            <div className="score-gd-area">
+              <div className="red-score-refereeSc gdp">
+                <div className="add-score one red" onClick={() => this.redAddition(1)}>
+                  <span className="info-text">
+                    1
+                  </span>
+                </div>
+                <div className="add-score two red" onClick={() => this.redAddition(2)}>
+                  <span className="info-text">
+                    2
+                  </span>
+                </div>
               </div>
-            </header>
-          </div>
-          <div className="score-gd-area">
-            <div className="red-score-refereeSc gdp">
-              <div className="add-score one red" onclick="redAddition(1)">
-                <span className="info-text">
-                  1
-                </span>
-              </div>
-              <div className="add-score two red" onclick="redAddition(2)">
-                <span className="info-text">
-                  2
-                </span>
+              <div className="blue-score-refereeSc gdp">
+                <div className="add-score one blue" onClick={() => this.blueAddition(1)}>
+                  <span className="info-text">
+                    1
+                  </span>
+                </div>
+                <div className="add-score two blue" onClick={() => this.blueAddition(2)}>
+                  <span className="info-text">
+                    2
+                  </span>
+                </div>
               </div>
             </div>
-            <div className="blue-score-refereeSc gdp">
-              <div className="add-score one blue" onclick="blueAddition(1)">
-                <span className="info-text">
-                  1
-                </span>
-              </div>
-              <div className="add-score two blue" onclick="blueAddition(2)">
-                <span className="info-text">
-                  2
-                </span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="modal fade" id="chooseRefereeNoModal" tabindex="-1" role="dialog">
+
+            <div className="modal display-none" id="chooseRefereeNoModal" tabIndex="-1" role="dialog">
             <div className="modal-dialog" role="document">
               <div className="modal-content">
                 <div className="modal-header">
-                  <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn mã giám định của bạn</h5>
-                  <button type="button" className="close" data-dismiss="modal" aria-label="Close">
+                  <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn mã giám định của bạn
+                  </h5>
+                  <button type="button" className="close" data-dismiss="modal" onClick={this.hideChooseRefereeNoModal} aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                   </button>
                 </div>
                 <div className="modal-body">
                   <div className="btn-group btn-group-toggle" data-toggle="buttons">
                     <label className="btn btn-warning active">
-                      <input type="radio" name="optionsReferee" value="1" autocomplete="off" checked /><i className="fa-solid fa-user"></i> Giám định I
+                      <input type="radio" name="optionsReferee" value="1" autoComplete="off" defaultChecked />
+                      <i className="fa-solid fa-user"></i> Giám định I
                     </label>
                     <label className="btn btn-warning">
-                      <input type="radio" name="optionsReferee" value="2" autocomplete="off" /><i className="fa-solid fa-user"></i> Giám định II
+                      <input type="radio" name="optionsReferee" value="2" autoComplete="off" />
+                      <i className="fa-solid fa-user"></i> Giám định II
                     </label>
                     <label className="btn btn-warning">
-                      <input type="radio" name="optionsReferee" value="3" autocomplete="off" /><i className="fa-solid fa-user"></i> Giám định III
+                      <input type="radio" name="optionsReferee" value="3" autoComplete="off" />
+                      <i className="fa-solid fa-user"></i> Giám định III
                     </label>
                   </div>
                 </div>
                 <div className="modal-footer">
                   <button type="button" className="btn btn-primary" onClick={this.chooseRefereeNo}>OK</button>
-                  <button type="button" className="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                  <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hideChooseRefereeNoModal}>Cancel</button>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="modal fade" id="modalShortcut" tabindex="-1" role="dialog">
-            <div className="modal-dialog" role="document">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-keyboard"></i> Các phím tắt</h5>
-                  <button type="button" className="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                  </button>
-                </div>
-                <div className="modal-body">
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th scope="col">Biểu Tượng</th>
-                        <th scope="col">Tên phím tắt</th>
-                        <th scope="col">Chức năng</th>
-                        <th scope="col">Ghi chú</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <th scope="row">←</th>
-                        <td>Trái</td>
-                        <td>+2 Đỏ</td>
-                        <td></td>
-                      </tr>
-                      <tr>
-                        <th scope="row">↑</th>
-                        <td>Lên</td>
-                        <td>+1 Đỏ</td>
-                        <td></td>
-                      </tr>
-                      <tr>
-                        <th scope="row">→</th>
-                        <td>Phải</td>
-                        <td>+2 Xanh</td>
-                        <td></td>
-                      </tr>
-                      <tr>
-                        <th scope="row">↓</th>
-                        <td>Xuống</td>
-                        <td>+1 Xanh</td>
-                        <td></td>
-                      </tr>
-                      <tr>
-                        <th scope="row">—</th>
-                        <td>Space</td>
-                        <td>Hủy điểm vừa chấm</td>
-                        <td></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" data-dismiss="modal">Close</button>
+            <div className="modal display-none" id="modalShortcut" tabIndex="-1" role="dialog">
+              <div className="modal-dialog" role="document">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-keyboard"></i> Các phím tắt</h5>
+                    <button type="button" className="close" data-dismiss="modal" onClick={this.hideChooseRefereeNoModal} aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div className="modal-body">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th scope="col">Biểu Tượng</th>
+                          <th scope="col">Tên phím tắt</th>
+                          <th scope="col">Chức năng</th>
+                          <th scope="col">Ghi chú</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <th scope="row">←</th>
+                          <td>Trái</td>
+                          <td>+2 Đỏ</td>
+                          <td></td>
+                        </tr>
+                        <tr>
+                          <th scope="row">↑</th>
+                          <td>Lên</td>
+                          <td>+1 Đỏ</td>
+                          <td></td>
+                        </tr>
+                        <tr>
+                          <th scope="row">→</th>
+                          <td>Phải</td>
+                          <td>+2 Xanh</td>
+                          <td></td>
+                        </tr>
+                        <tr>
+                          <th scope="row">↓</th>
+                          <td>Xuống</td>
+                          <td>+1 Xanh</td>
+                          <td></td>
+                        </tr>
+                        <tr>
+                          <th scope="row">—</th>
+                          <td>Space</td>
+                          <td>Hủy điểm vừa chấm</td>
+                          <td></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="modal-footer">
+                    <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hideChooseRefereeNoModal}>Close</button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
         </div>
         <ToastContainer />
 

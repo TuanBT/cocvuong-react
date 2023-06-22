@@ -160,7 +160,7 @@ class GiamDinhHdContainer extends Component {
     return (
       <div>
 
-<div className="body style-gd-hd-body" style={{ height: '100vh' }}>
+        <div className="body style-gd-hd-body" style={{ height: '100vh' }}>
           <div className="vsc-initialized">
             <div className="container-fluit">
               <header className="blog-header p-3">
