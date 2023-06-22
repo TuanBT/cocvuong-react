@@ -11,8 +11,8 @@ import TestContainer from './containers/test.container';
 import InformationDkContainer from './containers/infomationDK.container';
 import ChamDiemDkContainer from './containers/chamDiemDk.container';
 import ChamDiemHdContainer from './containers/chamDiemHd.container';
-import GiamDinhHdContainer from './containers/giamDinhDk.container';
-import GiamDinhDkContainer from './containers/giamDinhHd.container';
+import GiamDinhHdContainer from './containers/giamDinhHd.container';
+import GiamDinhDkContainer from './containers/giamDinhDk.container';
 import { messaging } from './firebase';
 
 ReactDOM.render(

@@ -2,9 +2,10 @@ import React, { Component } from 'react';
 import $ from 'jquery';
 import { database } from '../firebase';
 import logo from '../assets/img/logo.png';
-import "../assets/css/style.css";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-class InformationDkContainer extends Component {
+class GiamDinhDkContainer extends Component {
   constructor(props) {
     super(props);
     const me = this;
@@ -20,14 +21,16 @@ class InformationDkContainer extends Component {
   render() {
     return (
       <div>
-
-        <div className="vsc-initialized" style={{margin: '0'}}>
+<div style={{ height: '100vh' }}>
+        {/* <div className="vsc-initialized" style={{margin: '0px'}}> */}
+        <div className="vsc-initialized">
           <div className="gd-info">
             <header className="blog-header p-3">
               <div className="col-12 text-center">
                 <span className="text-muted">
                   <a href="#" onClick={this.showShortcut}><img src={logo} alt="FPT University - FVC - Bùi Tiến Tuân"
-                    className="img-fluid" style={{height: '50px'}} /></a>
+                    // className="img-fluid" style={{height: '50px'}} /></a>
+                    className="img-fluid" /></a>
                 </span>
               </div>
             </header>
@@ -44,11 +47,6 @@ class InformationDkContainer extends Component {
           </div>
           <div className="score-gd-area">
             <div className="red-score-refereeSc gdp">
-              {/* <div className="add-score zero red" onclick="redAddition(-1)">
-                <span className="info-text">
-                    -1
-                </span>
-            </div>  */}
               <div className="add-score one red" onclick="redAddition(1)">
                 <span className="info-text">
                   1
@@ -61,11 +59,6 @@ class InformationDkContainer extends Component {
               </div>
             </div>
             <div className="blue-score-refereeSc gdp">
-              {/* <div className="add-score zero blue" onclick="blueAddition(-1)">
-                <span className="info-text">
-                    -1
-                </span>
-            </div>  */}
               <div className="add-score one blue" onclick="blueAddition(1)">
                 <span className="info-text">
                   1
@@ -78,32 +71,7 @@ class InformationDkContainer extends Component {
               </div>
             </div>
           </div>
-
-          <div className="modal fade" id="passwordModal" tabindex="-1" role="dialog">
-            <div className="modal-dialog" role="document">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-lock"></i> Vui lòng nhập mật khẩu</h5>
-                  <button type="button" className="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                  </button>
-                </div>
-                <div className="modal-body">
-                  <div className="input-group mb-3">
-                    <div className="input-group-prepend">
-                      <span className="input-group-text"><i className="fa fa-key" aria-hidden="true"></i></span>
-                    </div>
-                    <input type="password" className="form-control" placeholder="Mật khẩu" id="txtPassword" />
-                  </div>
-                </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-primary ok-button" onClick={this.verifyPassword}>OK</button>
-                  <button type="button" className="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
+          
           <div className="modal fade" id="chooseRefereeNoModal" tabindex="-1" role="dialog">
             <div className="modal-dialog" role="document">
               <div className="modal-content">
@@ -194,10 +162,12 @@ class InformationDkContainer extends Component {
             </div>
           </div>
         </div>
+        </div>
+        <ToastContainer />
 
       </div>
     );
   }
 }
 
-export default InformationDkContainer;
+export default GiamDinhDkContainer;

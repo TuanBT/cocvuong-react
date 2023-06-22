@@ -7,7 +7,7 @@ import sound from '../assets/sound/bell-school.wav';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-class InformationDkContainer extends Component {
+class ChamDiemHdContainer extends Component {
   constructor(props) {
     super(props);
     const me = this;
@@ -635,4 +635,4 @@ class InformationDkContainer extends Component {
   }
 }
 
-export default InformationDkContainer;
+export default ChamDiemHdContainer;
