@@ -15,7 +15,6 @@ import GiamDinhDkContainer from './containers/giamDinhDk.container';
 import SettingContainer from './containers/setting.container';
 import LoginContainer from './containers/login.container';
 import SignupContainer from './containers/signup.container';
-import { messaging } from './firebase';
 
 ReactDOM.render(
   <Provider store={store}>
@@ -36,8 +35,3 @@ ReactDOM.render(
   </Provider>,
   document.getElementById('root')
 );
-
-// logging our messaging notification
-messaging.onMessage(payload => {
-  console.log(payload);
-})
