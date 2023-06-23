@@ -27,17 +27,10 @@ class HomeContainer extends Component {
           Welcome Home
         </p>
 
-        <main>
-          <h1><b>Auth with</b> <span>Firebase</span> <b>and</b> <span>React</span></h1>
-          <section>
-          <a href="/login">Login</a><br />
-          <a href="/signup">Signup</a><br />
-          </section>
-        </main>
-
-
         <div className="body login">
           <h1>
+          <a href="/test">Test</a><br />
+            <br />
             <a href="/login">Login</a><br />
             <br />
             <a href="/signup">Signup</a><br />
