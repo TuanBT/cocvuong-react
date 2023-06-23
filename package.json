@@ -11,15 +11,9 @@
     "react-dom": "^15.6.1",
     "react-file-input": "^0.2.5",
     "react-intl": "^2.3.0",
-    "react-redux": "^5.0.5",
     "react-router": "^4.1.1",
     "react-router-dom": "^4.1.1",
-    "react-router-redux": "^5.0.0-alpha.6",
-    "react-toastify": "^4.5.2",
-    "redux": "^3.7.1",
-    "redux-actions": "^2.2.1",
-    "redux-logger": "^3.0.6",
-    "redux-thunk": "^2.2.0"
+    "react-toastify": "^4.5.2"
   },
   "devDependencies": {
     "gh-pages": "^3.2.3",
