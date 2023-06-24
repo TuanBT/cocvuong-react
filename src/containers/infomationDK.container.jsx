@@ -16,18 +16,17 @@ class InformationDkContainer extends Component {
       me.tournamentObj = snapshot.val();
       me.showListInfo();
 
-      $(".btn").click(
-        function () {
-          let value = $('input[name="optionCategory"]:checked').val();
-          me.showListMatchs(value);
-        }
+      $(".btn").click(() => {
+        let value = $('input[name="optionCategory"]:checked').val();
+        me.showListMatchs(value);
+      }
       )
     });
 
     this.ref.on('value', function (snapshot) {
-        me.tournamentObj = snapshot.val();
-        let value = $('input[name="optionCategory"]:checked').val();
-        me.showListMatchs(value);
+      me.tournamentObj = snapshot.val();
+      let value = $('input[name="optionCategory"]:checked').val();
+      me.showListMatchs(value);
     });
 
     this.brackets = [];

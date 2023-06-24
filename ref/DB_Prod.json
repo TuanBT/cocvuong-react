@@ -1,0 +1,3977 @@
+{
+  "lastMatch": {
+    "no": 48
+  },
+  "lastMatchMartial": {
+    "matchMartialNo": 18,
+    "teamMartialNo": 6
+  },
+  "pass": {
+    "firstPass": "H",
+    "fvcPass": "H",
+    "secondPass": "H"
+  },
+  "referee": [
+    {
+      "blueScore": 0,
+      "redScore": 0
+    },
+    {
+      "blueScore": 0,
+      "redScore": 0
+    },
+    {
+      "blueScore": 0,
+      "redScore": 0
+    }
+  ],
+  "setting": {
+    "timeBreak": 60,
+    "timeExtra": 60,
+    "timeExtraBreak": 60,
+    "timeRound": 120,
+    "tournamentName": "FPT Edu Khơi Nguồn Võ Việt 2022"
+  },
+  "tournament": [
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Lý Quang Lưu",
+          "score": 3
+        },
+        "redFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Trần Minh Phụng",
+          "score": 4
+        }
+      },
+      "match": {
+        "category": "55kg nam",
+        "no": 1,
+        "type": "Vòng loại",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Hoàng Duy Anh",
+          "score": 1
+        },
+        "redFighter": {
+          "code": "FPT University (A)",
+          "name": "Nguyễn Xuân Khang",
+          "score": 2
+        }
+      },
+      "match": {
+        "category": "55kg nam",
+        "no": 2,
+        "type": "Vòng loại",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "FPT University (A)",
+          "name": "Nguyễn Đức Huy",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "Swinburne (Việt Nam) (A)",
+          "name": "Phan Nguyễn Quang Khang",
+          "score": 0
+        }
+      },
+      "match": {
+        "category": "55kg nam",
+        "no": 3,
+        "type": "Vòng loại",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "FPT University (A)",
+          "name": "Lê Đức Trọng",
+          "score": 1
+        },
+        "redFighter": {
+          "code": "FPT University (A)",
+          "name": "Nguyễn Bảo Phú",
+          "score": 4
+        }
+      },
+      "match": {
+        "category": "60kg nam",
+        "no": 4,
+        "type": "Vòng loại",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Nguyễn Thái Vĩnh",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Đinh Hoàng Danh",
+          "score": 0
+        }
+      },
+      "match": {
+        "category": "60kg nam",
+        "no": 5,
+        "type": "Vòng loại",
+        "win": "blue"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "FPT University (A)",
+          "name": "Nguyễn Phúc Long",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "FPT University (A)",
+          "name": "Lê Đắc Lợi",
+          "score": 0
+        }
+      },
+      "match": {
+        "category": "55kg nam",
+        "no": 6,
+        "type": "Vòng loại",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "Greenwich (Việt Nam) (A)",
+          "name": "Phạm Mai Nhật Trường",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Trần Minh Phụng",
+          "score": 3
+        }
+      },
+      "match": {
+        "category": "55kg nam",
+        "no": 7,
+        "type": "Vòng loại",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "FPT University (A)",
+          "name": "Nguyễn Xuân Khang",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "FPT University (A)",
+          "name": "Nguyễn Linh Cảnh",
+          "score": 0
+        }
+      },
+      "match": {
+        "category": "55kg nam",
+        "no": 8,
+        "type": "Vòng loại",
+        "win": "blue"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "FPT University (A)",
+          "name": "Trần Lê Minh",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "Swinburne (Việt Nam) (A)",
+          "name": "Phan Nguyễn Quang Khang",
+          "score": 0
+        }
+      },
+      "match": {
+        "category": "55kg nam",
+        "no": 9,
+        "type": "Vòng loại",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "FPT University (A)",
+          "name": "Đặng Quốc Tuân",
+          "score": 1
+        },
+        "redFighter": {
+          "code": "FPT University (A)",
+          "name": "Võ Minh Hiền",
+          "score": 7
+        }
+      },
+      "match": {
+        "category": "60kg nam",
+        "no": 10,
+        "type": "Vòng loại",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "Greenwich (Việt Nam) (A)",
+          "name": "Trương Công Tuệ Tĩnh",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "FPT University (A)",
+          "name": "Nguyễn Bảo Phú",
+          "score": 1
+        }
+      },
+      "match": {
+        "category": "60kg nam",
+        "no": 11,
+        "type": "Vòng loại",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Nguyễn Thái Vĩnh",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Hồ Viết Thuận",
+          "score": 0
+        }
+      },
+      "match": {
+        "category": "60kg nam",
+        "no": 12,
+        "type": "Vòng loại",
+        "win": "blue"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "FPT University (A)",
+          "name": "Nguyễn Văn Bình",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "Swinburne (Việt Nam) (A)",
+          "name": "Nguyễn Bình Ca",
+          "score": 0
+        }
+      },
+      "match": {
+        "category": "60kg nam",
+        "no": 13,
+        "type": "Vòng loại",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "Swinburne (Việt Nam) (A)",
+          "name": "Nguyễn Hoàng Long",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "FPT University (A)",
+          "name": "Nguyễn Công Tài",
+          "score": 0
+        }
+      },
+      "match": {
+        "category": "65kg nam",
+        "no": 14,
+        "type": "Vòng loại",
+        "win": "blue"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Lê Trung Tiến",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "FPT University (A)",
+          "name": "Trần Gia Quyên",
+          "score": 0
+        }
+      },
+      "match": {
+        "category": "65kg nam",
+        "no": 15,
+        "type": "Vòng loại",
+        "win": "blue"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Đỗ Nguyễn Đăng Khoa",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "FPT University (A)",
+          "name": "Lưu Triều Lễ",
+          "score": 0
+        }
+      },
+      "match": {
+        "category": "65kg nam",
+        "no": 16,
+        "type": "Vòng loại",
+        "win": "blue"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "FPT University (A)",
+          "name": "Bùi Vĩnh Lộc",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "Greenwich (Việt Nam) (A)",
+          "name": "Mạc Đăng Hải",
+          "score": 0
+        }
+      },
+      "match": {
+        "category": "70kg nam",
+        "no": 17,
+        "type": "Vòng loại",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "Swinburne (Việt Nam) (A)",
+          "name": "Dương Quý Thành",
+          "score": -2
+        },
+        "redFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Nguyễn Hoàng Thuận",
+          "score": 2
+        }
+      },
+      "match": {
+        "category": "70kg nam",
+        "no": 18,
+        "type": "Vòng loại",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Nguyễn Quốc Đạt",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "FPT University (A)",
+          "name": "Nguyễn Thành Nhân",
+          "score": 0
+        }
+      },
+      "match": {
+        "category": "70kg nam",
+        "no": 19,
+        "type": "Vòng loại",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "FPT University (A)",
+          "name": "Ngô Nguyễn Thanh Phong",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "FPT University (A)",
+          "name": "Hoàng Minh Tiến",
+          "score": 0
+        }
+      },
+      "match": {
+        "category": "70kg nam",
+        "no": 20,
+        "type": "Vòng loại",
+        "win": ""
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "Greenwich (Việt Nam) (A)",
+          "name": "Nguyễn Tấn Đạt",
+          "score": 3
+        },
+        "redFighter": {
+          "code": "Swinburne (Việt Nam) (A)",
+          "name": "Lê Hoàng Hải",
+          "score": -1
+        }
+      },
+      "match": {
+        "category": "75kg nam",
+        "no": 21,
+        "type": "Vòng loại",
+        "win": "blue"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "Swinburne (Việt Nam) (A)",
+          "name": "Trần Nhật Anh",
+          "score": 1
+        },
+        "redFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Nguyễn Anh Minh",
+          "score": 1
+        }
+      },
+      "match": {
+        "category": "75kg nam",
+        "no": 22,
+        "type": "Vòng loại",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "Swinburne (Việt Nam) (A)",
+          "name": "Phạm Ngọc Phương Nhi",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "FPT University (A)",
+          "name": "Nguyễn Huỳnh Mai Ngân",
+          "score": 6
+        }
+      },
+      "match": {
+        "category": "45kg nữ",
+        "no": 23,
+        "type": "Bán kết",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "FPT University (A)",
+          "name": "Nguyễn Thanh Vân",
+          "score": 2
+        },
+        "redFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Hồ Phương Vy",
+          "score": 3
+        }
+      },
+      "match": {
+        "category": "50kg nữ",
+        "no": 24,
+        "type": "Bán kết",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "Swinburne (Việt Nam) (A)",
+          "name": "Phạm Thị Thanh Phương",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Nguyễn Thị Hồng Yên",
+          "score": 3
+        }
+      },
+      "match": {
+        "category": "50kg nữ",
+        "no": 25,
+        "type": "Bán kết",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "FPT University (A)",
+          "name": "Phạm Thanh Hiền",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "FPT University (A)",
+          "name": "Trần Thị Minh Thư",
+          "score": 0
+        }
+      },
+      "match": {
+        "category": "55kg nữ",
+        "no": 26,
+        "type": "Bán kết",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "FPT University (A)",
+          "name": "Trần Thị Kim Oanh",
+          "score": 9
+        },
+        "redFighter": {
+          "code": "Swinburne (Việt Nam) (A)",
+          "name": "Lê Ngọc Đông Nghi",
+          "score": 0
+        }
+      },
+      "match": {
+        "category": "60kg nữ",
+        "no": 27,
+        "type": "Bán kết",
+        "win": "blue"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "Swinburne (Việt Nam) (A)",
+          "name": "Nguyễn Ngọc Minh Thy",
+          "score": 1
+        },
+        "redFighter": {
+          "code": "FPT University (A)",
+          "name": "Võ Bùi Hải Nguyên",
+          "score": 6
+        }
+      },
+      "match": {
+        "category": "65kg nữ",
+        "no": 28,
+        "type": "Bán kết",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Trần Minh Phụng",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "FPT University (A)",
+          "name": "Lê Đắc Lợi",
+          "score": 6
+        }
+      },
+      "match": {
+        "category": "55kg nam",
+        "no": 29,
+        "type": "Bán kết",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "Swinburne (Việt Nam) (A)",
+          "name": "Phan Nguyễn Quang Khang",
+          "score": -3
+        },
+        "redFighter": {
+          "code": "FPT University (A)",
+          "name": "Nguyễn Xuân Khang",
+          "score": 7
+        }
+      },
+      "match": {
+        "category": "55kg nam",
+        "no": 30,
+        "type": "Bán kết",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "FPT University (A)",
+          "name": "Nguyễn Bảo Phú",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "FPT University (A)",
+          "name": "Võ Minh Hiền",
+          "score": 0
+        }
+      },
+      "match": {
+        "category": "60kg nam",
+        "no": 31,
+        "type": "Bán kết",
+        "win": "blue"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "Swinburne (Việt Nam) (A)",
+          "name": "Nguyễn Bình Ca",
+          "score": -1
+        },
+        "redFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Nguyễn Thái Vĩnh",
+          "score": 5
+        }
+      },
+      "match": {
+        "category": "60kg nam",
+        "no": 32,
+        "type": "Bán kết",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "Swinburne (Việt Nam) (A)",
+          "name": "Nguyễn Hoàng Long",
+          "score": 3
+        },
+        "redFighter": {
+          "code": "Greenwich (Việt Nam) (A)",
+          "name": "Cao Trí Tưởng",
+          "score": 2
+        }
+      },
+      "match": {
+        "category": "65kg nam",
+        "no": 33,
+        "type": "Bán kết",
+        "win": "blue"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Đỗ Nguyễn Đăng Khoa",
+          "score": 8
+        },
+        "redFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Lê Trung Tiến",
+          "score": -2
+        }
+      },
+      "match": {
+        "category": "65kg nam",
+        "no": 34,
+        "type": "Bán kết",
+        "win": "blue"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Nguyễn Hoàng Thuận",
+          "score": 5
+        },
+        "redFighter": {
+          "code": "Greenwich (Việt Nam) (A)",
+          "name": "Mạc Đăng Hải",
+          "score": 3
+        }
+      },
+      "match": {
+        "category": "70kg nam",
+        "no": 35,
+        "type": "Bán kết",
+        "win": "blue"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "",
+          "name": "W.20",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "FPT University (A)",
+          "name": "Nguyễn Thành Nhân",
+          "score": 0
+        }
+      },
+      "match": {
+        "category": "70kg nam",
+        "no": 36,
+        "type": "Bán kết",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "Greenwich (Việt Nam) (A)",
+          "name": "Nguyễn Tấn Đạt",
+          "score": 2
+        },
+        "redFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Cao Hoàng Duy",
+          "score": 3
+        }
+      },
+      "match": {
+        "category": "75kg nam",
+        "no": 37,
+        "type": "Bán kết",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "FPT University (A)",
+          "name": "Lê Trần Minh Đạt",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Nguyễn Anh Minh",
+          "score": 0
+        }
+      },
+      "match": {
+        "category": "75kg nam",
+        "no": 38,
+        "type": "Bán kết",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "FPT University (A)",
+          "name": "Nguyễn Huỳnh Mai Ngân",
+          "score": 3
+        },
+        "redFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Đặng Thị Huyền",
+          "score": 0
+        }
+      },
+      "match": {
+        "category": "45kg nữ",
+        "no": 39,
+        "type": "Chung kết",
+        "win": "blue"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Nguyễn Thị Hồng Yên",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Hồ Phương Vy",
+          "score": 1
+        }
+      },
+      "match": {
+        "category": "50kg nữ",
+        "no": 40,
+        "type": "Chung kết",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "FPT University (A)",
+          "name": "Trần Thị Minh Thư",
+          "score": 1
+        },
+        "redFighter": {
+          "code": "Greenwich (Việt Nam) (A)",
+          "name": "Trần Phạm Hà My",
+          "score": 5
+        }
+      },
+      "match": {
+        "category": "55kg nữ",
+        "no": 41,
+        "type": "Chung kết",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "FPT University (A)",
+          "name": "Trần Thị Kim Oanh",
+          "score": 5
+        },
+        "redFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Võ Thị Hiền Duyên",
+          "score": 1
+        }
+      },
+      "match": {
+        "category": "60kg nữ",
+        "no": 42,
+        "type": "Chung kết",
+        "win": "blue"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "FPT University (A)",
+          "name": "Võ Bùi Hải Nguyên",
+          "score": 1
+        },
+        "redFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Đặng Nguyễn Xuân Thy",
+          "score": 0
+        }
+      },
+      "match": {
+        "category": "65kg nữ",
+        "no": 43,
+        "type": "Chung kết",
+        "win": "blue"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "FPT University (A)",
+          "name": "Nguyễn Xuân Khang",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "FPT University (A)",
+          "name": "Lê Đắc Lợi",
+          "score": 0
+        }
+      },
+      "match": {
+        "category": "55kg nam",
+        "no": 44,
+        "type": "Chung kết",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Nguyễn Thái Vĩnh",
+          "score": 2
+        },
+        "redFighter": {
+          "code": "FPT University (A)",
+          "name": "Nguyễn Bảo Phú",
+          "score": 1
+        }
+      },
+      "match": {
+        "category": "60kg nam",
+        "no": 45,
+        "type": "Chung kết",
+        "win": "blue"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Đỗ Nguyễn Đăng Khoa",
+          "score": 3
+        },
+        "redFighter": {
+          "code": "Swinburne (Việt Nam) (A)",
+          "name": "Nguyễn Hoàng Long",
+          "score": -1
+        }
+      },
+      "match": {
+        "category": "65kg nam",
+        "no": 46,
+        "type": "Chung kết",
+        "win": "blue"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "FPT University (A)",
+          "name": "Nguyễn Thành Nhân",
+          "score": 0
+        },
+        "redFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Nguyễn Hoàng Thuận",
+          "score": 0
+        }
+      },
+      "match": {
+        "category": "70kg nam",
+        "no": 47,
+        "type": "Chung kết",
+        "win": "red"
+      }
+    },
+    {
+      "fighters": {
+        "blueFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Nguyễn Anh Minh",
+          "score": -1
+        },
+        "redFighter": {
+          "code": "CĐ FPT Polytechnic (A)",
+          "name": "Cao Hoàng Duy",
+          "score": 6
+        }
+      },
+      "match": {
+        "category": "75kg nam",
+        "no": 48,
+        "type": "Chung kết",
+        "win": "red"
+      }
+    }
+  ],
+  "tournamentMartial": [
+    {
+      "match": {
+        "name": "KHỞI QUYỀN NỮ"
+      },
+      "team": [
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Hoàng Thanh Tâm",
+                "name": "SS180955"
+              }
+            }
+          ],
+          "no": "1",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Phạm Thanh Hiền",
+                "name": "SE170031"
+              }
+            }
+          ],
+          "no": "2",
+          "refereeMartial": [
+            {
+              "score": 84
+            },
+            {
+              "score": 86
+            },
+            {
+              "score": 82
+            }
+          ],
+          "score": 252
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Lê Thị Linh",
+                "name": "SS170837"
+              }
+            }
+          ],
+          "no": "3",
+          "refereeMartial": [
+            {
+              "score": 86
+            },
+            {
+              "score": 87
+            },
+            {
+              "score": 85
+            }
+          ],
+          "score": 258
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Phan Hoàng Bảo Trân",
+                "name": "SA170011"
+              }
+            }
+          ],
+          "no": "4",
+          "refereeMartial": [
+            {
+              "score": 83
+            },
+            {
+              "score": 84
+            },
+            {
+              "score": 83
+            }
+          ],
+          "score": 250
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Thị Minh Thư",
+                "name": "SS170195"
+              }
+            }
+          ],
+          "no": "5",
+          "refereeMartial": [
+            {
+              "score": 85
+            },
+            {
+              "score": 85
+            },
+            {
+              "score": 84
+            }
+          ],
+          "score": 254
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Thị Ngọc Như",
+                "name": "SS171039"
+              }
+            }
+          ],
+          "no": "6",
+          "refereeMartial": [
+            {
+              "score": 87
+            },
+            {
+              "score": 86
+            },
+            {
+              "score": 85
+            }
+          ],
+          "score": 258
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Võ Thị Diệu Thảo",
+                "name": "SS170151"
+              }
+            }
+          ],
+          "no": "7",
+          "refereeMartial": [
+            {
+              "score": 85
+            },
+            {
+              "score": 85
+            },
+            {
+              "score": 86
+            }
+          ],
+          "score": 256
+        }
+      ]
+    },
+    {
+      "match": {
+        "name": "NHẬP MÔN QUYỀN NỮ"
+      },
+      "team": [
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Huỳnh Lê Thanh Trúc",
+                "name": "SE170418"
+              }
+            }
+          ],
+          "no": "1",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Minh Uyên",
+                "name": "SE170498"
+              }
+            }
+          ],
+          "no": "2",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Hoàng Thanh Tâm",
+                "name": "SS180955"
+              }
+            }
+          ],
+          "no": "3",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trương Thị Mai Vy",
+                "name": "SS171119"
+              }
+            }
+          ],
+          "no": "4",
+          "refereeMartial": [
+            {
+              "score": 84
+            },
+            {
+              "score": 85
+            },
+            {
+              "score": 84
+            }
+          ],
+          "score": 253
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Phan Anh Thư",
+                "name": "SS171055"
+              }
+            }
+          ],
+          "no": "5",
+          "refereeMartial": [
+            {
+              "score": 82
+            },
+            {
+              "score": 82
+            },
+            {
+              "score": 83
+            }
+          ],
+          "score": 247
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Phạm Thanh Hiền",
+                "name": "SE170031"
+              }
+            }
+          ],
+          "no": "6",
+          "refereeMartial": [
+            {
+              "score": 86
+            },
+            {
+              "score": 86
+            },
+            {
+              "score": 85
+            }
+          ],
+          "score": 257
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Lê Thị Linh",
+                "name": "SS170837"
+              }
+            }
+          ],
+          "no": "7",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Thị Ngọc Như",
+                "name": "SS171039"
+              }
+            }
+          ],
+          "no": "8",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Ngô Phương Diễm Quỳnh",
+                "name": "SS170753"
+              }
+            }
+          ],
+          "no": "9",
+          "refereeMartial": [
+            {
+              "score": 83
+            },
+            {
+              "score": 84
+            },
+            {
+              "score": 82
+            }
+          ],
+          "score": 249
+        }
+      ]
+    },
+    {
+      "match": {
+        "name": "THẬP TỰ QUYỀN NỮ"
+      },
+      "team": [
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Hoàng Thanh Tâm",
+                "name": "SS180955"
+              }
+            }
+          ],
+          "no": "1",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Thị Minh Thư",
+                "name": "SS170195"
+              }
+            }
+          ],
+          "no": "2",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Thị Ngọc Như",
+                "name": "SS171039"
+              }
+            }
+          ],
+          "no": "3",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Phạm Thanh Hiền",
+                "name": "SE170031"
+              }
+            }
+          ],
+          "no": "4",
+          "refereeMartial": [
+            {
+              "score": 85
+            },
+            {
+              "score": 84
+            },
+            {
+              "score": 85
+            }
+          ],
+          "score": 254
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Giao Thương",
+                "name": "SA170261"
+              }
+            }
+          ],
+          "no": "5",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Thị Kim Oanh",
+                "name": "SS181087"
+              }
+            }
+          ],
+          "no": "6",
+          "refereeMartial": [
+            {
+              "score": 87
+            },
+            {
+              "score": 86
+            },
+            {
+              "score": 86
+            }
+          ],
+          "score": 259
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Võ Bùi Hải Nguyên",
+                "name": "SS181088"
+              }
+            }
+          ],
+          "no": "7",
+          "refereeMartial": [
+            {
+              "score": 86
+            },
+            {
+              "score": 85
+            },
+            {
+              "score": 87
+            }
+          ],
+          "score": 258
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Phạm Thanh Phương",
+                "name": "SE140910"
+              }
+            }
+          ],
+          "no": "8",
+          "refereeMartial": [
+            {
+              "score": 87
+            },
+            {
+              "score": 86
+            },
+            {
+              "score": 87
+            }
+          ],
+          "score": 260
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Đỗ Thu Thủy",
+                "name": "SA160122"
+              }
+            }
+          ],
+          "no": "9",
+          "refereeMartial": [
+            {
+              "score": 85
+            },
+            {
+              "score": 84
+            },
+            {
+              "score": 84
+            }
+          ],
+          "score": 253
+        }
+      ]
+    },
+    {
+      "match": {
+        "name": "LONG HỔ QUYỀN NỮ"
+      },
+      "team": [
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Hoàng Thanh Tâm",
+                "name": "SS180955"
+              }
+            }
+          ],
+          "no": "1",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Lê Nguyễn Huyền Nhân",
+                "name": "SS160499"
+              }
+            }
+          ],
+          "no": "2",
+          "refereeMartial": [
+            {
+              "score": 81
+            },
+            {
+              "score": 82
+            },
+            {
+              "score": 81
+            }
+          ],
+          "score": 244
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Võ Thị Diệu Thảo",
+                "name": "SS170151"
+              }
+            }
+          ],
+          "no": "3",
+          "refereeMartial": [
+            {
+              "score": 83
+            },
+            {
+              "score": 83
+            },
+            {
+              "score": 82
+            }
+          ],
+          "score": 248
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Võ Bùi Hải Nguyên",
+                "name": "SS181088"
+              }
+            }
+          ],
+          "no": "4",
+          "refereeMartial": [
+            {
+              "score": 85
+            },
+            {
+              "score": 85
+            },
+            {
+              "score": 84
+            }
+          ],
+          "score": 254
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Lê Thị Linh",
+                "name": "SS170837"
+              }
+            }
+          ],
+          "no": "5",
+          "refereeMartial": [
+            {
+              "score": 83
+            },
+            {
+              "score": 84
+            },
+            {
+              "score": 83
+            }
+          ],
+          "score": 250
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Thị Minh Thư",
+                "name": "SS170195"
+              }
+            }
+          ],
+          "no": "6",
+          "refereeMartial": [
+            {
+              "score": 85
+            },
+            {
+              "score": 84
+            },
+            {
+              "score": 85
+            }
+          ],
+          "score": 254
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Phạm Thanh Phương",
+                "name": "SE140910"
+              }
+            }
+          ],
+          "no": "7",
+          "refereeMartial": [
+            {
+              "score": 84
+            },
+            {
+              "score": 86
+            },
+            {
+              "score": 86
+            }
+          ],
+          "score": 256
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Thị Ngọc Như",
+                "name": "SS171039"
+              }
+            }
+          ],
+          "no": "8",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Thị Kim Oanh",
+                "name": "SS181087"
+              }
+            }
+          ],
+          "no": "9",
+          "refereeMartial": [
+            {
+              "score": 86
+            },
+            {
+              "score": 85
+            },
+            {
+              "score": 87
+            }
+          ],
+          "score": 258
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Huỳnh Mai Ngân",
+                "name": "SS170057"
+              }
+            }
+          ],
+          "no": "10",
+          "refereeMartial": [
+            {
+              "score": 87
+            },
+            {
+              "score": 87
+            },
+            {
+              "score": 88
+            }
+          ],
+          "score": 262
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Đỗ Thu Thủy",
+                "name": "SA160122"
+              }
+            }
+          ],
+          "no": "11",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        }
+      ]
+    },
+    {
+      "match": {
+        "name": "TINH HOA LƯỠNG NGHI KIẾM PHÁP NỮ"
+      },
+      "team": [
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Thị Minh Thư",
+                "name": "SS170195"
+              }
+            }
+          ],
+          "no": "1",
+          "refereeMartial": [
+            {
+              "score": 85
+            },
+            {
+              "score": 84
+            },
+            {
+              "score": 84
+            }
+          ],
+          "score": 253
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Thị Ngọc Như",
+                "name": "SS171039"
+              }
+            }
+          ],
+          "no": "2",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Đỗ Thu Thủy",
+                "name": "SA160122"
+              }
+            }
+          ],
+          "no": "3",
+          "refereeMartial": [
+            {
+              "score": 86
+            },
+            {
+              "score": 84
+            },
+            {
+              "score": 84
+            }
+          ],
+          "score": 254
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Thị Kim Oanh",
+                "name": "SS181087"
+              }
+            }
+          ],
+          "no": "4",
+          "refereeMartial": [
+            {
+              "score": 82
+            },
+            {
+              "score": 81
+            },
+            {
+              "score": 83
+            }
+          ],
+          "score": 246
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Võ Bùi Hải Nguyên",
+                "name": "SS181088"
+              }
+            }
+          ],
+          "no": "5",
+          "refereeMartial": [
+            {
+              "score": 86
+            },
+            {
+              "score": 86
+            },
+            {
+              "score": 86
+            }
+          ],
+          "score": 258
+        }
+      ]
+    },
+    {
+      "match": {
+        "name": "KHỞI QUYỀN NAM"
+      },
+      "team": [
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Hữu Danh",
+                "name": "SS170462"
+              }
+            }
+          ],
+          "no": "1",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Phúc Long",
+                "name": "SE170451"
+              }
+            }
+          ],
+          "no": "2",
+          "refereeMartial": [
+            {
+              "score": 83
+            },
+            {
+              "score": 83
+            },
+            {
+              "score": 83
+            }
+          ],
+          "score": 249
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Đoàn Vĩnh Phú",
+                "name": "SE171839"
+              }
+            }
+          ],
+          "no": "3",
+          "refereeMartial": [
+            {
+              "score": 85
+            },
+            {
+              "score": 85
+            },
+            {
+              "score": 84
+            }
+          ],
+          "score": 254
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Võ Anh Kiệt",
+                "name": "SE172259"
+              }
+            }
+          ],
+          "no": "4",
+          "refereeMartial": [
+            {
+              "score": 84
+            },
+            {
+              "score": 84
+            },
+            {
+              "score": 83
+            }
+          ],
+          "score": 251
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Phan Phú Tuấn",
+                "name": "SE181658"
+              }
+            }
+          ],
+          "no": "5",
+          "refereeMartial": [
+            {
+              "score": 85
+            },
+            {
+              "score": 85
+            },
+            {
+              "score": 85
+            }
+          ],
+          "score": 255
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Phạm Phúc Bảo",
+                "name": "SS170346"
+              }
+            }
+          ],
+          "no": "6",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Lê Duy Thanh",
+                "name": "SE171878"
+              }
+            }
+          ],
+          "no": "7",
+          "refereeMartial": [
+            {
+              "score": 82
+            },
+            {
+              "score": 83
+            },
+            {
+              "score": 82
+            }
+          ],
+          "score": 247
+        }
+      ]
+    },
+    {
+      "match": {
+        "name": "NHẬP MÔN QUYỀN NAM"
+      },
+      "team": [
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Phạm Phúc Bảo",
+                "name": "SS170346"
+              }
+            }
+          ],
+          "no": "1",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Đỗ Quý Hồng Lộc",
+                "name": "SE173115"
+              }
+            }
+          ],
+          "no": "2",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Phan Phú Tuấn",
+                "name": "SE181658"
+              }
+            }
+          ],
+          "no": "3",
+          "refereeMartial": [
+            {
+              "score": 85
+            },
+            {
+              "score": 86
+            },
+            {
+              "score": 87
+            }
+          ],
+          "score": 258
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Việt Anh",
+                "name": "SE170371"
+              }
+            }
+          ],
+          "no": "4",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Lê Trần Minh Đạt",
+                "name": "SE170095"
+              }
+            }
+          ],
+          "no": "5",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Võ Anh Kiệt",
+                "name": "SE172259"
+              }
+            }
+          ],
+          "no": "6",
+          "refereeMartial": [
+            {
+              "score": 83
+            },
+            {
+              "score": 86
+            },
+            {
+              "score": 85
+            }
+          ],
+          "score": 254
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Đoàn Vĩnh Phú",
+                "name": "SE171839"
+              }
+            }
+          ],
+          "no": "7",
+          "refereeMartial": [
+            {
+              "score": 84
+            },
+            {
+              "score": 84
+            },
+            {
+              "score": 85
+            }
+          ],
+          "score": 253
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Phúc Long",
+                "name": "SE170451"
+              }
+            }
+          ],
+          "no": "8",
+          "refereeMartial": [
+            {
+              "score": 83
+            },
+            {
+              "score": 82
+            },
+            {
+              "score": 84
+            }
+          ],
+          "score": 249
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Lê Duy Thanh",
+                "name": "SE171878"
+              }
+            }
+          ],
+          "no": "9",
+          "refereeMartial": [
+            {
+              "score": 82
+            },
+            {
+              "score": 82
+            },
+            {
+              "score": 83
+            }
+          ],
+          "score": 247
+        }
+      ]
+    },
+    {
+      "match": {
+        "name": "THẬP TỰ QUYỀN NAM"
+      },
+      "team": [
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Gia Quyên",
+                "name": "SE160950"
+              }
+            }
+          ],
+          "no": "1",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Đoàn Đình Quang Trường",
+                "name": "SE170593"
+              }
+            }
+          ],
+          "no": "2",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Phạm Quang Phúc",
+                "name": "SE172974"
+              }
+            }
+          ],
+          "no": "3",
+          "refereeMartial": [
+            {
+              "score": 85
+            },
+            {
+              "score": 85
+            },
+            {
+              "score": 86
+            }
+          ],
+          "score": 256
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Đoàn Vĩnh Phú",
+                "name": "SE171839"
+              }
+            }
+          ],
+          "no": "4",
+          "refereeMartial": [
+            {
+              "score": 84
+            },
+            {
+              "score": 84
+            },
+            {
+              "score": 85
+            }
+          ],
+          "score": 253
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Phúc Long",
+                "name": "SE170451"
+              }
+            }
+          ],
+          "no": "5",
+          "refereeMartial": [
+            {
+              "score": 82
+            },
+            {
+              "score": 83
+            },
+            {
+              "score": 83
+            }
+          ],
+          "score": 248
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Lê Chí Bảo",
+                "name": "SE173289"
+              }
+            }
+          ],
+          "no": "6",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Lê Duy Thanh",
+                "name": "SE171878"
+              }
+            }
+          ],
+          "no": "7",
+          "refereeMartial": [
+            {
+              "score": 81
+            },
+            {
+              "score": 82
+            },
+            {
+              "score": 82
+            }
+          ],
+          "score": 245
+        }
+      ]
+    },
+    {
+      "match": {
+        "name": "LONG HỔ QUYỀN NAM"
+      },
+      "team": [
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Lê Trần Đức Thịnh",
+                "name": "SE140951"
+              }
+            }
+          ],
+          "no": "1",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Viết Tùng",
+                "name": "SE173655"
+              }
+            }
+          ],
+          "no": "2",
+          "refereeMartial": [
+            {
+              "score": 84
+            },
+            {
+              "score": 86
+            },
+            {
+              "score": 85
+            }
+          ],
+          "score": 255
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Gia Quyên",
+                "name": "SE160950"
+              }
+            }
+          ],
+          "no": "3",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Đình An",
+                "name": "SE173023"
+              }
+            }
+          ],
+          "no": "4",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Tuấn Anh",
+                "name": "SS181261"
+              }
+            }
+          ],
+          "no": "5",
+          "refereeMartial": [
+            {
+              "score": 83
+            },
+            {
+              "score": 83
+            },
+            {
+              "score": 84
+            }
+          ],
+          "score": 250
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Võ Anh Kiệt",
+                "name": "SE172259"
+              }
+            }
+          ],
+          "no": "6",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Võ Minh Hiền",
+                "name": "SE171977"
+              }
+            }
+          ],
+          "no": "7",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        }
+      ]
+    },
+    {
+      "match": {
+        "name": "TINH HOA LƯỠNG NGHI KIẾM PHÁP NAM"
+      },
+      "team": [
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Xuân Khang",
+                "name": "SS170556"
+              }
+            }
+          ],
+          "no": "1",
+          "refereeMartial": [
+            {
+              "score": 84
+            },
+            {
+              "score": 84
+            },
+            {
+              "score": 84
+            }
+          ],
+          "score": 252
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Lê Đắc Lợi",
+                "name": "SE150880"
+              }
+            }
+          ],
+          "no": "2",
+          "refereeMartial": [
+            {
+              "score": 82
+            },
+            {
+              "score": 82
+            },
+            {
+              "score": 83
+            }
+          ],
+          "score": 247
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Lê Trần Đức Thịnh",
+                "name": "SE140951"
+              }
+            }
+          ],
+          "no": "3",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Tuấn Anh",
+                "name": "SS181261"
+              }
+            }
+          ],
+          "no": "4",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Phạm Phúc Bảo",
+                "name": "SS170346"
+              }
+            }
+          ],
+          "no": "5",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Đình An",
+                "name": "SE173023"
+              }
+            }
+          ],
+          "no": "6",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        }
+      ]
+    },
+    {
+      "match": {
+        "name": "KHỞI QUYỀN ĐỒNG ĐỘI NỮ"
+      },
+      "team": [
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Võ Thị Diệu Thảo",
+                "name": "SS170151"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Trần Thị Ngọc Như",
+                "name": "SS171039"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Lê Thị Linh",
+                "name": "SS170837"
+              }
+            }
+          ],
+          "no": "1",
+          "refereeMartial": [
+            {
+              "score": 86
+            },
+            {
+              "score": 86
+            },
+            {
+              "score": 86
+            }
+          ],
+          "score": 258
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Thị Kim Oanh",
+                "name": "SS181087"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Võ Bùi Hải Nguyên",
+                "name": "SS181088"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Nguyễn Đỗ Thu Thủy",
+                "name": "SA160122"
+              }
+            }
+          ],
+          "no": "2",
+          "refereeMartial": [
+            {
+              "score": 85
+            },
+            {
+              "score": 85
+            },
+            {
+              "score": 85
+            }
+          ],
+          "score": 255
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Minh Bảo Thư",
+                "name": "SS170787"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Đỗ Thiên Nga",
+                "name": "SS171294"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Vũ Thị Như Quỳnh",
+                "name": "SE171667"
+              }
+            }
+          ],
+          "no": "3",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        }
+      ]
+    },
+    {
+      "match": {
+        "name": "NHẬP MÔN QUYỀN ĐỒNG ĐỘI NỮ"
+      },
+      "team": [
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Võ Thị Diệu Thảo",
+                "name": "SS170151"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Trần Thị Ngọc Như",
+                "name": "SS171039"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Lê Thị Linh",
+                "name": "SS170837"
+              }
+            }
+          ],
+          "no": "1",
+          "refereeMartial": [
+            {
+              "score": 84
+            },
+            {
+              "score": 83
+            },
+            {
+              "score": 84
+            }
+          ],
+          "score": 251
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Thị Kim Oanh",
+                "name": "SS181087"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Võ Bùi Hải Nguyên",
+                "name": "SS181088"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Nguyễn Đỗ Thu Thủy",
+                "name": "SA160122"
+              }
+            }
+          ],
+          "no": "2",
+          "refereeMartial": [
+            {
+              "score": 82
+            },
+            {
+              "score": 84
+            },
+            {
+              "score": 83
+            }
+          ],
+          "score": 249
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Hồng Luyến",
+                "name": "SE172617"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Hồ Hạnh Nguyên",
+                "name": "SS171003"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Trần Dương Thảo Uyên",
+                "name": "SE171165"
+              }
+            }
+          ],
+          "no": "3",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        }
+      ]
+    },
+    {
+      "match": {
+        "name": "THẬP TỰ QUYỀN ĐỒNG ĐỘI NỮ"
+      },
+      "team": [
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Thị Kim Oanh",
+                "name": "SS181087"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Võ Bùi Hải Nguyên",
+                "name": "SS181088"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Nguyễn Đỗ Thu Thủy",
+                "name": "SA160122"
+              }
+            }
+          ],
+          "no": "1",
+          "refereeMartial": [
+            {
+              "score": 85
+            },
+            {
+              "score": 85
+            },
+            {
+              "score": 86
+            }
+          ],
+          "score": 256
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Phan Nguyễn Trúc Linh",
+                "name": "SS170322"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Đinh Thùy Linh",
+                "name": "SS170523"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Nguyễn Trần Gia Hân",
+                "name": "SS170339"
+              }
+            }
+          ],
+          "no": "2",
+          "refereeMartial": [
+            {
+              "score": 83
+            },
+            {
+              "score": 82
+            },
+            {
+              "score": 83
+            }
+          ],
+          "score": 248
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Vũ Ngọc Kim Ngân",
+                "name": "SS170867"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Nguyễn Bình Phương Trâm",
+                "name": "SE171076"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Lê Thị Thanh Trúc",
+                "name": "SE170367"
+              }
+            }
+          ],
+          "no": "3",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        }
+      ]
+    },
+    {
+      "match": {
+        "name": "KHỞI QUYỀN ĐỒNG ĐỘI NAM"
+      },
+      "team": [
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Lê Đắc Lợi",
+                "name": "SE150880"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Nguyễn Xuân Khang",
+                "name": "SS170556"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Võ Minh Hiền",
+                "name": "SE171977"
+              }
+            }
+          ],
+          "no": "1",
+          "refereeMartial": [
+            {
+              "score": 85
+            },
+            {
+              "score": 86
+            },
+            {
+              "score": 86
+            }
+          ],
+          "score": 257
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Phúc Long",
+                "name": "SE170451"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Đoàn Vĩnh Phú",
+                "name": "SE171839"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Lê Duy Thanh",
+                "name": "SE171878"
+              }
+            }
+          ],
+          "no": "2",
+          "refereeMartial": [
+            {
+              "score": 84
+            },
+            {
+              "score": 85
+            },
+            {
+              "score": 84
+            }
+          ],
+          "score": 253
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Anh Tú",
+                "name": "SE161452"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Lê Lâm Sinh",
+                "name": "SE171761"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Nguyễn Quốc Anh",
+                "name": "SE171346"
+              }
+            }
+          ],
+          "no": "3",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        }
+      ]
+    },
+    {
+      "match": {
+        "name": "NHẬP MÔN QUYỀN ĐỒNG ĐỘI NAM"
+      },
+      "team": [
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Duy Minh",
+                "name": "SE172370"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Nguyễn Minh Đức",
+                "name": "SE172340"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Hoàng Kim Nam",
+                "name": "SE172400"
+              }
+            }
+          ],
+          "no": "1",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Phúc Long",
+                "name": "SE170451"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Đoàn Vĩnh Phú",
+                "name": "SE171839"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Lê Duy Thanh",
+                "name": "SE171878"
+              }
+            }
+          ],
+          "no": "2",
+          "refereeMartial": [
+            {
+              "score": 86
+            },
+            {
+              "score": 85
+            },
+            {
+              "score": 84
+            }
+          ],
+          "score": 255
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Lê Đắc Lợi",
+                "name": "SE150880"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Nguyễn Xuân Khang",
+                "name": "SS170556"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Phạm Quang Phúc",
+                "name": "SE172974"
+              }
+            }
+          ],
+          "no": "3",
+          "refereeMartial": [
+            {
+              "score": 87
+            },
+            {
+              "score": 85
+            },
+            {
+              "score": 85
+            }
+          ],
+          "score": 257
+        }
+      ]
+    },
+    {
+      "match": {
+        "name": "THẬP TỰ QUYỀN ĐỒNG ĐỘI NAM"
+      },
+      "team": [
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Lê Đắc Lợi",
+                "name": "SE150880"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Nguyễn Xuân Khang",
+                "name": "SS170556"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Phạm Quang Phúc",
+                "name": "SE172974"
+              }
+            }
+          ],
+          "no": "1",
+          "refereeMartial": [
+            {
+              "score": 86
+            },
+            {
+              "score": 86
+            },
+            {
+              "score": 84
+            }
+          ],
+          "score": 256
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Võ Quang Phương Nam",
+                "name": "SS130130"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Tạ Quang Lộc",
+                "name": "SS130226"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Nguyễn Ngọc Thạch",
+                "name": "SS140359"
+              }
+            }
+          ],
+          "no": "2",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Phúc Long",
+                "name": "SE170451"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Đoàn Vĩnh Phú",
+                "name": "SE171839"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Lê Duy Thanh",
+                "name": "SE171878"
+              }
+            }
+          ],
+          "no": "3",
+          "refereeMartial": [
+            {
+              "score": 84
+            },
+            {
+              "score": 84
+            },
+            {
+              "score": 83
+            }
+          ],
+          "score": 251
+        }
+      ]
+    },
+    {
+      "match": {
+        "name": "ĐA LUYỆN NỮ"
+      },
+      "team": [
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Võ Anh Kiệt",
+                "name": "SE172259"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Lương Cẩm Tú",
+                "name": "SE172234"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Lương Ngọc Diễm Quỳnh",
+                "name": "SE172195"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Phạm Huỳnh Thiên Bảo",
+                "name": "SE172188"
+              }
+            }
+          ],
+          "no": "1",
+          "refereeMartial": [
+            {
+              "score": 85
+            },
+            {
+              "score": 85
+            },
+            {
+              "score": 84
+            }
+          ],
+          "score": 254
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Bảo Phú",
+                "name": "SS171250"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Bùi Quan Thắng",
+                "name": "SS170827"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Nguyễn Phan Quỳnh Như",
+                "name": "SS170805"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Lê Thị Linh",
+                "name": "SS170837"
+              }
+            }
+          ],
+          "no": "2",
+          "refereeMartial": [
+            {
+              "score": 84
+            },
+            {
+              "score": 87
+            },
+            {
+              "score": 85
+            }
+          ],
+          "score": 256
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Lê Đắc Lợi",
+                "name": "SE150880"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Nguyễn Xuân Khang",
+                "name": "SS170156"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Huỳnh Văn Thái",
+                "name": "SS171173"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Nguyễn Đỗ Thu Thủy",
+                "name": "SA160122"
+              }
+            }
+          ],
+          "no": "3",
+          "refereeMartial": [
+            {
+              "score": 87
+            },
+            {
+              "score": 88
+            },
+            {
+              "score": 88
+            }
+          ],
+          "score": 263
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Thị Minh Thư",
+                "name": "SS170195"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Nguyễn Đình An",
+                "name": "SE173023"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Võ Minh Hiền",
+                "name": "SE171977"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Tạ Nguyễn Nhật Long",
+                "name": "SS150531"
+              }
+            }
+          ],
+          "no": "4",
+          "refereeMartial": [
+            {
+              "score": 86
+            },
+            {
+              "score": 87
+            },
+            {
+              "score": 87
+            }
+          ],
+          "score": 260
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Thanh Lê Vân",
+                "name": "SE170329"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Lê Trần Đức Thịnh",
+                "name": "SE140951"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Lê Đức Trọng",
+                "name": "SE173125"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Phạm Quang Phúc",
+                "name": "SE172974"
+              }
+            }
+          ],
+          "no": "5",
+          "refereeMartial": [
+            {
+              "score": 85
+            },
+            {
+              "score": 86
+            },
+            {
+              "score": 87
+            }
+          ],
+          "score": 258
+        }
+      ]
+    },
+    {
+      "match": {
+        "name": "ĐA LUYỆN NAM"
+      },
+      "team": [
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Đỗ Minh Hiếu",
+                "name": "SE173419"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Nguyễn Bá Ất",
+                "name": "SE170089"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Ngô Văn Tiến",
+                "name": "SE170369"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Ngô Xuân Sơn",
+                "name": "SE170429"
+              }
+            }
+          ],
+          "no": "1",
+          "refereeMartial": [
+            {
+              "score": 85
+            },
+            {
+              "score": 84
+            },
+            {
+              "score": 84
+            }
+          ],
+          "score": 253
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Hoàng Minh Tiến",
+                "name": "SE172436"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Bùi Hoàng Tùng",
+                "name": "SE172170"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Phạm Anh Huy",
+                "name": "SE172047"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Hoàng Ngọc Dũng",
+                "name": "SE171014"
+              }
+            }
+          ],
+          "no": "2",
+          "refereeMartial": [
+            {
+              "score": 86
+            },
+            {
+              "score": 86
+            },
+            {
+              "score": 85
+            }
+          ],
+          "score": 257
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Trần Lê Chí Bảo",
+                "name": "SE173289"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Phùng Hữu Danh Khoa",
+                "name": "SE170133"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Lưu Huỳnh Giang",
+                "name": "SE171770"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Lôi Bảo Thông",
+                "name": "SE171951"
+              }
+            }
+          ],
+          "no": "3",
+          "refereeMartial": [
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            },
+            {
+              "score": 0
+            }
+          ],
+          "score": 0
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Nguyễn Chính Khương Duy",
+                "name": "SE171155"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Vũ Long",
+                "name": "SE171024"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Trần Tấn Đạt",
+                "name": "SE171128"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Mã Ngọc Long Bảo",
+                "name": "SE171157"
+              }
+            }
+          ],
+          "no": "4",
+          "refereeMartial": [
+            {
+              "score": 86
+            },
+            {
+              "score": 87
+            },
+            {
+              "score": 86
+            }
+          ],
+          "score": 259
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Tạ Nguyễn Nhật Long",
+                "name": "SS150531"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Phạm Quang Phúc",
+                "name": "SE172974"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Huỳnh Xuân Thái",
+                "name": "SS171173"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Võ Minh Hiền",
+                "name": "SE171977"
+              }
+            }
+          ],
+          "no": "5",
+          "refereeMartial": [
+            {
+              "score": 87
+            },
+            {
+              "score": 87
+            },
+            {
+              "score": 86
+            }
+          ],
+          "score": 260
+        },
+        {
+          "fighters": [
+            {
+              "fighter": {
+                "code": "Lê Đắc Lợi",
+                "name": "SE150880"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Nguyễn Xuân Khang",
+                "name": "SS170556"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Nguyễn Đình An",
+                "name": "SE173023"
+              }
+            },
+            {
+              "fighter": {
+                "code": "Lê Trần Đức Thịnh",
+                "name": "SE140951"
+              }
+            }
+          ],
+          "no": "6",
+          "refereeMartial": [
+            {
+              "score": 88
+            },
+            {
+              "score": 88
+            },
+            {
+              "score": 88
+            }
+          ],
+          "score": 264
+        }
+      ]
+    }
+  ]
+}

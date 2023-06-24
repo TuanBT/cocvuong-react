@@ -26,7 +26,7 @@ class ChamDiemDkContainer extends Component {
     this.orangeColor = "#e67e22"; //Cam - Orange
     this.bodyBgColor = "#ecf0f1"; //Xám nhạt
     this.silverColor = "#bdc3c7" //Bạc
-    this.timeScore = 4; //3s Thời gian cho phép chấm điểm từ GD đầu tới cuối
+    this.timeScore = 2; //2s Thời gian cho phép chấm điểm từ GD đầu tới cuối
     this.numReferee = 3; //Số lượng giám định chấm điểm
 
     this.timerCoundown;
@@ -341,7 +341,7 @@ class ChamDiemDkContainer extends Component {
       $('#modalConfirm .modal-body').html("Bạn muốn dừng trận đấu và về trận đấu trước đó?");
       this.showModalConfirm()
 
-      $("#buttonConfirmOK").click(function () {
+      $("#buttonConfirmOK").click(() => {
         this.matchNoCurrent--;
         this.restoreMatch();
         this.hideModalConfirm();
@@ -389,11 +389,11 @@ class ChamDiemDkContainer extends Component {
       $('#modalConfirm .modal-body').html("<h3 style='color: red'><i class='fa-solid fa-medal'></i> " + this.convertWL(this.match.fighters.redFighter.name) + " (" + this.match.fighters.redFighter.code + ")</h3>");
       this.showModalConfirm();
 
-      $("#buttonConfirmOK").click(function () {
+      $("#buttonConfirmOK").click(() => {
         if (this.temporaryWin == "red") {
           this.stopTimer();
           this.replaceFighter("red");
-          setTimeout(function () {
+          setTimeout(() => {
             this.match.match.win = "red";
             this.ref.child('tournament/' + this.matchNoCurrentIndex + '/match/win').set("red");
             $(".icon-win-red").css({ opacity: 1 });
@@ -423,11 +423,11 @@ class ChamDiemDkContainer extends Component {
       $('#modalConfirm .modal-body').html("<h3 style='color: blue'><i class='fa-solid fa-medal'></i> " + this.convertWL(this.match.fighters.blueFighter.name) + " (" + this.match.fighters.blueFighter.code + ")</h3>");
       this.showModalConfirm();
 
-      $("#buttonConfirmOK").click(function () {
+      $("#buttonConfirmOK").click(() => {
         if (this.temporaryWin == "blue") {
           this.stopTimer();
           this.replaceFighter("blue");
-          this.setTimeout(function () {
+          this.setTimeout(() => {
             this.match.match.win = "blue";
             this.ref.child('tournament/' + this.matchNoCurrentIndex + '/match/win').set("blue");
             $(".icon-win-blue").css({ opacity: 1 });
@@ -521,7 +521,18 @@ class ChamDiemDkContainer extends Component {
         }
         this.scoreTimerCount--;
         console.log(this.scoreTimerCount);
-        if (this.scoreTimerCount == 0) {
+        //Kết thúc nếu có >50% trọng tài chấm điểm
+        let redScoreCounter = 0;
+        let blueScoreCounter = 0;
+        for (let i = 0; i < this.numReferee; i++) {
+          if (this.refereeObj[i].redScore !== 0) {
+            redScoreCounter++;
+          }
+          if (this.refereeObj[i].blueScore !== 0) {
+            blueScoreCounter++;
+          }
+        }
+        if (this.scoreTimerCount == 0 || redScoreCounter > this.numReferee / 2 || blueScoreCounter > this.numReferee / 2) {
           console.log("makeScoreTimer() Start");
           //Tổng kết và tính điểm
           let redScoreArray = [];
@@ -530,8 +541,8 @@ class ChamDiemDkContainer extends Component {
             redScoreArray.push(this.refereeObj[i].redScore);
             blueScoreArray.push(this.refereeObj[i].blueScore);
           }
-          this.match.fighters.redFighter.score += this.getModes(this.redScoreArray);
-          this.match.fighters.blueFighter.score += this.getModes(this.blueScoreArray);
+          this.match.fighters.redFighter.score += this.getModes(redScoreArray);
+          this.match.fighters.blueFighter.score += this.getModes(blueScoreArray);
           this.ref.child('tournament/' + this.matchNoCurrentIndex + '/fighters').set(this.match.fighters);
           //Reset Giám định
           this.ref.child('referee').set(this.tournamentConst.referee);
@@ -545,34 +556,34 @@ class ChamDiemDkContainer extends Component {
     }
   }
 
-  //Score referee time
-  makeScoreTimer1() {
-    console.log("makeScoreTimer1");
-    for (let i = 0; i < this.numReferee; i++) {
-      if (this.refereeObj[i].redScore != 0 || this.refereeObj[i].blueScore != 0) {
-        if (!this.isFirstRefereeScore) {
-          this.tournamentObj.scoreTimer = this.timeScore;
-          this.isFirstRefereeScore = true;
-        }
-        this.tournamentObj.scoreTimer--;
-        if (this.tournamentObj.scoreTimer == 0) {
-          //Tổng kết và tính điểm
-          let redScoreArray = [];
-          let blueScoreArray = [];
-          for (let i = 0; i < this.numReferee; i++) {
-            redScoreArray.push(this.refereeObj[i].redScore);
-            blueScoreArray.push(this.refereeObj[i].blueScore);
-          }
-          this.match.fighters.redFighter.score += this.getModes(redScoreArray);
-          this.match.fighters.blueFighter.score += this.getModes(blueScoreArray);
+  // //Score referee time
+  // makeScoreTimer1() {
+  //   console.log("makeScoreTimer1");
+  //   for (let i = 0; i < this.numReferee; i++) {
+  //     if (this.refereeObj[i].redScore != 0 || this.refereeObj[i].blueScore != 0) {
+  //       if (!this.isFirstRefereeScore) {
+  //         this.tournamentObj.scoreTimer = this.timeScore;
+  //         this.isFirstRefereeScore = true;
+  //       }
+  //       this.tournamentObj.scoreTimer--;
+  //       if (this.tournamentObj.scoreTimer == 0) {
+  //         //Tổng kết và tính điểm
+  //         let redScoreArray = [];
+  //         let blueScoreArray = [];
+  //         for (let i = 0; i < this.numReferee; i++) {
+  //           redScoreArray.push(this.refereeObj[i].redScore);
+  //           blueScoreArray.push(this.refereeObj[i].blueScore);
+  //         }
+  //         this.match.fighters.redFighter.score += this.getModes(redScoreArray);
+  //         this.match.fighters.blueFighter.score += this.getModes(blueScoreArray);
 
-          this.ref.child('tournament/' + this.matchNoCurrentIndex + '/fighters').update(this.match.fighters);
-          this.isFirstRefereeScore = false;
-        }
-        break;
-      }
-    }
-  }
+  //         this.ref.child('tournament/' + this.matchNoCurrentIndex + '/fighters').update(this.match.fighters);
+  //         this.isFirstRefereeScore = false;
+  //       }
+  //       break;
+  //     }
+  //   }
+  // }
 
   makeTimer() {
     console.log("makeTimer() Start");

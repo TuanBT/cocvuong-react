@@ -106,9 +106,27 @@ class GiamDinhDkContainer extends Component {
     this.refereeScore.redScore = score;
     this.ref.child(this.path).update(this.refereeScore);
     if (score >= 0) {
-      toast.error("+" + score + " điểm cho ĐỎ");
+      toast.error("+" + score + " điểm cho ĐỎ", {
+        position: "top-left",
+        autoClose: 1000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: false,
+        progress: undefined,
+        theme: "light",
+      });
     } else {
-      toast.error(score + " điểm cho ĐỎ");
+      toast.error(score + " điểm cho ĐỎ", {
+        position: "top-left",
+        autoClose: 1000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: false,
+        progress: undefined,
+        theme: "light",
+      });
     }
 
     this.refereeScore.redScore = 0;
@@ -119,9 +137,27 @@ class GiamDinhDkContainer extends Component {
     this.refereeScore.blueScore = score;
     this.ref.child(this.path).update(this.refereeScore);
     if (score >= 0) {
-      toast.info("+" + score + " điểm cho XANH");
+      toast.info("+" + score + " điểm cho XANH", {
+        position: "top-right",
+        autoClose: 1000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: false,
+        progress: undefined,
+        theme: "light",
+      });
     } else {
-      toast.info(score + " điểm cho XANH");
+      toast.info(score + " điểm cho XANH", {
+        position: "top-right",
+        autoClose: 1000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        draggable: false,
+        progress: undefined,
+        theme: "light",
+      });
     }
     this.refereeScore.redScore = 0;
     this.refereeScore.blueScore = 0;
@@ -197,38 +233,38 @@ class GiamDinhDkContainer extends Component {
             </div>
 
             <div className="modal display-none" id="chooseRefereeNoModal" tabIndex="-1" role="dialog">
-            <div className="modal-dialog" role="document">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn mã giám định của bạn
-                  </h5>
-                  <button type="button" className="close" data-dismiss="modal" onClick={this.hideChooseRefereeNoModal} aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                  </button>
-                </div>
-                <div className="modal-body">
-                  <div className="btn-group btn-group-toggle" data-toggle="buttons">
-                    <label className="btn btn-warning active">
-                      <input type="radio" name="optionsReferee" value="1" autoComplete="off" defaultChecked />
-                      <i className="fa-solid fa-user"></i> Giám định I
-                    </label>
-                    <label className="btn btn-warning">
-                      <input type="radio" name="optionsReferee" value="2" autoComplete="off" />
-                      <i className="fa-solid fa-user"></i> Giám định II
-                    </label>
-                    <label className="btn btn-warning">
-                      <input type="radio" name="optionsReferee" value="3" autoComplete="off" />
-                      <i className="fa-solid fa-user"></i> Giám định III
-                    </label>
+              <div className="modal-dialog" role="document">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn mã giám định của bạn
+                    </h5>
+                    <button type="button" className="close" data-dismiss="modal" onClick={this.hideChooseRefereeNoModal} aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
                   </div>
-                </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-primary" onClick={this.chooseRefereeNo}>OK</button>
-                  <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hideChooseRefereeNoModal}>Cancel</button>
+                  <div className="modal-body">
+                    <div className="btn-group btn-group-toggle" data-toggle="buttons">
+                      <label className="btn btn-warning active">
+                        <input type="radio" name="optionsReferee" value="1" autoComplete="off" defaultChecked />
+                        <i className="fa-solid fa-user"></i> Giám định I
+                      </label>
+                      <label className="btn btn-warning">
+                        <input type="radio" name="optionsReferee" value="2" autoComplete="off" />
+                        <i className="fa-solid fa-user"></i> Giám định II
+                      </label>
+                      <label className="btn btn-warning">
+                        <input type="radio" name="optionsReferee" value="3" autoComplete="off" />
+                        <i className="fa-solid fa-user"></i> Giám định III
+                      </label>
+                    </div>
+                  </div>
+                  <div className="modal-footer">
+                    <button type="button" className="btn btn-primary" onClick={this.chooseRefereeNo}>OK</button>
+                    <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hideChooseRefereeNoModal}>Cancel</button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
             <div className="modal display-none" id="modalShortcut" tabIndex="-1" role="dialog">
               <div className="modal-dialog" role="document">

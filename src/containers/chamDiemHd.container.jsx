@@ -145,14 +145,6 @@ class ChamDiemHdContainer extends Component {
       ],
     }
 
-    this.fighterMartialObj = {
-      "fighter":
-      {
-        "code": "",
-        "name": "",
-      }
-    }
-
     this.ref.child('setting').on('value', (snapshot) => {
       me.settingObj = snapshot.val();
       $('#tournamentName').html(me.settingObj.tournamentName);
