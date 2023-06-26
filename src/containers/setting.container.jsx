@@ -20,102 +20,33 @@ class SettingContainer extends Component {
     this.settingObj;
     this.tournamentObj;
     this.tournamentMartialObj;
+    this.tournamentStandardArray = [];
 
-    this.matchObj = {
-      "match": {
-        "no": 1,
-        "type": "",
-        "category": "",
-        "win": ""
-      },
-      "fighters": {
-        "redFighter": {
-          "name": "Đỏ",
-          "code": "",
-          "score": 0
-        },
-        "blueFighter": {
-          "name": "Xanh",
-          "code": "",
-          "score": 0
-        }
-      }
-    };
+    this.matchObj = { "match": { "no": 1, "type": "", "category": "", "win": "" }, "fighters": { "redFighter": { "name": "Đỏ", "code": "", "score": 0 }, "blueFighter": { "name": "Xanh", "code": "", "score": 0 } } };
+    this.fightersMartialObj = { "fighters": [], "no": 0, "score": 0, "refereeMartial": [{ "score": 0 }, { "score": 0 }, { "score": 0 }], };
+    this.tournamentConst = { "lastMatch": { "no": 1 }, "referee": [{ "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }], "tournament": [] };
+    this.matchMartialObj = { "match": { "name": "" }, "team": [] };
+    this.tournamentMartialConst = { "lastMatchMartial": { "matchMartialNo": 1, "teamMartialNo": 1 }, "tournamentMartial": [] };
+    this.fightersMartialObj = { "fighters": [], "no": 0, "score": 0, "refereeMartial": [{ "score": 0 }, { "score": 0 }, { "score": 0 }], };
+    this.fighterMartialObj = { "fighter": { "code": "", "name": "", } }
 
-    this.fightersMartialObj = {
-      "fighters": [],
-      "no": 0,
-      "score": 0,
-      "refereeMartial": [
-        {
-          "score": 0
-        },
-        {
-          "score": 0
-        },
-        {
-          "score": 0
-        }
-      ],
-    };
-    this.tournamentConst = {
-      "lastMatch":
-      {
-        "no": 1
-      },
-      "referee": [
-        {
-          "redScore": 0,
-          "blueScore": 0
-        },
-        {
-          "redScore": 0,
-          "blueScore": 0
-        },
-        {
-          "redScore": 0,
-          "blueScore": 0
-        }
-      ],
-      "tournament": []
-    };
-    this.matchMartialObj = {
-      "match": {
-        "name": ""
-      },
-      "team": []
-    };
-    this.tournamentMartialConst = {
-      "lastMatchMartial": {
-        "matchMartialNo": 1,
-        "teamMartialNo": 1
-      },
-      "tournamentMartial": [
-      ]
-    };
-    this.fightersMartialObj = {
-      "fighters": [],
-      "no": 0,
-      "score": 0,
-      "refereeMartial": [
-        {
-          "score": 0
-        },
-        {
-          "score": 0
-        },
-        {
-          "score": 0
-        }
-      ],
-    };
-    this.fighterMartialObj = {
-      "fighter":
-      {
-        "code": "",
-        "name": "",
-      }
-    }
+    this.schemaFighters = [];
+    this.schemaFighters.push('[]');//0
+    this.schemaFighters.push('[]');//1
+    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Chung Kết","redFighter":{"name":1,"code":1},"blueFighter":{"name":2,"code":2}}]'); //2
+    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Bán Kết","redFighter":{"name":1,"code":1},"blueFighter":{"name":2,"code":2}},{"match":2,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.1","code":""},"blueFighter":{"name":3,"code":3}}]');//3
+    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Bán Kết","redFighter":{"name":1,"code":1},"blueFighter":{"name":2,"code":2}},{"match":2,"weight":1,"type":"Bán Kết","redFighter":{"name":3,"code":3},"blueFighter":{"name":4,"code":4}},{"match":3,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.1","code":""},"blueFighter":{"name":"W.2","code":""}}]');//4
+    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại","redFighter":{"name":3,"code":3},"blueFighter":{"name":4,"code":4}},{"match":2,"weight":1,"type":"Bán Kết","redFighter":{"name":1,"code":1},"blueFighter":{"name":2,"code":2}},{"match":3,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.1","code":""},"blueFighter":{"name":5,"code":5}},{"match":4,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.2","code":""},"blueFighter":{"name":"W.3","code":""}}]'); //5
+    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại","redFighter":{"name":2,"code":2},"blueFighter":{"name":3,"code":3}},{"match":2,"weight":1,"type":"Vòng loại","redFighter":{"name":4,"code":4},"blueFighter":{"name":5,"code":5}},{"match":3,"weight":1,"type":"Bán Kết","redFighter":{"name":1,"code":1},"blueFighter":{"name":"W.1","code":""}},{"match":4,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.2","code":""},"blueFighter":{"name":6,"code":6}},{"match":5,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.3","code":""},"blueFighter":{"name":"W.4","code":""}}]');//6
+    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại","redFighter":{"name":2,"code":2},"blueFighter":{"name":3,"code":3}},{"match":2,"weight":1,"type":"Vòng loại","redFighter":{"name":4,"code":4},"blueFighter":{"name":5,"code":5}},{"match":3,"weight":1,"type":"Vòng loại","redFighter":{"name":6,"code":6},"blueFighter":{"name":7,"code":7}},{"match":4,"weight":1,"type":"Bán Kết","redFighter":{"name":1,"code":1},"blueFighter":{"name":"W.1","code":""}},{"match":5,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.2","code":""},"blueFighter":{"name":"W.3","code":""}},{"match":6,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.4","code":""},"blueFighter":{"name":"W.5","code":""}}]');//7
+    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại","redFighter":{"name":1,"code":1},"blueFighter":{"name":2,"code":2}},{"match":2,"weight":1,"type":"Vòng loại","redFighter":{"name":3,"code":3},"blueFighter":{"name":4,"code":4}},{"match":3,"weight":1,"type":"Vòng loại","redFighter":{"name":5,"code":5},"blueFighter":{"name":6,"code":6}},{"match":4,"weight":1,"type":"Vòng loại","redFighter":{"name":7,"code":7},"blueFighter":{"name":8,"code":8}},{"match":5,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.1","code":""},"blueFighter":{"name":"W.2","code":""}},{"match":6,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.3","code":""},"blueFighter":{"name":"W.4","code":""}},{"match":7,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.5","code":""},"blueFighter":{"name":"W.6","code":""}}]');//8
+    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại","redFighter":{"name":6,"code":6},"blueFighter":{"name":7,"code":7}},{"match":2,"weight":1,"type":"Vòng loại","redFighter":{"name":1,"code":1},"blueFighter":{"name":2,"code":2}},{"match":3,"weight":1,"type":"Vòng loại","redFighter":{"name":3,"code":3},"blueFighter":{"name":4,"code":4}},{"match":4,"weight":1,"type":"Vòng loại","redFighter":{"name":5,"code":5},"blueFighter":{"name":"W.1","code":""}},{"match":5,"weight":1,"type":"Vòng loại","redFighter":{"name":8,"code":8},"blueFighter":{"name":9,"code":9}},{"match":6,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.2","code":""},"blueFighter":{"name":"W.3","code":""}},{"match":7,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.4","code":""},"blueFighter":{"name":"W.5","code":""}},{"match":8,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.6","code":""},"blueFighter":{"name":"W.7","code":""}}]');//9
+    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại","redFighter":{"name":3,"code":3},"blueFighter":{"name":4,"code":4}},{"match":2,"weight":1,"type":"Vòng loại","redFighter":{"name":7,"code":7},"blueFighter":{"name":8,"code":8}},{"match":3,"weight":1,"type":"Vòng loại","redFighter":{"name":1,"code":1},"blueFighter":{"name":2,"code":2}},{"match":4,"weight":1,"type":"Vòng loại","redFighter":{"name":"W.1","code":""},"blueFighter":{"name":5,"code":5}},{"match":5,"weight":1,"type":"Vòng loại","redFighter":{"name":6,"code":6},"blueFighter":{"name":"W.2","code":""}},{"match":6,"weight":1,"type":"Vòng loại","redFighter":{"name":9,"code":9},"blueFighter":{"name":10,"code":10}},{"match":7,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.3","code":""},"blueFighter":{"name":"W.4","code":""}},{"match":8,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.5","code":""},"blueFighter":{"name":"W.6","code":""}},{"match":9,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.7","code":""},"blueFighter":{"name":"W.8","code":""}}]');//10
+    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại","redFighter":{"name":3,"code":3},"blueFighter":{"name":4,"code":4}},{"match":2,"weight":1,"type":"Vòng loại","redFighter":{"name":7,"code":7},"blueFighter":{"name":8,"code":8}},{"match":3,"weight":1,"type":"Vòng loại","redFighter":{"name":9,"code":9},"blueFighter":{"name":10,"code":10}},{"match":4,"weight":1,"type":"Vòng loại","redFighter":{"name":1,"code":1},"blueFighter":{"name":2,"code":2}},{"match":5,"weight":1,"type":"Vòng loại","redFighter":{"name":"W.1","code":""},"blueFighter":{"name":5,"code":5}},{"match":6,"weight":1,"type":"Vòng loại","redFighter":{"name":6,"code":6},"blueFighter":{"name":"W.2","code":""}},{"match":7,"weight":1,"type":"Vòng loại","redFighter":{"name":"W.3","code":""},"blueFighter":{"name":11,"code":11}},{"match":8,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.4","code":""},"blueFighter":{"name":"W.5","code":""}},{"match":9,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.6","code":""},"blueFighter":{"name":"W.7","code":""}},{"match":10,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.8","code":""},"blueFighter":{"name":"W.9","code":""}}]');//11
+    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại","redFighter":{"name":2,"code":2},"blueFighter":{"name":3,"code":3}},{"match":2,"weight":1,"type":"Vòng loại","redFighter":{"name":4,"code":4},"blueFighter":{"name":5,"code":5}},{"match":3,"weight":1,"type":"Vòng loại","redFighter":{"name":8,"code":8},"blueFighter":{"name":9,"code":9}},{"match":4,"weight":1,"type":"Vòng loại","redFighter":{"name":10,"code":10},"blueFighter":{"name":11,"code":11}},{"match":5,"weight":1,"type":"Vòng loại","redFighter":{"name":1,"code":1},"blueFighter":{"name":"W.1","code":""}},{"match":6,"weight":1,"type":"Vòng loại","redFighter":{"name":"W.2","code":""},"blueFighter":{"name":6,"code":6}},{"match":7,"weight":1,"type":"Vòng loại","redFighter":{"name":7,"code":7},"blueFighter":{"name":"W.3","code":""}},{"match":8,"weight":1,"type":"Vòng loại","redFighter":{"name":"W.4","code":""},"blueFighter":{"name":12,"code":12}},{"match":9,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.5","code":""},"blueFighter":{"name":"W.6","code":""}},{"match":10,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.7","code":""},"blueFighter":{"name":"W.7","code":""}},{"match":11,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.9","code":""},"blueFighter":{"name":"W.10","code":""}}]');//12
+    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại","redFighter":{"name":2,"code":2},"blueFighter":{"name":3,"code":3}},{"match":2,"weight":1,"type":"Vòng loại","redFighter":{"name":4,"code":4},"blueFighter":{"name":5,"code":5}},{"match":3,"weight":1,"type":"Vòng loại","redFighter":{"name":7,"code":7},"blueFighter":{"name":8,"code":8}},{"match":4,"weight":1,"type":"Vòng loại","redFighter":{"name":9,"code":9},"blueFighter":{"name":10,"code":10}},{"match":5,"weight":1,"type":"Vòng loại","redFighter":{"name":11,"code":11},"blueFighter":{"name":12,"code":12}},{"match":6,"weight":1,"type":"Vòng loại","redFighter":{"name":1,"code":1},"blueFighter":{"name":"W.1","code":""}},{"match":7,"weight":1,"type":"Vòng loại","redFighter":{"name":"W.2","code":""},"blueFighter":{"name":6,"code":6}},{"match":8,"weight":1,"type":"Vòng loại","redFighter":{"name":"W.3","code":""},"blueFighter":{"name":"W.4","code":""}},{"match":9,"weight":1,"type":"Vòng loại","redFighter":{"name":"W.5","code":""},"blueFighter":{"name":13,"code":13}},{"match":10,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.6","code":""},"blueFighter":{"name":"W.7","code":""}},{"match":11,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.8","code":""},"blueFighter":{"name":"W.9","code":""}},{"match":12,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.10","code":""},"blueFighter":{"name":"W.11","code":""}}]');//13
+    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại","redFighter":{"name":2,"code":2},"blueFighter":{"name":3,"code":3}},{"match":2,"weight":1,"type":"Vòng loại","redFighter":{"name":4,"code":4},"blueFighter":{"name":5,"code":5}},{"match":3,"weight":1,"type":"Vòng loại","redFighter":{"name":6,"code":6},"blueFighter":{"name":7,"code":7}},{"match":4,"weight":1,"type":"Vòng loại","redFighter":{"name":8,"code":8},"blueFighter":{"name":9,"code":9}},{"match":5,"weight":1,"type":"Vòng loại","redFighter":{"name":10,"code":10},"blueFighter":{"name":11,"code":11}},{"match":6,"weight":1,"type":"Vòng loại","redFighter":{"name":12,"code":12},"blueFighter":{"name":13,"code":13}},{"match":7,"weight":1,"type":"Vòng loại","redFighter":{"name":1,"code":1},"blueFighter":{"name":"W.1","code":""}},{"match":8,"weight":1,"type":"Vòng loại","redFighter":{"name":"W.2","code":""},"blueFighter":{"name":"W.3","code":""}},{"match":9,"weight":1,"type":"Vòng loại","redFighter":{"name":"W.4","code":""},"blueFighter":{"name":"W.5","code":""}},{"match":10,"weight":1,"type":"Vòng loại","redFighter":{"name":"W.6","code":""},"blueFighter":{"name":14,"code":14}},{"match":11,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.7","code":""},"blueFighter":{"name":"W.8","code":""}},{"match":12,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.9","code":""},"blueFighter":{"name":"W.10","code":""}},{"match":13,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.11","code":""},"blueFighter":{"name":"W.12","code":""}}]');//14
+
 
     this.ref.child('setting').once('value', (snapshot) => {
       me.settingObj = snapshot.val();
@@ -200,8 +131,7 @@ class SettingContainer extends Component {
         }
       }
 
-      this.tournamentArrayHeader = [excelData[0][0], excelData[0][1], excelData[0][2], excelData[0][3], excelData[0][4], excelData[0][5], excelData[0][6]];
-
+      this.tournamentImportHeader = [excelData[0][0], excelData[0][1], excelData[0][2], excelData[0][3], excelData[0][4], excelData[0][5], excelData[0][6]];
       this.setState({ data: this.tournamentArray });
 
     };
@@ -266,7 +196,7 @@ class SettingContainer extends Component {
         }
       }
 
-      this.tournamentMartialArrayHeader = ['STT', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ'];
+      this.tournamentMartialImportHeader = ['STT', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ'];
       this.setState({ data: this.tournamentMartialArray });
 
     };
@@ -305,28 +235,184 @@ class SettingContainer extends Component {
         }
       }
 
-      this.tournamentArrayRawHeader = ['STT', 'HẠNG CÂN', 'TÊN VDV','MSSV/ĐƠN VỊ'];
+      this.tournamentArrangeHeader = ['STT', 'HẠNG CÂN', 'TÊN VDV', 'MSSV/ĐƠN VỊ'];
       this.setState({ data: this.tournamentArrayRaw });
 
     };
     reader.readAsArrayBuffer(file);
   }
 
+  shuffle = () => {
+    console.log("shuffle Start");
+    let currentIndex = this.tournamentArrayRaw.length;
+    let temporaryValue, randomIndex;
+
+    // While there remain elements to shuffle...
+    while (0 !== currentIndex) {
+
+      // Pick a remaining element...
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex -= 1;
+
+      // And swap it with the current element.
+      temporaryValue = this.tournamentArrayRaw[currentIndex];
+      this.tournamentArrayRaw[currentIndex] = this.tournamentArrayRaw[randomIndex];
+      this.tournamentArrayRaw[randomIndex] = temporaryValue;
+    }
+
+    this.tournamentArrayRaw.sort((a, b) => {
+      const weightA = a[1];
+      const weightB = b[1];
+    
+      if (weightA < weightB) {
+        return -1;
+      } else if (weightA > weightB) {
+        return 1;
+      } else {
+        return 0;
+      }
+    });
+
+    this.setState({ data: this.tournamentArrayRaw });
+    console.log("shuffle End");
+  }
+
   arrangeTournament = () => {
     console.log("arrangeTournament Start");
-    let rawData = [
-      [1, '55kg nam', 'Trần Lê Minh', 'FPT University (A)']
-      [2, '55kg nam', 'Hoàng Duy Anh', 'CĐ FPT Poly (CĐ Anh Quốc) (A)']
-      [3, '55kg nam', 'Nguyễn Phúc Long', 'FPT University (A)']
-      [4, '70kg nam', 'Ngô Nguyễn Thanh Phong', 'FPT University (A)']
-      [5, '70kg nam', 'Dương Quý Thành', 'Swinburne (Việt Nam) (A)']
-      [6, '70kg nam', 'Mạc Đăng Hải', 'Greenwich (Việt Nam) (A)']
-      [7, '70kg nam', 'Nguyễn Quốc Đạt ', ' CĐ FPT Poly (CĐ Anh Quốc) (A)']
-      [8, '60kg nam', 'Hồ Viết Thuận', 'Cao đẳng FPT Polytechnic (A)']
-      [9, '60kg nam', 'Trương Công Tuệ Tĩnh', 'Greenwich (Việt Nam) (A)']
-      [10, '60kg nam', 'Nguyễn Văn Bình', 'FPT University (A)']
-    ]
+
+    // Tạo đối tượng Map để gom nhóm các võ sĩ theo hạng cân
+    let groupedData = new Map();
+    this.tournamentArrayRaw.forEach(item => {
+      let weight = item[1].trim();
+      if (groupedData.has(weight)) {
+        groupedData.get(weight).push(item);
+      } else {
+        groupedData.set(weight, [item]);
+      }
+    });
+
+    // Gộp các nhóm vào mảng chung đã điền nội dung
+    this.matchs = [];
+    let matchCount = 1;
+    this.groupMatch = [];
+    for (const [key, value] of groupedData.entries()) {
+      this.groupMatch = this.getschedule(value);
+      this.changeMatchNumber(this.groupMatch, matchCount);
+
+      this.groupMatch.forEach(match => {
+        this.matchs.push(match);
+      })
+      matchCount += this.groupMatch.length;
+    }
+
+    let tournamentStandard = this.matchs.slice();
+
+    // Sắp xếp mảng theo thứ tự "Vòng loại", "Bán kết", "Chung kết"
+    this.matchs.sort((a, b) => {
+      const typeOrder = { 'Vòng loại': 0, 'Bán Kết': 1, 'Chung Kết': 2 };
+      return typeOrder[a.type] - typeOrder[b.type];
+    });
+
+    // Tiến hành sắp xếp lại các trận đấu theo đúng thứ tự bằng cách đổi chỗ
+    for (let i = 0; i < this.matchs.length; i++) {
+      if (this.matchs[i].match !== tournamentStandard[i].match) {
+        this.swapRowsName(tournamentStandard, tournamentStandard[i].match, this.matchs[i].match)
+      }
+    }
+
+    //Add to array to show in table
+    tournamentStandard.forEach(value => {
+      this.tournamentStandardArray.push([
+        value.match, value.weight, value.type, value.redFighter.name, value.redFighter.code, value.blueFighter.name, value.blueFighter.code
+      ]);
+    })
+
+    this.tournamentArrayRaw = [];
+    this.tournamentArrangeHeader = ["TRẬN", "HẠNG CÂN", "LOẠI TRẬN", "TÊN GIÁP ĐỎ", "CODE/ĐƠN VỊ GIÁP ĐỎ", "TÊN GIÁP XANH", "CODE/ĐƠN VỊ GIÁP XANH"];
+    this.setState({ data: this.tournamentStandardArray });
+
     console.log("arrangeTournament End");
+  }
+
+  getschedule(fighters) {
+    const schemaFighter = JSON.parse(this.schemaFighters[fighters.length]);
+    let matchs = [];
+    for (let i = 0; i < schemaFighter.length; i++) {
+      let match = schemaFighter[i];
+      if (!isNaN(parseFloat(match.weight))) {
+        match.weight = fighters[match.weight - 1][1];
+      }
+      if (!isNaN(parseFloat(match.redFighter.name))) {
+        match.redFighter.name = fighters[match.redFighter.name - 1][2];
+        match.redFighter.code = fighters[match.redFighter.code - 1][3];
+      }
+      if (!isNaN(parseFloat(match.blueFighter.name))) {
+        match.blueFighter.name = fighters[match.blueFighter.name - 1][2];
+        match.blueFighter.code = fighters[match.blueFighter.code - 1][3];
+      }
+      matchs.push(match);
+    }
+
+    return matchs;
+  }
+
+  changeMatchNumber(groupMatch, newMatchNumber) {
+    const variance = newMatchNumber - groupMatch[0].match;
+    groupMatch.forEach(match => {
+      match.match += variance;
+      if (match.redFighter.name.includes('W.')) {
+        let number = parseFloat(match.redFighter.name.split('.')[1]);
+        if (newMatchNumber > number) {
+          match.redFighter.name = 'W.' + (number + variance);
+        }
+      }
+      if (match.blueFighter.name.includes('W.')) {
+        let number = parseFloat(match.blueFighter.name.split('.')[1]);
+        if (newMatchNumber > number) {
+          match.blueFighter.name = 'W.' + (number + variance);
+        }
+      }
+    })
+    return groupMatch;
+  }
+
+  swapRowsName(arr, match1, match2) {
+    // Tìm vị trí của 2 row cần đổi chỗ trong mảng
+    let index1 = arr.findIndex((el) => el.match === match1);
+    let index2 = arr.findIndex((el) => el.match === match2);
+
+    // Nếu không tìm thấy row tương ứng thì trả về mảng ban đầu
+    if (index1 === -1 || index2 === -1) {
+      return arr;
+    }
+
+    //Đổi match
+    let matchTemp = arr[index1].match;
+    arr[index1].match = arr[index2].match;
+    arr[index2].match = matchTemp;
+
+    //Đổi row
+    let temp = arr[index1];
+    arr[index1] = arr[index2];
+    arr[index2] = temp;
+
+    // //Đổi W. tương ứng
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i].redFighter.name === "W." + match1) {
+        arr[i].redFighter.name = "W." + match2;
+      }
+      if (arr[i].blueFighter.name === "W." + match1) {
+        arr[i].blueFighter.name = "W." + match2;
+      }
+      if (arr[i].redFighter.name === "W." + match2) {
+        arr[i].redFighter.name = "W." + match1;
+      }
+      if (arr[i].blueFighter.name === "W." + match2) {
+        arr[i].blueFighter.name = "W." + match1;
+      }
+    }
+
+    return arr;
   }
 
   render() {
@@ -397,7 +483,7 @@ class SettingContainer extends Component {
                   <div className="form-title">
                     <h2>Nhập thông tin thi đấu Đối Kháng CHUẨN</h2>
                     <a href={MauDuLieuChuan} download="1-Mau-Du-Lieu-Chuan.xlsx" target="_blank" rel="noreferrer" >
-                    <span>Download Mau-Du-Lieu-Chuan.xlsx</span>
+                      <span>Download Mau-Du-Lieu-Chuan.xlsx</span>
                     </a>
                   </div>
                   <div className="function-button">
@@ -407,15 +493,14 @@ class SettingContainer extends Component {
                         <label className="custom-file-label" htmlFor="inputGroupFile04">Chọn file</label>
                       </div>
                       <div className="input-group-append">
-                        <button className="btn btn-primary" type="button" onClick={this.importTournament}><i className="fa-solid fa-file-import"></i> Import Đối Kháng</button>
+                        <button className="btn btn-primary" type="button" onClick={this.importTournament}><i className="fa-solid fa-file-upload"></i> Import Đối Kháng</button>
                       </div>
                     </div>
                   </div>
                   <table>
                     <thead>
                       <tr>
-                        {this.tournamentArrayHeader &&
-                          this.tournamentArrayHeader.map((header) => <th key={header}>{header}</th>)}
+                        {this.tournamentImportHeader && this.tournamentImportHeader.map((header) => <th key={header}>{header}</th>)}
                       </tr>
                     </thead>
                     <tbody>
@@ -438,7 +523,7 @@ class SettingContainer extends Component {
                   </div>
                   <a href={MauDuLieuChuan} download="1-Mau-Du-Lieu-Chuan.xlsx" target="_blank" rel="noreferrer" >
                     <span>Download Mau-Du-Lieu-Chuan.xlsx</span>
-                    </a>
+                  </a>
                   <div className="function-button">
                     <div className="input-group">
                       <div className="custom-file">
@@ -446,14 +531,13 @@ class SettingContainer extends Component {
                         <label className="custom-file-label" htmlFor="inputGroupFile04">Chọn file</label>
                       </div>
                       <div className="input-group-append">
-                        <button className="btn btn-primary" type="button" onClick={this.importTournamentMartial}><i className="fa-solid fa-file-import"></i> Import Thi
+                        <button className="btn btn-primary" type="button" onClick={this.importTournamentMartial}><i className="fa-solid fa-file-upload"></i> Import Thi
                           Quyền</button>
                       </div>
                       <table>
                         <thead>
                           <tr>
-                            {this.tournamentMartialArrayHeader &&
-                              this.tournamentMartialArrayHeader.map((header) => <th key={header}>{header}</th>)}
+                            {this.tournamentMartialImportHeader && this.tournamentMartialImportHeader.map((header) => <th key={header}>{header}</th>)}
                           </tr>
                         </thead>
                         <tbody>
@@ -476,7 +560,7 @@ class SettingContainer extends Component {
                   <div className="form-title">
                     <h2>Xử lý thông tin thi đấu Đối Kháng THÔ</h2>
                     <a href={MauDuLieuTho} download="2-Mau-Du-Lieu-Tho.xlsx" target="_blank" rel="noreferrer" >
-                    <span>Download Mau-Du-Lieu-Tho.xlsx</span>
+                      <span>Download Mau-Du-Lieu-Tho.xlsx</span>
                     </a>
                   </div>
                   <div className="function-button">
@@ -486,18 +570,32 @@ class SettingContainer extends Component {
                         <label className="custom-file-label" htmlFor="inputGroupFile04">Chọn file</label>
                       </div>
                       <div className="input-group-append">
-                        <button className="btn btn-primary" type="button" onClick={this.arrangeTournament}><i className="fa-solid fa-file-import"></i> Sắp xếp Đối Kháng</button>
+                        <button className="btn btn-info" type="button" onClick={this.shuffle}><i className="fa-solid fa-shuffle"></i> Xáo trộn danh sách</button>
+                      </div>
+                      <div className="input-group-append">
+                        <button className="btn btn-warning" type="button" onClick={this.arrangeTournament}><i className="fa-solid fa-layer-group"></i> Sắp xếp Đối Kháng</button>
+                      </div>
+                      <div className="input-group-append">
+                        <button className="btn btn-success" type="button" ><i className="fa-solid fa-file-download"></i> Download Đối Kháng</button>
                       </div>
                     </div>
                   </div>
                   <table>
                     <thead>
                       <tr>
-                        {this.tournamentArrayRawHeader &&
-                          this.tournamentArrayRawHeader.map((header) => <th key={header}>{header}</th>)}
+                        {this.tournamentArrangeHeader && this.tournamentArrangeHeader.map((header) => <th key={header}>{header}</th>)}
                       </tr>
                     </thead>
                     <tbody>
+                      {this.tournamentStandardArray ? this.tournamentStandardArray.map((row, i) => (
+                        <tr key={i}>
+                          {row.map((cell, i) => (
+                            <td key={i}>{cell}</td>
+                          ))}
+                        </tr>
+                      )) :
+                        <tr><td colSpan="2">Không có dữ liệu hiển thị</td></tr>
+                      }
                       {this.tournamentArrayRaw ? this.tournamentArrayRaw.map((row, i) => (
                         <tr key={i}>
                           {row.map((cell, i) => (
