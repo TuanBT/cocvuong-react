@@ -390,7 +390,7 @@ class ChamDiemHdContainer extends Component {
         <div>
           <div className="style-hd-body" style={{ height: '100vh' }}>
             <div className="information">
-              <div className="info">
+              <div className="style-hd-info">
                 <span className="info-text tournament-quyen-name">
                   <span id="tournamentName">
                   </span>

@@ -12,6 +12,11 @@ class InformationDkContainer extends Component {
     this.ref = database.ref();
     this.tournamentObj;
 
+    this.ref.child('setting').on('value', (snapshot) => {
+      me.settingObj = snapshot.val();
+      $('#tournamentName').html(me.settingObj.tournamentName);
+    })
+
     this.ref.once('value', function (snapshot) {
       me.tournamentObj = snapshot.val();
       me.showListInfo();
@@ -32,8 +37,8 @@ class InformationDkContainer extends Component {
     this.brackets = [];
     me.brackets.push("");//0
     me.brackets.push("");//1
-    me.brackets.push("");//2
-    me.brackets.push("");//3
+    me.brackets.push("<div class='brackets-2'> <div class='brackets'> <div class='group3'> <div class='r1'> <div> </div><div> </div></div><div class='r2'> <div> <div id='match-1' class='bracketbox'> <span class='info'>1</span> <span class='teama'>1</span> <span class='teamb'>2</span> </div></div></div><div class='r3'> <div id='match-0' class='final'> <div class='bracketbox'> <span class='teamc'></span> </div></div></div></div></div></div>");//2
+    me.brackets.push("<div class='brackets-3'> <div class='brackets'> <div class='group3'> <div class='r1'> <div> </div><div> <div id='match-1' class='bracketbox'> <span class='info'>1</span> <span class='teama'>2</span> <span class='teamb'>3</span> </div></div></div><div class='r2'> <div> <div id='match-2' class='bracketbox'> <span class='info'>2</span> <span class='teama'>1</span> <span class='teamb'></span> </div></div></div><div class='r3'> <div id='match-0' class='final'> <div class='bracketbox'> <span class='teamc'></span> </div></div></div></div></div></div>");//3
     me.brackets.push("<div class='brackets-4'> <div class='brackets'> <div class='group3'> <div class='r1'> <div> <div id='match-1' class='bracketbox'> <span class='info'>1</span> <span class='teama'>abc</span> <span class='teamb'></span> </div> </div> <div> <div id='match-2' class='bracketbox'> <span class='info'>2</span> <span class='teama'></span> <span class='teamb'></span> </div> </div> </div> <div class='r2'> <div> <div id='match-3' class='bracketbox'> <span class='info'>3</span> <span class='teama'></span> <span class='teamb'></span> </div> </div> </div> <div class='r3'> <div id='match-0' class='final'> <div class='bracketbox'> <span class='teamc'></span> </div> </div> </div> </div> </div> </div>");
     me.brackets.push("<div class='brackets-5'> <div class='brackets'> <div class='group4'> <div class='r1'> <div></div> <div></div> <div> <div id='match-1' class='bracketbox'> <span class='info'>1</span> <span class='teama'></span> <span class='teamb'></span> </div> </div> <div></div> </div> <div class='r2'> <div> <div id='match-2' class='bracketbox'> <span class='info'>2</span> <span class='teama'></span> <span class='teamb'></span></div> </div> <div> <div id='match-3' class='bracketbox'> <span class='info'>3</span> <span class='teama'></span> <span class='teamb'></span> </div> </div> </div> <div class='r3'> <div> <div id='match-4' class='bracketbox'> <span class='info'>4</span> <span class='teama'></span> <span class='teamb'></span> </div> </div> </div> <div class='r4'> <div class='final'> <div class='bracketbox'> <span class='teamc'></span> </div> </div> </div> </div> </div> </div>");
     me.brackets.push("<div class='brackets-6'> <div class='brackets'> <div class='group4'> <div class='r1'> <div></div> <div> <div id='match-1' class='bracketbox'> <span class='info'>1</span> <span class='teama'></span> <span class='teamb'></span> </div> </div> <div> <div id='match-2' class='bracketbox'> <span class='info'>2</span> <span class='teama'></span> <span class='teamb'></span> </div> </div> <div></div> </div> <div class='r2'> <div> <div id='match-3' class='bracketbox'> <span class='info'>3</span> <span class='teama'></span> <span class='teamb'></span> </div> </div> <div> <div id='match-4' class='bracketbox'> <span class='info'>4</span> <span class='teama'></span> <span class='teamb'></span> </div> </div> </div> <div class='r3'> <div> <div id='match-5' class='bracketbox'> <span class='info'>5</span> <span class='teama'></span> <span class='teamb'></span> </div> </div> </div> <div class='r4'> <div class='final'> <div class='bracketbox'> <span class='teamc'></span> </div> </div> </div> </div> </div> </div> ");
@@ -134,7 +139,7 @@ class InformationDkContainer extends Component {
           <header className="blog-header py-3">
             <div className="row flex-nowrap justify-content-between align-items-center">
               <div className="col-4 pt-1">
-                <h3 className="text-pomegrante">Cóc Vương 2022</h3>
+                <h3 className="text-pomegrante" id="tournamentName"></h3>
               </div>
               <div className="col-4 text-center">
                 <h2 className="blog-header-logo text-midnight-blue">Thông tin các trận đấu đối kháng</h2>

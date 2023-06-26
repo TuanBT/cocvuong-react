@@ -64,6 +64,7 @@ class SettingContainer extends Component {
   }
 
   resetSetting = () => {
+    console.log("resetSetting Start");
     this.settingObj = JSON.parse(JSON.stringify(this.settingConst));
 
     this.ref.child('setting').update(this.settingObj.setting, function () {
@@ -78,9 +79,11 @@ class SettingContainer extends Component {
 
       toast.success("Cập nhập thông tin giải đấu thành công!");
     });
+    console.log("resetSetting End");
   }
 
   updateSetting = () => {
+    console.log("updateSetting Start");
     this.settingObj = {
       "timeRound": parseInt($("input[name=timeRound]").val()),
       "timeBreak": parseInt($("input[name=timeBreak]").val()),
@@ -91,10 +94,11 @@ class SettingContainer extends Component {
     this.ref.child('setting').update(this.settingObj, function () {
       toast.success("Cập nhập thông tin giải đấu thành công!");
     });
-
+    console.log("updateSetting End");
   }
 
   handleimportTournamentFile = (event) => {
+    console.log("handleimportTournamentFile Start");
     this.tournamentObj = JSON.parse(JSON.stringify(this.tournamentConst));
 
     const file = event.target.files[0];
@@ -136,6 +140,7 @@ class SettingContainer extends Component {
 
     };
     reader.readAsArrayBuffer(file);
+    console.log("handleimportTournamentFile End");
   };
 
   importTournament = () => {
@@ -149,6 +154,7 @@ class SettingContainer extends Component {
 
 
   handleimportTournamentMartialFile = (event) => {
+    console.log("handleimportTournamentMartialFile Start");
     this.tournamentMartialObj = JSON.parse(JSON.stringify(this.tournamentMartialConst));
     let matchMartialObjTemp = JSON.parse(JSON.stringify(this.matchMartialObj));
     let fighterMartialObjTemp = JSON.parse(JSON.stringify(this.fighterMartialObj));
@@ -201,6 +207,7 @@ class SettingContainer extends Component {
 
     };
     reader.readAsArrayBuffer(file);
+    console.log("handleimportTournamentMartialFile End");
   }
 
   importTournamentMartial = () => {
@@ -212,6 +219,7 @@ class SettingContainer extends Component {
   }
 
   handleimportTournamentRawFile = (event) => {
+    console.log("handleimportTournamentRawFile Start");
     const file = event.target.files[0];
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -240,6 +248,7 @@ class SettingContainer extends Component {
 
     };
     reader.readAsArrayBuffer(file);
+    console.log("handleimportTournamentRawFile End");
   }
 
   shuffle = () => {
@@ -320,11 +329,21 @@ class SettingContainer extends Component {
       }
     }
 
-    //Add to array to show in table
+    //Add to array to show in table and data import
+    this.tournamentObj = JSON.parse(JSON.stringify(this.tournamentConst));
     tournamentStandard.forEach(value => {
       this.tournamentStandardArray.push([
         value.match, value.weight, value.type, value.redFighter.name, value.redFighter.code, value.blueFighter.name, value.blueFighter.code
       ]);
+      let matchObjTemp = JSON.parse(JSON.stringify(this.matchObj));
+      matchObjTemp.match.no = value.match;
+      matchObjTemp.match.category = value.weight;
+      matchObjTemp.match.type = value.type;
+      matchObjTemp.fighters.redFighter.name = value.redFighter.name;
+      matchObjTemp.fighters.redFighter.code = value.redFighter.code;
+      matchObjTemp.fighters.blueFighter.name = value.blueFighter.name;
+      matchObjTemp.fighters.blueFighter.code = value.blueFighter.code;
+      this.tournamentObj.tournament.push(matchObjTemp);
     })
 
     this.tournamentArrayRaw = [];
@@ -441,7 +460,7 @@ class SettingContainer extends Component {
               <div className="container">
                 <form className="form-style-7 mb-5 mt-3">
                   <div className="form-title">
-                    <h2>Thiết đặt thông tin giải đấu</h2>
+                    <h2><b>Thiết đặt thông tin giải đấu</b></h2>
                   </div>
                   <label htmlFor="basic-url">Tên giải đấu</label>
                   <div className="input-group mb-3">
@@ -475,13 +494,13 @@ class SettingContainer extends Component {
                       <span className="input-group-text">giây</span>
                     </div>
                   </div>
-                  <button type="button" className="btn btn-primary" style={{ marginRight: '5px' }} onClick={this.resetSetting}><i className="fa-solid fa-rotate-left"></i> Reset</button>
-                  <button type="button" className="btn btn-primary" style={{ marginRight: '5px' }} onClick={this.updateSetting}><i className="fa-solid fa-pen"></i> Cập nhập</button>
+                  <button type="button" className="btn btn-warning" style={{ marginRight: '5px' }} onClick={this.resetSetting}><i className="fa-solid fa-rotate-left"></i> Reset</button>
+                  <button type="button" className="btn btn-danger" style={{ marginRight: '5px' }} onClick={this.updateSetting}><i className="fa-solid fa-pen"></i> Cập nhập</button>
                 </form>
 
                 <div className="tournament-text mb-5 mt-3">
                   <div className="form-title">
-                    <h2>Nhập thông tin thi đấu Đối Kháng CHUẨN</h2>
+                    <h2><b>Nhập thông tin thi đấu Đối Kháng CHUẨN</b></h2>
                     <a href={MauDuLieuChuan} download="1-Mau-Du-Lieu-Chuan.xlsx" target="_blank" rel="noreferrer" >
                       <span>Download Mau-Du-Lieu-Chuan.xlsx</span>
                     </a>
@@ -493,7 +512,7 @@ class SettingContainer extends Component {
                         <label className="custom-file-label" htmlFor="inputGroupFile04">Chọn file</label>
                       </div>
                       <div className="input-group-append">
-                        <button className="btn btn-primary" type="button" onClick={this.importTournament}><i className="fa-solid fa-file-upload"></i> Import Đối Kháng</button>
+                        <button className="btn btn-danger" type="button" onClick={this.importTournament}><i className="fa-solid fa-file-import"></i> Import Đối Kháng</button>
                       </div>
                     </div>
                   </div>
@@ -519,7 +538,7 @@ class SettingContainer extends Component {
 
                 <div className="tournament-text mb-5 mt-3">
                   <div className="form-title">
-                    <h2>Nhập thông tin thi Quyền CHUẨN</h2>
+                    <h2><b>Nhập thông tin thi Quyền CHUẨN</b></h2>
                   </div>
                   <a href={MauDuLieuChuan} download="1-Mau-Du-Lieu-Chuan.xlsx" target="_blank" rel="noreferrer" >
                     <span>Download Mau-Du-Lieu-Chuan.xlsx</span>
@@ -531,7 +550,7 @@ class SettingContainer extends Component {
                         <label className="custom-file-label" htmlFor="inputGroupFile04">Chọn file</label>
                       </div>
                       <div className="input-group-append">
-                        <button className="btn btn-primary" type="button" onClick={this.importTournamentMartial}><i className="fa-solid fa-file-upload"></i> Import Thi
+                        <button className="btn btn-danger" type="button" onClick={this.importTournamentMartial}><i className="fa-solid fa-file-import"></i> Import Thi
                           Quyền</button>
                       </div>
                       <table>
@@ -558,7 +577,7 @@ class SettingContainer extends Component {
 
                 <div className="tournament-text mb-5 mt-3">
                   <div className="form-title">
-                    <h2>Xử lý thông tin thi đấu Đối Kháng THÔ</h2>
+                    <h2><b>Xử lý thông tin thi đấu Đối Kháng THÔ</b></h2>
                     <a href={MauDuLieuTho} download="2-Mau-Du-Lieu-Tho.xlsx" target="_blank" rel="noreferrer" >
                       <span>Download Mau-Du-Lieu-Tho.xlsx</span>
                     </a>
@@ -576,7 +595,7 @@ class SettingContainer extends Component {
                         <button className="btn btn-warning" type="button" onClick={this.arrangeTournament}><i className="fa-solid fa-layer-group"></i> Sắp xếp Đối Kháng</button>
                       </div>
                       <div className="input-group-append">
-                        <button className="btn btn-success" type="button" ><i className="fa-solid fa-file-download"></i> Download Đối Kháng</button>
+                        <button className="btn btn-danger" type="button"  onClick={this.importTournament}><i className="fa-solid fa-file-import"></i> Import Đối Kháng</button>
                       </div>
                     </div>
                   </div>
