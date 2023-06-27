@@ -1000,3 +1000,7 @@ textarea {
 .display-none {
     display: none;
 }
+
+.bigIcon {
+    font-size: 5em;
+}
