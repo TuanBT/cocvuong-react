@@ -144,24 +144,46 @@ class ChamDiemHdContainer extends Component {
         }
       ],
     }
+  }
 
+  componentDidMount() {
+    this.showPasswordModal();
+  }
+
+  verifyPassword = () => {
+    var password = $('#txtPassword').val();
+
+    if (password != null && password != "") {
+      this.ref.child('pass/firstPass').once('value', (snapshot) => {
+        if (password == snapshot.val()) {
+          this.hidePasswordModal();
+          this.main();
+        } else {
+          toast.error("Sai mật khẩu!");
+        }
+      })
+    } else {
+      toast.error("Sai mật khẩu!");
+    }
+  }
+
+  main() {
     this.ref.child('setting').on('value', (snapshot) => {
-      me.settingObj = snapshot.val();
-      $('#tournamentName').html(me.settingObj.tournamentName);
+      this.settingObj = snapshot.val();
+      $('#tournamentName').html(this.settingObj.tournamentName);
     })
 
     this.ref.child('lastMatchMartial').once('value', (snapshot) => {
       let lastMatchMartialObj = snapshot.val();
-      me.matchMartialNoCurrent = lastMatchMartialObj.matchMartialNo;
-      me.teamMartialNoCurrent = lastMatchMartialObj.teamMartialNo;
-      me.ref.child('tournamentMartial').on('value', function (snapshot) {
+      this.matchMartialNoCurrent = lastMatchMartialObj.matchMartialNo;
+      this.teamMartialNoCurrent = lastMatchMartialObj.teamMartialNo;
+      this.ref.child('tournamentMartial').on('value', function (snapshot) {
         console.log("on value Start");
-        me.initVariable(snapshot);
-        me.showValue();
+        this.initVariable(snapshot);
+        this.showValue();
         console.log("on value End");
       });
     })
-
   }
 
   initVariable(snapshot) {
@@ -365,6 +387,12 @@ class ChamDiemHdContainer extends Component {
     sound.play();
   }
 
+  showPasswordModal = () => {
+    $('#passwordModal').removeClass('modal display-none').addClass('modal display-block');
+  };
+  hidePasswordModal = () => {
+    $('#passwordModal').removeClass('modal display-block').addClass('modal display-none');;
+  };
   showTakeMainScoreModal = () => {
     $('#takeMainScoreModal').removeClass('modal display-none').addClass('modal display-block');
   };
@@ -506,9 +534,7 @@ class ChamDiemHdContainer extends Component {
               <div className="modal-content">
                 <div className="modal-header">
                   <h5 className="modal-title" id="modalLabel">Chấm điểm</h5>
-                  <button type="button" className="close" data-dismiss="modal" onClick={this.hideTakeMainScoreModal} aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                  </button>
+                  <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideTakeMainScoreModal}></button>
                 </div>
                 <div className="modal-body">
                   <div className="container cal mt-3">
@@ -547,14 +573,33 @@ class ChamDiemHdContainer extends Component {
             </div>
           </div>
 
+          <div className="modal display-none" id="passwordModal" tabIndex="-1">
+            <div className="modal-dialog">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title"><i className="fa-solid fa-lock"></i> Vui lòng nhập mật khẩu</h5>
+                  <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hidePasswordModal}></button>
+                </div>
+                <div className="modal-body">
+                  <div className="input-group mb-3">
+                    <span className="input-group-text"><i className="fa fa-key" aria-hidden="true"></i></span>
+                    <input type="password" className="form-control" placeholder="Mật khẩu" id="txtPassword" />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-primary ok-button" onClick={this.verifyPassword}>OK</button>
+                  <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hidePasswordModal} >Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="modal display-none" id="modalConfirm" tabIndex="-1" role="dialog">
             <div className="modal-dialog" role="document">
               <div className="modal-content">
                 <div className="modal-header">
                   <h5 className="modal-title"></h5>
-                  <button type="button" className="close" data-dismiss="modal" onClick={this.hideModalConfirm} aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                  </button>
+                  <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideModalConfirm}></button>
                 </div>
                 <div className="modal-body">
 
@@ -572,9 +617,7 @@ class ChamDiemHdContainer extends Component {
               <div className="modal-content">
                 <div className="modal-header">
                   <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-keyboard"></i> Các phím tắt</h5>
-                  <button type="button" className="close" data-dismiss="modal" onClick={this.hideModalShortcut} aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                  </button>
+                  <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideModalShortcut}></button>
                 </div>
                 <div className="modal-body">
                   <table className="table">

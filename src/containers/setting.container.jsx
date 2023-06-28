@@ -46,20 +46,42 @@ class SettingContainer extends Component {
     this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại","redFighter":{"name":2,"code":2},"blueFighter":{"name":3,"code":3}},{"match":2,"weight":1,"type":"Vòng loại","redFighter":{"name":4,"code":4},"blueFighter":{"name":5,"code":5}},{"match":3,"weight":1,"type":"Vòng loại","redFighter":{"name":8,"code":8},"blueFighter":{"name":9,"code":9}},{"match":4,"weight":1,"type":"Vòng loại","redFighter":{"name":10,"code":10},"blueFighter":{"name":11,"code":11}},{"match":5,"weight":1,"type":"Vòng loại","redFighter":{"name":1,"code":1},"blueFighter":{"name":"W.1","code":""}},{"match":6,"weight":1,"type":"Vòng loại","redFighter":{"name":"W.2","code":""},"blueFighter":{"name":6,"code":6}},{"match":7,"weight":1,"type":"Vòng loại","redFighter":{"name":7,"code":7},"blueFighter":{"name":"W.3","code":""}},{"match":8,"weight":1,"type":"Vòng loại","redFighter":{"name":"W.4","code":""},"blueFighter":{"name":12,"code":12}},{"match":9,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.5","code":""},"blueFighter":{"name":"W.6","code":""}},{"match":10,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.7","code":""},"blueFighter":{"name":"W.7","code":""}},{"match":11,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.9","code":""},"blueFighter":{"name":"W.10","code":""}}]');//12
     this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại","redFighter":{"name":2,"code":2},"blueFighter":{"name":3,"code":3}},{"match":2,"weight":1,"type":"Vòng loại","redFighter":{"name":4,"code":4},"blueFighter":{"name":5,"code":5}},{"match":3,"weight":1,"type":"Vòng loại","redFighter":{"name":7,"code":7},"blueFighter":{"name":8,"code":8}},{"match":4,"weight":1,"type":"Vòng loại","redFighter":{"name":9,"code":9},"blueFighter":{"name":10,"code":10}},{"match":5,"weight":1,"type":"Vòng loại","redFighter":{"name":11,"code":11},"blueFighter":{"name":12,"code":12}},{"match":6,"weight":1,"type":"Vòng loại","redFighter":{"name":1,"code":1},"blueFighter":{"name":"W.1","code":""}},{"match":7,"weight":1,"type":"Vòng loại","redFighter":{"name":"W.2","code":""},"blueFighter":{"name":6,"code":6}},{"match":8,"weight":1,"type":"Vòng loại","redFighter":{"name":"W.3","code":""},"blueFighter":{"name":"W.4","code":""}},{"match":9,"weight":1,"type":"Vòng loại","redFighter":{"name":"W.5","code":""},"blueFighter":{"name":13,"code":13}},{"match":10,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.6","code":""},"blueFighter":{"name":"W.7","code":""}},{"match":11,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.8","code":""},"blueFighter":{"name":"W.9","code":""}},{"match":12,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.10","code":""},"blueFighter":{"name":"W.11","code":""}}]');//13
     this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại","redFighter":{"name":2,"code":2},"blueFighter":{"name":3,"code":3}},{"match":2,"weight":1,"type":"Vòng loại","redFighter":{"name":4,"code":4},"blueFighter":{"name":5,"code":5}},{"match":3,"weight":1,"type":"Vòng loại","redFighter":{"name":6,"code":6},"blueFighter":{"name":7,"code":7}},{"match":4,"weight":1,"type":"Vòng loại","redFighter":{"name":8,"code":8},"blueFighter":{"name":9,"code":9}},{"match":5,"weight":1,"type":"Vòng loại","redFighter":{"name":10,"code":10},"blueFighter":{"name":11,"code":11}},{"match":6,"weight":1,"type":"Vòng loại","redFighter":{"name":12,"code":12},"blueFighter":{"name":13,"code":13}},{"match":7,"weight":1,"type":"Vòng loại","redFighter":{"name":1,"code":1},"blueFighter":{"name":"W.1","code":""}},{"match":8,"weight":1,"type":"Vòng loại","redFighter":{"name":"W.2","code":""},"blueFighter":{"name":"W.3","code":""}},{"match":9,"weight":1,"type":"Vòng loại","redFighter":{"name":"W.4","code":""},"blueFighter":{"name":"W.5","code":""}},{"match":10,"weight":1,"type":"Vòng loại","redFighter":{"name":"W.6","code":""},"blueFighter":{"name":14,"code":14}},{"match":11,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.7","code":""},"blueFighter":{"name":"W.8","code":""}},{"match":12,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.9","code":""},"blueFighter":{"name":"W.10","code":""}},{"match":13,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.11","code":""},"blueFighter":{"name":"W.12","code":""}}]');//14
+  }
 
+  componentDidMount() {
+    this.showPasswordModal();
+  }
+  
+  verifyPassword = () => {
+    var password = $('#txtPassword').val();
 
+    if (password != null && password != "") {
+      this.ref.child('pass/firstPass').once('value', (snapshot) => {
+        if (password == snapshot.val()) {
+          this.hidePasswordModal();
+          this.main();
+        } else {
+          toast.error("Sai mật khẩu!");
+        }
+      })
+    } else {
+      toast.error("Sai mật khẩu!");
+    }
+  }
+
+  main(){
     this.ref.child('setting').once('value', (snapshot) => {
-      me.settingObj = snapshot.val();
-      $("input[name=timeRound]").val(me.settingObj.timeRound);
-      $("input[name=timeBreak]").val(me.settingObj.timeBreak);
-      $("input[name=timeExtra]").val(me.settingObj.timeExtra);
-      $("input[name=timeExtraBreak]").val(me.settingObj.timeExtraBreak);
-      $("input[name=tournamentName]").val(me.settingObj.tournamentName);
+      this.settingObj = snapshot.val();
+      $("input[name=timeRound]").val(this.settingObj.timeRound);
+      $("input[name=timeBreak]").val(this.settingObj.timeBreak);
+      $("input[name=timeExtra]").val(this.settingObj.timeExtra);
+      $("input[name=timeExtraBreak]").val(this.settingObj.timeExtraBreak);
+      $("input[name=tournamentName]").val(this.settingObj.tournamentName);
     })
 
     this.ref.child('setting').on('value', (snapshot) => {
-      me.settingObj = snapshot.val();
-      $('#tournamentName').html(me.settingObj.tournamentName);
+      this.settingObj = snapshot.val();
+      $('#tournamentName').html(this.settingObj.tournamentName);
     })
   }
 
@@ -434,6 +456,13 @@ class SettingContainer extends Component {
     return arr;
   }
 
+  showPasswordModal = () => {
+    $('#passwordModal').removeClass('modal display-none').addClass('modal display-block');
+  };
+  hidePasswordModal = () => {
+    $('#passwordModal').removeClass('modal display-block').addClass('modal display-none');;
+  };
+
   render() {
     return (
       <div>
@@ -507,13 +536,8 @@ class SettingContainer extends Component {
                   </div>
                   <div className="function-button">
                     <div className="input-group">
-                      <div className="custom-file">
-                        <input type="file" className="custom-file-input" onChange={this.handleimportTournamentFile} />
-                        <label className="custom-file-label" htmlFor="inputGroupFile04">Chọn file</label>
-                      </div>
-                      <div className="input-group-append">
-                        <button className="btn btn-danger" type="button" onClick={this.importTournament}><i className="fa-solid fa-file-import"></i> Import Đối Kháng</button>
-                      </div>
+                      <input type="file" className="form-control" onChange={this.handleimportTournamentFile} />
+                      <button className="btn btn-danger" type="button" onClick={this.importTournament}><i className="fa-solid fa-file-import"></i> Import Đối Kháng</button>
                     </div>
                   </div>
                   <table>
@@ -545,33 +569,29 @@ class SettingContainer extends Component {
                   </a>
                   <div className="function-button">
                     <div className="input-group">
-                      <div className="custom-file">
-                        <input type="file" className="custom-file-input" onChange={this.handleimportTournamentMartialFile} />
-                        <label className="custom-file-label" htmlFor="inputGroupFile04">Chọn file</label>
+                      <div className="input-group">
+                        <input type="file" className="form-control" onChange={this.handleimportTournamentMartialFile} />
+                        <button className="btn btn-danger" type="button" onClick={this.importTournamentMartial}><i className="fa-solid fa-file-import"></i> Import Thi Quyền</button>
                       </div>
-                      <div className="input-group-append">
-                        <button className="btn btn-danger" type="button" onClick={this.importTournamentMartial}><i className="fa-solid fa-file-import"></i> Import Thi
-                          Quyền</button>
-                      </div>
-                      <table>
-                        <thead>
-                          <tr>
-                            {this.tournamentMartialImportHeader && this.tournamentMartialImportHeader.map((header) => <th key={header}>{header}</th>)}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {this.tournamentMartialArray ? this.tournamentMartialArray.map((row, i) => (
-                            <tr key={i}>
-                              {row.map((cell, i) => (
-                                <td key={i}>{cell}</td>
-                              ))}
-                            </tr>
-                          )) :
-                            <tr><td colSpan="2">Không có dữ liệu hiển thị</td></tr>
-                          }
-                        </tbody>
-                      </table>
                     </div>
+                    <table>
+                      <thead>
+                        <tr>
+                          {this.tournamentMartialImportHeader && this.tournamentMartialImportHeader.map((header) => <th key={header}>{header}</th>)}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {this.tournamentMartialArray ? this.tournamentMartialArray.map((row, i) => (
+                          <tr key={i}>
+                            {row.map((cell, i) => (
+                              <td key={i}>{cell}</td>
+                            ))}
+                          </tr>
+                        )) :
+                          <tr><td colSpan="2">Không có dữ liệu hiển thị</td></tr>
+                        }
+                      </tbody>
+                    </table>
                   </div>
                 </div>
 
@@ -584,18 +604,11 @@ class SettingContainer extends Component {
                   </div>
                   <div className="function-button">
                     <div className="input-group">
-                      <div className="custom-file">
-                        <input type="file" className="custom-file-input" onChange={this.handleimportTournamentRawFile} />
-                        <label className="custom-file-label" htmlFor="inputGroupFile04">Chọn file</label>
-                      </div>
-                      <div className="input-group-append">
+                      <div className="input-group">
+                        <input type="file" className="form-control" onChange={this.handleimportTournamentRawFile} />
                         <button className="btn btn-info" type="button" onClick={this.shuffle}><i className="fa-solid fa-shuffle"></i> Xáo trộn danh sách</button>
-                      </div>
-                      <div className="input-group-append">
                         <button className="btn btn-warning" type="button" onClick={this.arrangeTournament}><i className="fa-solid fa-layer-group"></i> Sắp xếp Đối Kháng</button>
-                      </div>
-                      <div className="input-group-append">
-                        <button className="btn btn-danger" type="button"  onClick={this.importTournament}><i className="fa-solid fa-file-import"></i> Import Đối Kháng</button>
+                        <button className="btn btn-danger" type="button" onClick={this.importTournament}><i className="fa-solid fa-file-import"></i> Import Đối Kháng</button>
                       </div>
                     </div>
                   </div>
@@ -632,6 +645,28 @@ class SettingContainer extends Component {
             </div>
 
           </div>
+
+          <div className="modal display-none" id="passwordModal" tabIndex="-1">
+            <div className="modal-dialog">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title"><i className="fa-solid fa-lock"></i> Vui lòng nhập mật khẩu</h5>
+                  <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hidePasswordModal}></button>
+                </div>
+                <div className="modal-body">
+                  <div className="input-group mb-3">
+                    <span className="input-group-text"><i className="fa fa-key" aria-hidden="true"></i></span>
+                    <input type="password" className="form-control" placeholder="Mật khẩu" id="txtPassword" />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-primary ok-button" onClick={this.verifyPassword}>OK</button>
+                  <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hidePasswordModal} >Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
         <ToastContainer />
 

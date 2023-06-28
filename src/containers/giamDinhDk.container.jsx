@@ -34,12 +34,37 @@ class GiamDinhDkContainer extends Component {
     this.matchNoCurrentIndex;
     this.teamNoCurrentIndex;
 
+    
+
+  }
+
+  componentDidMount() {
+    this.showPasswordModal();
+  }
+  
+  verifyPassword = () => {
+    var password = $('#txtPassword').val();
+
+    if (password != null && password != "") {
+      this.ref.child('pass/firstPass').once('value', (snapshot) => {
+        if (password == snapshot.val()) {
+          this.hidePasswordModal();
+          this.main();
+        } else {
+          toast.error("Sai mật khẩu!");
+        }
+      })
+    } else {
+      toast.error("Sai mật khẩu!");
+    }
+  }
+
+  main(){
     this.ref.child('setting').on('value', (snapshot) => {
-      me.settingObj = snapshot.val();
-      $('#tournamentName').html(me.settingObj.tournamentName);
+      this.settingObj = snapshot.val();
+      $('#tournamentName').html(this.settingObj.tournamentName);
       this.showChooseRefereeNoModal();
     })
-
   }
 
   chooseRefereeNo = () => {
@@ -167,6 +192,12 @@ class GiamDinhDkContainer extends Component {
     this.showModalShortcut();
   }
 
+  showPasswordModal = () => {
+    $('#passwordModal').removeClass('modal display-none').addClass('modal display-block');
+  };
+  hidePasswordModal = () => {
+    $('#passwordModal').removeClass('modal display-block').addClass('modal display-none');;
+  };
   showChooseRefereeNoModal = () => {
     $('#chooseRefereeNoModal').removeClass('modal display-none').addClass('modal display-block');
   };
@@ -232,30 +263,45 @@ class GiamDinhDkContainer extends Component {
               </div>
             </div>
 
+            <div className="modal display-none" id="passwordModal" tabIndex="-1">
+            <div className="modal-dialog">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title"><i className="fa-solid fa-lock"></i> Vui lòng nhập mật khẩu</h5>
+                  <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hidePasswordModal}></button>
+                </div>
+                <div className="modal-body">
+                  <div className="input-group mb-3">
+                    <span className="input-group-text"><i className="fa fa-key" aria-hidden="true"></i></span>
+                    <input type="password" className="form-control" placeholder="Mật khẩu" id="txtPassword" />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-primary ok-button" onClick={this.verifyPassword}>OK</button>
+                  <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hidePasswordModal} >Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
             <div className="modal display-none" id="chooseRefereeNoModal" tabIndex="-1" role="dialog">
               <div className="modal-dialog" role="document">
                 <div className="modal-content">
                   <div className="modal-header">
                     <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn mã giám định của bạn
                     </h5>
-                    <button type="button" className="close" data-dismiss="modal" onClick={this.hideChooseRefereeNoModal} aria-label="Close">
-                      <span aria-hidden="true">&times;</span>
-                    </button>
+                    <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideChooseRefereeNoModal}></button>
                   </div>
                   <div className="modal-body">
-                    <div className="btn-group btn-group-toggle" data-toggle="buttons">
-                      <label className="btn btn-warning active">
-                        <input type="radio" name="optionsReferee" value="1" autoComplete="off" defaultChecked />
-                        <i className="fa-solid fa-user"></i> Giám định I
-                      </label>
-                      <label className="btn btn-warning">
-                        <input type="radio" name="optionsReferee" value="2" autoComplete="off" />
-                        <i className="fa-solid fa-user"></i> Giám định II
-                      </label>
-                      <label className="btn btn-warning">
-                        <input type="radio" name="optionsReferee" value="3" autoComplete="off" />
-                        <i className="fa-solid fa-user"></i> Giám định III
-                      </label>
+                    <div className="category-buttons">
+                      <section className="btn-group">
+                        <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee1" value="1" defaultChecked />
+                        <label className="btn btn-outline-secondary" htmlFor="optionsReferee1"> <i className="fa-solid fa-user"></i> Giám định I </label>
+                        <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee2" value="2" />
+                        <label className="btn btn-outline-secondary" htmlFor="optionsReferee2"> <i className="fa-solid fa-user"></i> Giám định II </label>
+                        <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee3" value="3" />
+                        <label className="btn btn-outline-secondary" htmlFor="optionsReferee3"> <i className="fa-solid fa-user"></i> Giám định III </label>
+                      </section>
                     </div>
                   </div>
                   <div className="modal-footer">
@@ -271,9 +317,7 @@ class GiamDinhDkContainer extends Component {
                 <div className="modal-content">
                   <div className="modal-header">
                     <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-keyboard"></i> Các phím tắt</h5>
-                    <button type="button" className="close" data-dismiss="modal" onClick={this.hideChooseRefereeNoModal} aria-label="Close">
-                      <span aria-hidden="true">&times;</span>
-                    </button>
+                    <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideChooseRefereeNoModal}></button>
                   </div>
                   <div className="modal-body">
                     <table className="table">

@@ -59,7 +59,8 @@ class InformationDkContainer extends Component {
         if (!categoryArray.includes(this.tournamentObj.tournament[i].match.category)) {
           categoryArray.push(this.tournamentObj.tournament[i].match.category);
           $(".category-radio").append(
-            "<label class='btn btn-warning'><input type='radio' name='optionCategory' value='" + this.tournamentObj.tournament[i].match.category + "' autocomplete='off'>" + this.tournamentObj.tournament[i].match.category + "</label>"
+            // "<label class='btn btn-warning'><input type='radio' name='optionCategory' value='" + this.tournamentObj.tournament[i].match.category + "' autocomplete='off'>" + this.tournamentObj.tournament[i].match.category + "</label>" +
+            "<input type='radio' class='btn-check' name='optionCategory' id='optionCategory" + i + "' value='" + this.tournamentObj.tournament[i].match.category + "' /><label class='btn btn-outline-warning' for='optionCategory" + i + "'><i class='fa-solid fa-user'></i> " + this.tournamentObj.tournament[i].match.category + "</label>"
           );
         }
 
@@ -154,11 +155,10 @@ class InformationDkContainer extends Component {
         </div>
 
         <div className="category-buttons">
-          <div className="btn-group btn-group-toggle category-radio" data-toggle="buttons">
-            <label className="btn btn-warning active">
-              <input type="radio" name="optionCategory" value="ALL" defaultChecked />ALL
-            </label>
-          </div>
+          <section className="btn-group category-radio">
+            <input type="radio" className="btn-check" name="optionCategory" id="optionCategory-1" value="ALL" defaultChecked />
+            <label className="btn btn-outline-warning" htmlFor="optionCategory-1"><i className="fa-solid fa-user"></i> ALL</label>
+          </section>
         </div>
 
         <div className=" tbl-info">

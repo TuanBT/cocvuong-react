@@ -113,7 +113,7 @@ class HomeContainer extends Component {
                     <h4 className="my-0 fw-normal">THIẾT ĐẶT</h4>
                   </div>
                   <div className="card-body">
-                    <span className="d-block text-center pb-3 bigIcon"><i className="fa-solid fa-tv"></i></span>
+                    <span className="d-block text-center pb-3 bigIcon"><i className="fa-solid fa-gear"></i></span>
                     <button type="button" className="w-100 btn btn-lg btn-primary" onClick={this.handleClickSetting}>Truy cập</button>
                   </div>
                 </div>

@@ -143,50 +143,73 @@ class ChamDiemDkContainer extends Component {
         "name": "",
       }
     }
+  }
 
+  componentDidMount() {
+    this.showPasswordModal();
+  }
+
+  verifyPassword = () => {
+    var password = $('#txtPassword').val();
+
+    if (password != null && password != "") {
+      this.ref.child('pass/firstPass').once('value', (snapshot) => {
+        if (password == snapshot.val()) {
+          this.hidePasswordModal();
+          this.main();
+        } else {
+          toast.error("Sai mật khẩu!");
+        }
+      })
+    } else {
+      toast.error("Sai mật khẩu!");
+    }
+  }
+
+  main(){
     this.ref.child('setting').on('value',  (snapshot) => {
-      me.settingObj = snapshot.val();
-      $('#tournamentName').html(me.settingObj.tournamentName);
+      this.settingObj = snapshot.val();
+      $('#tournamentName').html(this.settingObj.tournamentName);
 
-      me.startEffectTimer();
+      this.startEffectTimer();
 
-      me.ref.child('setting').on('value', function (snapshot) {
-        me.settingObj = snapshot.val();
-        me.timerCoundown = me.settingObj.timeRound;
-        me.timeBreak = me.settingObj.timeBreak;
-        me.timeExtra = me.settingObj.timeExtra;
-        me.timeExtraBreak = me.settingObj.timeExtraBreak;
+      this.ref.child('setting').on('value', (snapshot) => {
+        this.settingObj = snapshot.val();
+        this.timerCoundown = this.settingObj.timeRound;
+        this.timeBreak = this.settingObj.timeBreak;
+        this.timeExtra = this.settingObj.timeExtra;
+        this.timeExtraBreak = this.settingObj.timeExtraBreak;
       })
 
-      me.ref.child('tournament').on('value', function (snapshot) {
-        me.tournamentObj = snapshot.val();
-        if (me.lastMatchObj == null) {
-          me.matchNoCurrent = me.tournamentConst.lastMatch.no;
-          me.matchNoCurrentIndex = me.matchNoCurrent - 1;
-          me.match = me.tournamentObj[me.matchNoCurrentIndex];
+      this.ref.child('tournament').on('value', (snapshot) => {
+        this.tournamentObj = snapshot.val();
+        if (this.lastMatchObj == null) {
+          this.matchNoCurrent = this.tournamentConst.lastMatch.no;
+          this.matchNoCurrentIndex = this.matchNoCurrent - 1;
+          this.match = this.tournamentObj[this.matchNoCurrentIndex];
         }
-        if (me.refereeObj == null) {
-          me.refereeObj = me.tournamentConst.referee;
+        if (this.refereeObj == null) {
+          this.refereeObj = this.tournamentConst.referee;
         }
-        me.showValue();
+        this.showValue();
       });
 
-      me.ref.child('lastMatch').on('value', function (snapshot) {
-        me.lastMatchObj = snapshot.val();
-        me.matchNoCurrent = me.lastMatchObj.no;
-        me.matchNoCurrentIndex = me.matchNoCurrent - 1;
-        me.match = me.tournamentObj[me.matchNoCurrentIndex];
+      this.ref.child('lastMatch').on('value', (snapshot) => {
+        this.lastMatchObj = snapshot.val();
+        this.matchNoCurrent = this.lastMatchObj.no;
+        this.matchNoCurrentIndex = this.matchNoCurrent - 1;
+        this.match = this.tournamentObj[this.matchNoCurrentIndex];
 
-        me.showValue();
+        this.showValue();
       })
 
-      me.ref.child('referee').on('value', function (snapshot) {
-        me.refereeObj = snapshot.val();
-        me.showValue();
+      this.ref.child('referee').on('value', (snapshot) => {
+        this.refereeObj = snapshot.val();
+        this.showValue();
       })
 
       //Kiểm tra kết nối internet
-      me.ref.child('.info/connected').on('value', function (snapshot) {
+      this.ref.child('.info/connected').on('value', (snapshot) => {
         if (!snapshot.val() === true) {
           $('#internet-status').show();
         } else {
@@ -195,7 +218,6 @@ class ChamDiemDkContainer extends Component {
       })
     })
   }
-
 
   showValue() {
     console.log("showValue() Start");
@@ -410,8 +432,6 @@ class ChamDiemDkContainer extends Component {
     console.log("redWin() End");
   }
 
-
-
   blueWin = () => {
     console.log("blueWin() Start");
     if (this.match.match.win == "red") {
@@ -556,35 +576,6 @@ class ChamDiemDkContainer extends Component {
     }
   }
 
-  // //Score referee time
-  // makeScoreTimer1() {
-  //   console.log("makeScoreTimer1");
-  //   for (let i = 0; i < this.numReferee; i++) {
-  //     if (this.refereeObj[i].redScore != 0 || this.refereeObj[i].blueScore != 0) {
-  //       if (!this.isFirstRefereeScore) {
-  //         this.tournamentObj.scoreTimer = this.timeScore;
-  //         this.isFirstRefereeScore = true;
-  //       }
-  //       this.tournamentObj.scoreTimer--;
-  //       if (this.tournamentObj.scoreTimer == 0) {
-  //         //Tổng kết và tính điểm
-  //         let redScoreArray = [];
-  //         let blueScoreArray = [];
-  //         for (let i = 0; i < this.numReferee; i++) {
-  //           redScoreArray.push(this.refereeObj[i].redScore);
-  //           blueScoreArray.push(this.refereeObj[i].blueScore);
-  //         }
-  //         this.match.fighters.redFighter.score += this.getModes(redScoreArray);
-  //         this.match.fighters.blueFighter.score += this.getModes(blueScoreArray);
-
-  //         this.ref.child('tournament/' + this.matchNoCurrentIndex + '/fighters').update(this.match.fighters);
-  //         this.isFirstRefereeScore = false;
-  //       }
-  //       break;
-  //     }
-  //   }
-  // }
-
   makeTimer() {
     console.log("makeTimer() Start");
     if (this.timerCoundown < 0) {
@@ -674,7 +665,6 @@ class ChamDiemDkContainer extends Component {
   }
 
   makeEffectTimer() {
-    // console.log("makeEffectTimer() Start");
     if (this.match.match.win == "red") {
       if ($(".red-score").css("background-color") == "rgb(255, 0, 0)") {
         $(".red-score").css("background-color", this.bodyBgColor);
@@ -692,7 +682,6 @@ class ChamDiemDkContainer extends Component {
         $(".blue-score").css("color", this.whiteColor);
       }
     }
-    // console.log("makeEffectTimer() End");
   }
 
   startEffectTimer() {
@@ -763,6 +752,12 @@ class ChamDiemDkContainer extends Component {
     sound.play();
   }
 
+  showPasswordModal = () => {
+    $('#passwordModal').removeClass('modal display-none').addClass('modal display-block');
+  };
+  hidePasswordModal = () => {
+    $('#passwordModal').removeClass('modal display-block').addClass('modal display-none');;
+  };
   showModalChooseMatch = () => {
     $('#modalChooseMatch').removeClass('modal display-none').addClass('modal display-block');
   };
@@ -975,20 +970,37 @@ class ChamDiemDkContainer extends Component {
             </div>
           </div>
 
+          <div className="modal display-none" id="passwordModal" tabIndex="-1">
+            <div className="modal-dialog">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title"><i className="fa-solid fa-lock"></i> Vui lòng nhập mật khẩu</h5>
+                  <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hidePasswordModal}></button>
+                </div>
+                <div className="modal-body">
+                  <div className="input-group mb-3">
+                    <span className="input-group-text"><i className="fa fa-key" aria-hidden="true"></i></span>
+                    <input type="password" className="form-control" placeholder="Mật khẩu" id="txtPassword" />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-primary ok-button" onClick={this.verifyPassword}>OK</button>
+                  <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hidePasswordModal} >Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="modal display-none" id="modalChooseMatch" tabIndex="-" role="dialog">
             <div className="modal-dialog" role="document">
               <div className="modal-content">
                 <div className="modal-header">
                   <h5 className="modal-title" id="modalLabel">Trọn trận đấu</h5>
-                  <button type="button" className="close" data-dismiss="modal" onClick={this.hideModalChooseMatch} aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                  </button>
+                  <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideModalChooseMatch}></button>
                 </div>
                 <div className="modal-body">
                   <div className="input-group mb-3">
-                    <div className="input-group-prepend">
                       <span className="input-group-text"><i className="fa fa-code"></i></span>
-                    </div>
                     <input type="number" className="form-control" placeholder="Số thứ tự trận đấu" id="txtMatchChoose" />
                   </div>
                 </div>
@@ -1005,9 +1017,7 @@ class ChamDiemDkContainer extends Component {
               <div className="modal-content">
                 <div className="modal-header">
                   <h5 className="modal-title"></h5>
-                  <button type="button" className="close" data-dismiss="modal" onClick={this.hideModalConfirm} aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                  </button>
+                  <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideModalConfirm}></button>
                 </div>
                 <div className="modal-body">
 
@@ -1025,9 +1035,7 @@ class ChamDiemDkContainer extends Component {
               <div className="modal-content">
                 <div className="modal-header">
                   <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-keyboard"></i> Các phím tắt</h5>
-                  <button type="button" className="close" data-dismiss="modal" onClick={this.hideModalShortcut} aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                  </button>
+                  <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideModalShortcut}></button>
                 </div>
                 <div className="modal-body">
                   <table className="table">
