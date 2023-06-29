@@ -37,6 +37,7 @@ class GiamDinhHdContainer extends Component {
   }
 
   componentDidMount() {
+    document.addEventListener("keydown", this._handleKeyDown);
     this.showPasswordModal();
   }
   
@@ -63,6 +64,57 @@ class GiamDinhHdContainer extends Component {
       $('#tournamentName').html(this.settingObj.tournamentName);
       this.showChooseRefereeNoModal();
     })
+  }
+
+  _handleKeyDown = (e) => {
+    //Space
+    if (e.which == 32) {
+      submitInput()();
+    };
+    //ESC
+    if (e.which == 27) {
+      clearInput();
+    }
+    //0
+    if (e.which == 48) {
+      input(0);
+    }
+    //1
+    if (e.which == 49) {
+      input(1);
+    }
+    //2
+    if (e.which == 50) {
+      input(2);
+    }
+    //3
+    if (e.which == 51) {
+      input(3);
+    }
+    //4
+    if (e.which == 52) {
+      input(4);
+    }
+    //5
+    if (e.which == 53) {
+      input(5);
+    }
+    //6
+    if (e.which == 54) {
+      input(6);
+    }
+    //7
+    if (e.which == 55) {
+      input(7);
+    }
+    //8
+    if (e.which == 56) {
+      input(8);
+    }
+    //9
+    if (e.which == 57) {
+      input(9);
+    }
   }
 
   chooseRefereeNo = () => {

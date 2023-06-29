@@ -39,6 +39,7 @@ class GiamDinhDkContainer extends Component {
   }
 
   componentDidMount() {
+    document.addEventListener("keydown", this._handleKeyDown);
     this.showPasswordModal();
   }
   
@@ -65,6 +66,29 @@ class GiamDinhDkContainer extends Component {
       $('#tournamentName').html(this.settingObj.tournamentName);
       this.showChooseRefereeNoModal();
     })
+  }
+
+  _handleKeyDown = (e) => {
+    //Left arrow
+    if (e.which == 37) {
+      this.redAddition(2);
+    }//up arrow
+    if (e.which == 38) {
+      this.redAddition(1);
+    }
+    //Right arrow
+    if (e.which == 39) {
+      this.blueAddition(2);
+    }
+    //Down arrow
+    if (e.which == 40) {
+      this.blueAddition(1);
+    }
+    //Space
+    if (e.which == 32) {
+      this.redAddition(0);
+      this.blueAddition(0);
+    }
   }
 
   chooseRefereeNo = () => {
@@ -189,6 +213,7 @@ class GiamDinhDkContainer extends Component {
   }
 
   showShortcut = () => {
+    document.addEventListener("keydown", this._handleKeyDown);
     this.showModalShortcut();
   }
 

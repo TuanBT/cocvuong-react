@@ -147,6 +147,7 @@ class ChamDiemHdContainer extends Component {
   }
 
   componentDidMount() {
+    document.addEventListener("keydown", this._handleKeyDown);
     this.showPasswordModal();
   }
 
@@ -184,6 +185,20 @@ class ChamDiemHdContainer extends Component {
         console.log("on value End");
       });
     })
+  }
+
+  _handleKeyDown = (e) => {
+    if (e.which == 32) {
+      this.startTimer();
+    };
+    //Left arrow
+    if (e.which == 37) {
+      this.prevMatchMartial();
+    }
+    //Right arrow
+    if (e.which == 39) {
+      this.nextMatchMartial();
+    }
   }
 
   initVariable(snapshot) {

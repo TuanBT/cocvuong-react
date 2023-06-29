@@ -146,6 +146,7 @@ class ChamDiemDkContainer extends Component {
   }
 
   componentDidMount() {
+    document.addEventListener("keydown", this._handleKeyDown);
     this.showPasswordModal();
   }
 
@@ -217,6 +218,45 @@ class ChamDiemDkContainer extends Component {
         }
       })
     })
+  }
+
+  _handleKeyDown = (e) => {
+    //Space
+    if (e.which === 32) {
+      this.startTimer();
+    }
+    //Left arrow
+    if (e.which === 37) {
+      this.redSubtraction();
+    }
+    //Up arrow
+    if (e.which === 38) {
+      this.redAddition();
+    }
+    //Right arrow
+    if (e.which === 39) {
+      this.blueAddition();
+    }
+    //Down arrow
+    if (e.which === 40) {
+      this.blueSubtraction();
+    }
+    //D
+    if (e.which === 68) {
+      this.redWin();
+    }
+    //X
+    if (e.which === 88) {
+      this.blueWin();
+    }
+    //C
+    if (e.which === 67) {
+      this.chooseMatch();
+    }
+    //T
+    if (e.which === 84) {
+      this.prevMatch();
+    }
   }
 
   showValue() {
