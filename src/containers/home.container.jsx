@@ -4,13 +4,8 @@ import { database } from '../firebase';
 class HomeContainer extends Component {
   constructor(props) {
     super(props);
-    const me = this;
     this.ref = database.ref();
-
-
   }
-
-
 
   handleClickCDDK() {
     window.open('./cham-diem-dk', '_self');
@@ -30,11 +25,6 @@ class HomeContainer extends Component {
   handleClickSetting() {
     window.open('./setting', '_self');
   }
-
-
-
-
-
 
   render() {
     return (
