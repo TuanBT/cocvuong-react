@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import $ from 'jquery';
-import { database } from '../firebase';
+import Firebase from '../firebase';
+import { ref, set, get, update, remove, child, onValue } from "firebase/database";
 import logo from '../assets/img/logo.png';
 import '../assets/css/style-giam_dinh_hd.css';
 import { ToastContainer, toast } from 'react-toastify';
@@ -10,7 +11,7 @@ class GiamDinhHdContainer extends Component {
   constructor(props) {
     super(props);
     const me = this;
-    this.ref = database.ref();
+    this.db = Firebase();
 
     this.round = me.fistRound;
     this.matchNoCurrent;
@@ -40,12 +41,12 @@ class GiamDinhHdContainer extends Component {
     document.addEventListener("keydown", this._handleKeyDown);
     this.showPasswordModal();
   }
-  
+
   verifyPassword = () => {
     var password = $('#txtPassword').val();
 
     if (password != null && password != "") {
-      this.ref.child('pass/firstPass').once('value', (snapshot) => {
+      get(ref(this.db, 'pass/firstPass')).then((snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           this.main();
@@ -58,8 +59,8 @@ class GiamDinhHdContainer extends Component {
     }
   }
 
-  main(){
-    this.ref.child('setting').on('value', (snapshot) => {
+  main() {
+    onValue(ref(this.db, 'setting'), (snapshot) => {
       this.settingObj = snapshot.val();
       $('#tournamentName').html(this.settingObj.tournamentName);
       this.showChooseRefereeNoModal();
@@ -136,9 +137,9 @@ class GiamDinhHdContainer extends Component {
       }
       $("#gd-name").html(this.refereeName);
 
-      this.ref.child("lastMatch/no").on('value', (snapshot) => {
+      onValue(ref(this.db, 'lastMatch/no'), (snapshot) => {
         //Kiểm tra kết nối internet
-        this.ref.child('.info/connected').on('value', (snapshot) => {
+        onValue(ref(this.db, '.info/connected'), (snapshot) => {
           if (!snapshot.val() === true) {
             $('#internet-status').show();
           } else {
@@ -152,9 +153,9 @@ class GiamDinhHdContainer extends Component {
         this.path = "referee/" + this.referreIndex;
       })
 
-      this.ref.child("lastMatchMartial").on('value', (snapshot) => {
+      onValue(ref(this.db, 'lastMatchMartial'), (snapshot) => {
         //Kiểm tra kết nối internet
-        this.ref.child('.info/connected').on('value', (snapshot) => {
+        onValue(ref(this.db, '.info/connected'), (snapshot) => {
           if (!snapshot.val() === true) {
             $('#internet-status').show();
           } else {
@@ -167,7 +168,7 @@ class GiamDinhHdContainer extends Component {
         this.matchNoCurrentIndex = lastMatchMartial.matchMartialNo - 1;
         this.teamNoCurrentIndex = lastMatchMartial.teamMartialNo - 1;
 
-        this.ref.child("tournamentMartial/" + this.matchNoCurrentIndex).once('value', (snapshot) => {
+        get(ref(this.db, 'tournamentMartial/' + this.matchNoCurrentIndex)).then((snapshot) => {
           $("#match-martial-name").html(snapshot.val().match.name);
           $("#match-martial-no").html(snapshot.val().team[this.teamNoCurrentIndex].no);
         })
@@ -196,16 +197,16 @@ class GiamDinhHdContainer extends Component {
     if (parseInt(this.refereeMartialScore) > 99) {
       this.refereeMartialScore = "";
     }
-    this.ref.child(this.pathMartial).update({ "score": parseInt(this.refereeMartialScore) });
+    update(ref(this.db, this.pathMartial), { "score": parseInt(this.refereeMartialScore) });
 
     this.pathMartialScore = "tournamentMartial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex;
-    this.ref.child(this.pathMartialScore).once('value', (snapshot) => {
+    get(ref(this.db, this.pathMartialScore)).then((snapshot) => {
       let refereeMartialObj = snapshot.val();
       let referee1Score = refereeMartialObj.refereeMartial[0].score;
       let referee2Score = refereeMartialObj.refereeMartial[1].score;
       let referee3Score = refereeMartialObj.refereeMartial[2].score;
       let totalScore = referee1Score + referee2Score + referee3Score;
-      this.ref.child(this.pathMartialScore).update({ "score": parseInt(totalScore) });
+      update(ref(this.db, this.pathMartialScore), { "score": parseInt(totalScore) });
     })
 
     this.refereeMartialScore = "";
@@ -217,7 +218,7 @@ class GiamDinhHdContainer extends Component {
     this.showModalShortcut();
   }
 
- showPasswordModal = () => {
+  showPasswordModal = () => {
     $('#passwordModal').removeClass('modal display-none').addClass('modal display-block');
   };
   hidePasswordModal = () => {
@@ -306,7 +307,7 @@ class GiamDinhHdContainer extends Component {
         </div>
 
         <div>
-        <div className="modal display-none" id="passwordModal" tabIndex="-1">
+          <div className="modal display-none" id="passwordModal" tabIndex="-1">
             <div className="modal-dialog">
               <div className="modal-content">
                 <div className="modal-header">

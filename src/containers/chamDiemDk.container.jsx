@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import $ from 'jquery';
-import { database } from '../firebase';
+import Firebase from '../firebase';
+import { ref, set, get, update, remove, child, onValue } from "firebase/database";
 import logo from '../assets/img/logo.png';
 import sound from '../assets/sound/bell-school.wav';
 import { ToastContainer, toast } from 'react-toastify';
@@ -10,7 +11,7 @@ class ChamDiemDkContainer extends Component {
   constructor(props) {
     super(props);
     const me = this;
-    this.ref = database.ref();
+    this.db = Firebase();
 
     this.fistRound = "Hiệp 1";
     this.breakRound = "Nghỉ giữa hiệp";
@@ -154,7 +155,7 @@ class ChamDiemDkContainer extends Component {
     var password = $('#txtPassword').val();
 
     if (password != null && password != "") {
-      this.ref.child('pass/firstPass').once('value', (snapshot) => {
+      get(child(ref(this.db), 'pass/firstPass')).then((snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           this.main();
@@ -167,14 +168,14 @@ class ChamDiemDkContainer extends Component {
     }
   }
 
-  main(){
-    this.ref.child('setting').on('value',  (snapshot) => {
+  main() {
+    get(child(ref(this.db), 'setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       $('#tournamentName').html(this.settingObj.tournamentName);
 
       this.startEffectTimer();
 
-      this.ref.child('setting').on('value', (snapshot) => {
+      onValue(ref(this.db, 'setting'), (snapshot) => {
         this.settingObj = snapshot.val();
         this.timerCoundown = this.settingObj.timeRound;
         this.timeBreak = this.settingObj.timeBreak;
@@ -182,7 +183,7 @@ class ChamDiemDkContainer extends Component {
         this.timeExtraBreak = this.settingObj.timeExtraBreak;
       })
 
-      this.ref.child('tournament').on('value', (snapshot) => {
+      onValue(ref(this.db, 'tournament'), (snapshot) => {
         this.tournamentObj = snapshot.val();
         if (this.lastMatchObj == null) {
           this.matchNoCurrent = this.tournamentConst.lastMatch.no;
@@ -195,7 +196,7 @@ class ChamDiemDkContainer extends Component {
         this.showValue();
       });
 
-      this.ref.child('lastMatch').on('value', (snapshot) => {
+      onValue(ref(this.db, 'lastMatch'), (snapshot) => {
         this.lastMatchObj = snapshot.val();
         this.matchNoCurrent = this.lastMatchObj.no;
         this.matchNoCurrentIndex = this.matchNoCurrent - 1;
@@ -204,13 +205,14 @@ class ChamDiemDkContainer extends Component {
         this.showValue();
       })
 
-      this.ref.child('referee').on('value', (snapshot) => {
+      onValue(ref(this.db, 'referee'), (snapshot) => {
         this.refereeObj = snapshot.val();
         this.showValue();
       })
 
       //Kiểm tra kết nối internet
-      this.ref.child('.info/connected').on('value', (snapshot) => {
+
+      onValue(ref(this.db, '.info/connected'), (snapshot) => {
         if (!snapshot.val() === true) {
           $('#internet-status').show();
         } else {
@@ -338,7 +340,7 @@ class ChamDiemDkContainer extends Component {
     //Khung các giám định
     //Hiện điểm các giám định
     for (let i = 1; i <= this.numReferee; i++) {
-      this.ref.child('tournament').set(this.tournamentObj);
+      set(ref(this.db, 'tournament'), this.tournamentObj)
       $("#red-score-" + i).html(this.refereeObj[i - 1].redScore);
       $("#blue-score-" + i).html(this.refereeObj[i - 1].blueScore);
       if (this.refereeObj[i - 1].redScore != 0 || this.refereeObj[i - 1].blueScore != 0) {
@@ -352,10 +354,10 @@ class ChamDiemDkContainer extends Component {
 
   saveMatch() {
     console.log("saveMatch() Start");
-    this.ref.child('tournament/' + this.matchNoCurrentIndex).update(this.match);
+    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex), this.match);
     console.log("saveMatch() End");
   }
-  
+
   //Gõ số để đi đến trận đấu
   chooseMatch = () => {
     console.log("chooseMatch() Start");
@@ -384,7 +386,7 @@ class ChamDiemDkContainer extends Component {
       $('#modalConfirm .modal-body').html("Bạn muốn dừng trận đấu và đến trận đấu kế tiếp?");
       this.showModalConfirm();
 
-      $("#buttonConfirmOK").click( () => {
+      $("#buttonConfirmOK").click(() => {
         this.matchNoCurrent++;
         this.restoreMatch();
         this.hideModalConfirm();
@@ -429,13 +431,13 @@ class ChamDiemDkContainer extends Component {
     seconds < "10" ? this.seconds = "0" + seconds : this.seconds = seconds;
     $("#match-time").html(this.minutes + ":" + this.seconds);
     $("#match-round").html(this.round);
-    this.ref.child('lastMatch/no').set(this.matchNoCurrent);
+    set(ref(this.db, 'lastMatch/no'), this.matchNoCurrent)
     let referees = [];
     for (let i = 0; i < this.numReferee; i++) {
       this.refereeObj[i] = { blueScore: 0, redScore: 0 };
       referees.push(this.refereeObj[i]);
     }
-    this.ref.child('referee').set(referees);
+    set(ref(this.db, 'referee'), referees)
     console.log("restoreMatch() End");
   }
 
@@ -457,7 +459,7 @@ class ChamDiemDkContainer extends Component {
           this.replaceFighter("red");
           setTimeout(() => {
             this.match.match.win = "red";
-            this.ref.child('tournament/' + this.matchNoCurrentIndex + '/match/win').set("red");
+            set(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/match/win'), "red")
             $(".icon-win-red").css({ opacity: 1 });
             $(".icon-win-blue").css("opacity", "");
             $(".red-score").css("background-color", "red");
@@ -487,9 +489,9 @@ class ChamDiemDkContainer extends Component {
         if (this.temporaryWin == "blue") {
           this.stopTimer();
           this.replaceFighter("blue");
-          this.setTimeout(() => {
+          setTimeout(() => {
             this.match.match.win = "blue";
-            this.ref.child('tournament/' + this.matchNoCurrentIndex + '/match/win').set("blue");
+            set(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/match/win'), "blue")
             $(".icon-win-blue").css({ opacity: 1 });
             $(".icon-win-red").css("opacity", "");
             $(".red-score").css("background-color", "red");
@@ -545,28 +547,28 @@ class ChamDiemDkContainer extends Component {
       if (fightersTemp.redFighter.name == matchWin) {
         fightersTemp.redFighter = JSON.parse(JSON.stringify(winFighter));
         fightersTemp.redFighter.score = 0;
-        this.ref.child('tournament/' + i + '/fighters').update(fightersTemp);
+        update(ref(this.db, 'tournament/' + i + '/fighters'), fightersTemp);
         break;
       }
 
       if (fightersTemp.redFighter.name == matchLose) {
         fightersTemp.redFighter = JSON.parse(JSON.stringify(loseFighter));
         fightersTemp.redFighter.score = 0;
-        this.ref.child('tournament/' + i + '/fighters').update(fightersTemp);
+        update(ref(this.db, 'tournament/' + i + '/fighters'), fightersTemp);
         break;
       }
 
       if (fightersTemp.blueFighter.name == matchWin) {
         fightersTemp.blueFighter = JSON.parse(JSON.stringify(winFighter));
         fightersTemp.blueFighter.score = 0;
-        this.ref.child('tournament/' + i + '/fighters').update(fightersTemp);
+        update(ref(this.db, 'tournament/' + i + '/fighters'), fightersTemp);
         break;
       }
 
       if (fightersTemp.blueFighter.name == matchLose) {
         fightersTemp.blueFighter = JSON.parse(JSON.stringify(loseFighter));
         fightersTemp.blueFighter.score = 0;
-        this.ref.child('tournament/' + i + '/fighters').update(fightersTemp);
+        update(ref(this.db, 'tournament/' + i + '/fighters'), fightersTemp);
         break;
       }
     }
@@ -603,9 +605,9 @@ class ChamDiemDkContainer extends Component {
           }
           this.match.fighters.redFighter.score += this.getModes(redScoreArray);
           this.match.fighters.blueFighter.score += this.getModes(blueScoreArray);
-          this.ref.child('tournament/' + this.matchNoCurrentIndex + '/fighters').set(this.match.fighters);
+          set(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters'), this.match.fighters)
           //Reset Giám định
-          this.ref.child('referee').set(this.tournamentConst.referee);
+          set(ref(this.db, 'referee'), this.tournamentConst.referee)
           this.refereeObj = this.tournamentConst.referee;
           this.scoreTimerCount = this.timeScore;
           this.isFirstRefereeScore = false;
@@ -684,7 +686,7 @@ class ChamDiemDkContainer extends Component {
     console.log("makeTimer() End");
   }
 
-  showShortcut =()=> {
+  showShortcut = () => {
     this.showModalShortcut();
   }
 
@@ -958,7 +960,7 @@ class ChamDiemDkContainer extends Component {
               </div>
               <div className="logo">
                 <span className="info-text">
-                  <a href="#" onClick={this.showShortcut}><img src={logo} height="100%"  style={{width : '30vh'}}/></a>
+                  <a href="#" onClick={this.showShortcut}><img src={logo} height="100%" style={{ width: '30vh' }} /></a>
                 </span>
               </div>
               <div className="match-type">
@@ -1040,7 +1042,7 @@ class ChamDiemDkContainer extends Component {
                 </div>
                 <div className="modal-body">
                   <div className="input-group mb-3">
-                      <span className="input-group-text"><i className="fa fa-code"></i></span>
+                    <span className="input-group-text"><i className="fa fa-code"></i></span>
                     <input type="number" className="form-control" placeholder="Số thứ tự trận đấu" id="txtMatchChoose" />
                   </div>
                 </div>

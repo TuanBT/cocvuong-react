@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import $ from 'jquery';
-import { database } from '../firebase';
+import Firebase from '../firebase';
+import { ref, set, get, update, remove, child, onValue } from "firebase/database";
 import logo from '../assets/img/logo.png';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -16,7 +17,7 @@ class SettingContainer extends Component {
       data: [],
     };
 
-    this.ref = database.ref();
+    this.db = Firebase();
     this.settingObj;
     this.tournamentObj;
     this.tournamentMartialObj;
@@ -51,12 +52,12 @@ class SettingContainer extends Component {
   componentDidMount() {
     this.showPasswordModal();
   }
-  
+
   verifyPassword = () => {
     var password = $('#txtPassword').val();
 
     if (password != null && password != "") {
-      this.ref.child('pass/firstPass').once('value', (snapshot) => {
+      get(ref(this.db, 'pass/firstPass')).then((snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           this.main();
@@ -69,8 +70,8 @@ class SettingContainer extends Component {
     }
   }
 
-  main(){
-    this.ref.child('setting').once('value', (snapshot) => {
+  main() {
+    get(ref(this.db, 'setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       $("input[name=timeRound]").val(this.settingObj.timeRound);
       $("input[name=timeBreak]").val(this.settingObj.timeBreak);
@@ -79,7 +80,7 @@ class SettingContainer extends Component {
       $("input[name=tournamentName]").val(this.settingObj.tournamentName);
     })
 
-    this.ref.child('setting').on('value', (snapshot) => {
+    onValue(ref(this.db, 'setting'), (snapshot) => {
       this.settingObj = snapshot.val();
       $('#tournamentName').html(this.settingObj.tournamentName);
     })
@@ -89,8 +90,8 @@ class SettingContainer extends Component {
     console.log("resetSetting Start");
     this.settingObj = JSON.parse(JSON.stringify(this.settingConst));
 
-    this.ref.child('setting').update(this.settingObj.setting, function () {
-      this.ref.child('setting').once('value', (snapshot) => {
+    update(ref(this.db, 'setting'), this.settingObj.setting, () => {
+      get(ref(this.db, 'setting')).then((snapshot) => {
         this.settingObj = snapshot.val();
         $("input[name=timeRound]").val(this.settingObj.timeRound);
         $("input[name=timeBreak]").val(this.settingObj.timeBreak);
@@ -113,7 +114,7 @@ class SettingContainer extends Component {
       "timeExtraBreak": parseInt($("input[name=timeExtraBreak]").val()),
       "tournamentName": $("input[name=tournamentName]").val(),
     }
-    this.ref.child('setting').update(this.settingObj, function () {
+    update(ref(this.db, 'setting'), this.settingObj, () => {
       toast.success("Cập nhập thông tin giải đấu thành công!");
     });
     console.log("updateSetting End");
@@ -167,7 +168,7 @@ class SettingContainer extends Component {
 
   importTournament = () => {
     console.log("importTournament Start");
-    this.ref.update(this.tournamentObj, function () {
+    update(ref(this.db), this.tournamentObj, () => {
       toast.success("Cập nhập thông tin giải đấu thành công!");
     });
     console.log("importTournament End");
@@ -234,7 +235,7 @@ class SettingContainer extends Component {
 
   importTournamentMartial = () => {
     console.log("importTournamentMartial Start");
-    this.ref.update(this.tournamentMartialObj, function () {
+    update(ref(this.db), this.tournamentMartialObj, () => {
       toast.success("Cập nhập thông tin giải đấu thành công!");
     });
     console.log("importTournamentMartial End");
@@ -294,7 +295,7 @@ class SettingContainer extends Component {
     this.tournamentArrayRaw.sort((a, b) => {
       const weightA = a[1];
       const weightB = b[1];
-    
+
       if (weightA < weightB) {
         return -1;
       } else if (weightA > weightB) {

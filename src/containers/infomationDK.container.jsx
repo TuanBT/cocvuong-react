@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import $ from 'jquery';
-import { database } from '../firebase';
+import Firebase from '../firebase';
+import { ref, set, get, update, remove, child, onValue } from "firebase/database";
 import logo from '../assets/img/logo.png';
 import '../assets/lib/table/style.css';
 import '../assets/lib/table/basictable.css';
@@ -9,30 +10,8 @@ class InformationDkContainer extends Component {
   constructor(props) {
     super(props);
     const me = this;
-    this.ref = database.ref();
+    this.db = Firebase();
     this.tournamentObj;
-
-    this.ref.child('setting').on('value', (snapshot) => {
-      me.settingObj = snapshot.val();
-      $('#tournamentName').html(me.settingObj.tournamentName);
-    })
-
-    this.ref.once('value', function (snapshot) {
-      me.tournamentObj = snapshot.val();
-      me.showListInfo();
-
-      $(".btn").click(() => {
-        let value = $('input[name="optionCategory"]:checked').val();
-        me.showListMatchs(value);
-      }
-      )
-    });
-
-    this.ref.on('value', function (snapshot) {
-      me.tournamentObj = snapshot.val();
-      let value = $('input[name="optionCategory"]:checked').val();
-      me.showListMatchs(value);
-    });
 
     this.brackets = [];
     me.brackets.push("");//0
@@ -50,6 +29,33 @@ class InformationDkContainer extends Component {
     me.brackets.push("<div class='brackets-12'> <div class='brackets'> <div class='group5' id='b0'> <div class='r1'> <div></div><div> <div id='match-1' class='bracketbox'> <span class='info'>1</span> <span class='teama'>2</span> <span class='teamb'>3</span> </div></div><div id='match-2' class='bracketbox'> <span class='info'>2</span> <span class='teama'>4</span> <span class='teamb'>5</span> </div><div></div><div></div><div> <div id='match-3' class='bracketbox'> <span class='info'>3</span> <span class='teama'>8</span> <span class='teamb'>9</span> </div></div><div> <div id='match-4' class='bracketbox'> <span class='info'>4</span> <span class='teama'>10</span> <span class='teamb'>11</span> </div></div><div></div><div> </div><div></div></div><div class='r2'> <div> <div id='match-5' class='bracketbox'> <span class='info'>5</span> <span class='teama'>1</span> <span class='teamb'></span> </div></div><div> <div id='match-6' class='bracketbox'> <span class='info'>6</span> <span class='teama'></span> <span class='teamb'>6</span> </div></div><div> <div id='match-7' class='bracketbox'> <span class='info'>7</span> <span class='teama'>7</span> <span class='teamb'></span> </div></div><div> <div id='match-8' class='bracketbox'> <span class='info'>8</span> <span class='teama'></span> <span class='teamb'>12</span> </div></div></div><div class='r3'> <div> <div id='match-9' class='bracketbox'> <span class='info'>9</span> <span class='teama'></span> <span class='teamb'></span> </div></div><div> <div id='match-10' class='bracketbox'> <span class='info'>10</span> <span class='teama'></span> <span class='teamb'></span> </div></div></div><div class='r4'> <div> <div id='match-11' class='bracketbox'> <span class='info'>11</span> <span class='teama'></span> <span class='teamb'></span> </div></div></div><div class='r5'> <div class='final'> <div class='bracketbox'> <span class='teamc'></span> </div></div></div></div></div></div>");
     me.brackets.push("<div class='brackets-13'> <div class='brackets'> <div class='group5' id='b0'> <div class='r1'> <div></div><div> <div id='match-1' class='bracketbox'> <span class='info'>1</span> <span class='teama'>2</span> <span class='teamb'>3</span> </div></div><div id='match-2' class='bracketbox'> <span class='info'>2</span> <span class='teama'>4</span> <span class='teamb'>5</span> </div><div></div><div> <div id='match-3' class='bracketbox'> <span class='info'>3</span> <span class='teama'>7</span> <span class='teamb'>8</span> </div></div><div> <div id='match-4' class='bracketbox'> <span class='info'>4</span> <span class='teama'>9</span> <span class='teamb'>10</span> </div></div><div> <div id='match-5' class='bracketbox'> <span class='info'>5</span> <span class='teama'>11</span> <span class='teamb'>12</span> </div></div><div></div><div> </div><div></div></div><div class='r2'> <div> <div id='match-6' class='bracketbox'> <span class='info'>6</span> <span class='teama'>1</span> <span class='teamb'></span> </div></div><div> <div id='match-7' class='bracketbox'> <span class='info'>7</span> <span class='teama'></span> <span class='teamb'>6</span> </div></div><div> <div id='match-8' class='bracketbox'> <span class='info'>8</span> <span class='teama'></span> <span class='teamb'></span> </div></div><div> <div id='match-9' class='bracketbox'> <span class='info'>9</span> <span class='teama'></span> <span class='teamb'>13</span> </div></div></div><div class='r3'> <div> <div id='match-10' class='bracketbox'> <span class='info'>10</span> <span class='teama'></span> <span class='teamb'></span> </div></div><div> <div id='match-11' class='bracketbox'> <span class='info'>11</span> <span class='teama'></span> <span class='teamb'></span> </div></div></div><div class='r4'> <div> <div id='match-12' class='bracketbox'> <span class='info'>12</span> <span class='teama'></span> <span class='teamb'></span> </div></div></div><div class='r5'> <div class='final'> <div class='bracketbox'> <span class='teamc'></span> </div></div></div></div></div></div>");
     me.brackets.push("<div class='brackets-14'> <div class='brackets'> <div class='group5' id='b0'> <div class='r1'> <div></div><div> <div id='match-1' class='bracketbox'> <span class='info'>1</span> <span class='teama'>2</span> <span class='teamb'>3</span> </div></div><div id='match-2' class='bracketbox'> <span class='info'>2</span> <span class='teama'>4</span> <span class='teamb'>5</span> </div><div> <div id='match-3' class='bracketbox'> <span class='info'>3</span> <span class='teama'>6</span> <span class='teamb'>7</span> </div></div><div> <div id='match-4' class='bracketbox'> <span class='info'>4</span> <span class='teama'>8</span> <span class='teamb'>9</span> </div></div><div> <div id='match-5' class='bracketbox'> <span class='info'>5</span> <span class='teama'>10</span> <span class='teamb'>11</span> </div></div><div> <div id='match-6' class='bracketbox'> <span class='info'>6</span> <span class='teama'>12</span> <span class='teamb'>13</span> </div></div><div></div><div> </div><div></div></div><div class='r2'> <div> <div id='match-7' class='bracketbox'> <span class='info'>7</span> <span class='teama'>1</span> <span class='teamb'></span> </div></div><div> <div id='match-8' class='bracketbox'> <span class='info'>8</span> <span class='teama'></span> <span class='teamb'></span> </div></div><div> <div id='match-9' class='bracketbox'> <span class='info'>9</span> <span class='teama'></span> <span class='teamb'></span> </div></div><div> <div id='match-10' class='bracketbox'> <span class='info'>10</span> <span class='teama'></span> <span class='teamb'>14</span> </div></div></div><div class='r3'> <div> <div id='match-11' class='bracketbox'> <span class='info'>11</span> <span class='teama'></span> <span class='teamb'></span> </div></div><div> <div id='match-12' class='bracketbox'> <span class='info'>12</span> <span class='teama'></span> <span class='teamb'></span> </div></div></div><div class='r4'> <div> <div id='match-13' class='bracketbox'> <span class='info'>13</span> <span class='teama'></span> <span class='teamb'></span> </div></div></div><div class='r5'> <div class='final'> <div class='bracketbox'> <span class='teamc'></span> </div></div></div></div></div></div>");
+
+    this.main();
+  }
+
+
+  main() {
+    onValue(ref(this.db, 'setting'), (snapshot) => {
+      this.settingObj = snapshot.val();
+      $('#tournamentName').html(this.settingObj.tournamentName);
+    })
+
+    get(ref(this.db)).then((snapshot) => {
+      this.tournamentObj = snapshot.val();
+      this.showListInfo();
+
+      $(".btn").click(() => {
+        let value = $('input[name="optionCategory"]:checked').val();
+        this.showListMatchs(value);
+      }
+      )
+    });
+
+    onValue(ref(this.db), (snapshot) => {
+      this.tournamentObj = snapshot.val();
+      let value = $('input[name="optionCategory"]:checked').val();
+      this.showListMatchs(value);
+    });
   }
 
   showListInfo() {

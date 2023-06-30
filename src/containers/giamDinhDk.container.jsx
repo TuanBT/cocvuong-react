@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import $ from 'jquery';
-import { database } from '../firebase';
+import Firebase from '../firebase';
+import { ref, set, get, update, remove, child, onValue } from "firebase/database";
 import logo from '../assets/img/logo.png';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -9,7 +10,7 @@ class GiamDinhDkContainer extends Component {
   constructor(props) {
     super(props);
     const me = this;
-    this.ref = database.ref();
+    this.db = Firebase();
 
     this.round = me.fistRound;
     this.matchNoCurrent;
@@ -34,7 +35,7 @@ class GiamDinhDkContainer extends Component {
     this.matchNoCurrentIndex;
     this.teamNoCurrentIndex;
 
-    
+
 
   }
 
@@ -42,12 +43,12 @@ class GiamDinhDkContainer extends Component {
     document.addEventListener("keydown", this._handleKeyDown);
     this.showPasswordModal();
   }
-  
+
   verifyPassword = () => {
     var password = $('#txtPassword').val();
 
     if (password != null && password != "") {
-      this.ref.child('pass/firstPass').once('value', (snapshot) => {
+      get(ref(this.db, 'pass/firstPass')).then((snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           this.main();
@@ -60,8 +61,8 @@ class GiamDinhDkContainer extends Component {
     }
   }
 
-  main(){
-    this.ref.child('setting').on('value', (snapshot) => {
+  main() {
+    onValue(ref(this.db, 'setting'), (snapshot) => {
       this.settingObj = snapshot.val();
       $('#tournamentName').html(this.settingObj.tournamentName);
       this.showChooseRefereeNoModal();
@@ -110,9 +111,9 @@ class GiamDinhDkContainer extends Component {
       }
       $("#gd-name").html(this.refereeName);
 
-      this.ref.child("lastMatch/no").on('value', (snapshot) => {
+      onValue(ref(this.db, 'lastMatch/no'), (snapshot) => {
         //Kiểm tra kết nối internet
-        this.ref.child('.info/connected').on('value', (snapshot) => {
+        onValue(ref(this.db, '.info/connected'), (snapshot) => {
           if (!snapshot.val() === true) {
             $('#internet-status').show();
           } else {
@@ -126,9 +127,9 @@ class GiamDinhDkContainer extends Component {
         this.path = "referee/" + this.referreIndex;
       })
 
-      this.ref.child("lastMatchMartial").on('value', (snapshot) => {
+      onValue(ref(this.db, 'lastMatchMartial'), (snapshot) => {
         //Kiểm tra kết nối internet
-        this.ref.child('.info/connected').on('value', (snapshot) => {
+        onValue(ref(this.db, '.info/connected'), (snapshot) => {
           if (!snapshot.val() === true) {
             $('#internet-status').show();
           } else {
@@ -141,7 +142,7 @@ class GiamDinhDkContainer extends Component {
         this.matchNoCurrentIndex = lastMatchMartial.matchMartialNo - 1;
         this.teamNoCurrentIndex = lastMatchMartial.teamMartialNo - 1;
 
-        this.ref.child("tournamentMartial/" + this.matchNoCurrentIndex).once('value', (snapshot) => {
+        get(ref(this.db, '"tournamentMartial/' + this.matchNoCurrentIndex)).then((snapshot) => {
           $("#match-martial-name").html(snapshot.val().match.name);
           $("#match-martial-no").html(snapshot.val().team[this.teamNoCurrentIndex].no);
         })
@@ -153,7 +154,7 @@ class GiamDinhDkContainer extends Component {
 
   redAddition = (score) => {
     this.refereeScore.redScore = score;
-    this.ref.child(this.path).update(this.refereeScore);
+    update(ref(this.db, this.path), this.refereeScore);
     if (score >= 0) {
       toast.error("+" + score + " điểm cho ĐỎ", {
         position: "top-left",
@@ -184,7 +185,7 @@ class GiamDinhDkContainer extends Component {
 
   blueAddition = (score) => {
     this.refereeScore.blueScore = score;
-    this.ref.child(this.path).update(this.refereeScore);
+    update(ref(this.db, this.path), this.refereeScore);
     if (score >= 0) {
       toast.info("+" + score + " điểm cho XANH", {
         position: "top-right",
@@ -289,25 +290,25 @@ class GiamDinhDkContainer extends Component {
             </div>
 
             <div className="modal display-none" id="passwordModal" tabIndex="-1">
-            <div className="modal-dialog">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title"><i className="fa-solid fa-lock"></i> Vui lòng nhập mật khẩu</h5>
-                  <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hidePasswordModal}></button>
-                </div>
-                <div className="modal-body">
-                  <div className="input-group mb-3">
-                    <span className="input-group-text"><i className="fa fa-key" aria-hidden="true"></i></span>
-                    <input type="password" className="form-control" placeholder="Mật khẩu" id="txtPassword" />
+              <div className="modal-dialog">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h5 className="modal-title"><i className="fa-solid fa-lock"></i> Vui lòng nhập mật khẩu</h5>
+                    <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hidePasswordModal}></button>
                   </div>
-                </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-primary ok-button" onClick={this.verifyPassword}>OK</button>
-                  <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hidePasswordModal} >Cancel</button>
+                  <div className="modal-body">
+                    <div className="input-group mb-3">
+                      <span className="input-group-text"><i className="fa fa-key" aria-hidden="true"></i></span>
+                      <input type="password" className="form-control" placeholder="Mật khẩu" id="txtPassword" />
+                    </div>
+                  </div>
+                  <div className="modal-footer">
+                    <button type="button" className="btn btn-primary ok-button" onClick={this.verifyPassword}>OK</button>
+                    <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hidePasswordModal} >Cancel</button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
             <div className="modal display-none" id="chooseRefereeNoModal" tabIndex="-1" role="dialog">
               <div className="modal-dialog" role="document">

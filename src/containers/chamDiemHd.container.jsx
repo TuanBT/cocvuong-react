@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import $ from 'jquery';
-import { database } from '../firebase';
+import Firebase from '../firebase';
+import { ref, set, get, update, remove, child, onValue } from "firebase/database";
 import logo from '../assets/img/logo.png';
 import '../assets/css/style-hd.css';
 import sound from '../assets/sound/bell-school.wav';
@@ -11,7 +12,7 @@ class ChamDiemHdContainer extends Component {
   constructor(props) {
     super(props);
     const me = this;
-    this.ref = database.ref();
+    this.db = Firebase();
 
     this.fistRound = "Hiệp 1";
     this.breakRound = "Nghỉ giữa hiệp";
@@ -155,7 +156,7 @@ class ChamDiemHdContainer extends Component {
     var password = $('#txtPassword').val();
 
     if (password != null && password != "") {
-      this.ref.child('pass/firstPass').once('value', (snapshot) => {
+      get(ref(this.db, 'pass/firstPass')).then((snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           this.main();
@@ -169,16 +170,16 @@ class ChamDiemHdContainer extends Component {
   }
 
   main() {
-    this.ref.child('setting').on('value', (snapshot) => {
+    onValue(ref(this.db, 'setting'), (snapshot) => {
       this.settingObj = snapshot.val();
       $('#tournamentName').html(this.settingObj.tournamentName);
     })
 
-    this.ref.child('lastMatchMartial').once('value', (snapshot) => {
+    get(ref(this.db, 'lastMatchMartial')).then((snapshot) => {
       let lastMatchMartialObj = snapshot.val();
       this.matchMartialNoCurrent = lastMatchMartialObj.matchMartialNo;
       this.teamMartialNoCurrent = lastMatchMartialObj.teamMartialNo;
-      this.ref.child('tournamentMartial').on('value', function (snapshot) {
+      onValue(ref(this.db, 'tournamentMartial'), (snapshot) => {
         console.log("on value Start");
         this.initVariable(snapshot);
         this.showValue();
@@ -296,7 +297,7 @@ class ChamDiemHdContainer extends Component {
   restoreMatch() {
     console.log("restoreMatch() Start");
 
-    this.ref.child('lastMatchMartial').set({
+    set(ref(this.db, 'lastMatchMartial'), {
       "matchMartialNo": this.matchMartialNoCurrent,
       "teamMartialNo": this.teamMartialNoCurrent
     });
@@ -306,7 +307,7 @@ class ChamDiemHdContainer extends Component {
     $(".style-hd-timer-text").css("background-color", this.silverColor);
     $("#match-time").html("00:00");
 
-    this.ref.child('tournamentMartial').once('value', (snapshot) => {
+    get(ref(this.db, 'tournamentMartial')).then((snapshot) => {
       this.initVariable(snapshot);
       this.showValue();
     })
@@ -343,8 +344,8 @@ class ChamDiemHdContainer extends Component {
       this.refereeMartialScore = "";
     }
     this.pathMartial = "tournamentMartial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex;
-    this.ref.child(this.pathMartial).update({ "score": parseInt(this.refereeMartialScore) });
-    this.ref.child(this.pathMartial).update({ "refereeMartial": [{ "score": 0 }, { "score": 0 }, { "score": 0 }] });
+    update(ref(this.db, this.pathMartial), { "score": parseInt(this.refereeMartialScore) });
+    update(ref(this.db, this.pathMartial), { "refereeMartial": [{ "score": 0 }, { "score": 0 }, { "score": 0 }] });
     this.refereeMartialScore = "";
     $("#referee-result-box").html("000");
     $("#averageScore").html(this.tournamentMartialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].score);
