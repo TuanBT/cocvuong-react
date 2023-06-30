@@ -6,25 +6,6 @@ class HomeContainer extends Component {
     super(props);
   }
 
-  handleClickCDDK() {
-    window.open('./cham-diem-dk', '_self');
-  }
-  handleClickGDDK() {
-    window.open('./giam-dinh-dk', '_self');
-  }
-  handleClickCDHD() {
-    window.open('./cham-diem-hd', '_self');
-  }
-  handleClickGDHD() {
-    window.open('./giam-dinh-hd', '_self');
-  }
-  handleClickInfo() {
-    window.open('./info-dk', '_self');
-  }
-  handleClickSetting() {
-    window.open('./setting', '_self');
-  }
-
   render() {
     return (
       <div>
@@ -71,7 +52,7 @@ class HomeContainer extends Component {
                 </div>
                 <div className="card-body">
                   <span className="d-block text-center pb-3 bigIcon"><i className="fa-solid fa-calculator"></i></span>
-                  <NavLink to="giam-dinh-hd"><button type="button" className="w-100 btn btn-lg btn-warning">Bắt đầu</button></NavLink>
+                  <NavLink to="giam-dinh-thi-quyen"><button type="button" className="w-100 btn btn-lg btn-warning">Bắt đầu</button></NavLink>
                 </div>
               </div>
             </div>

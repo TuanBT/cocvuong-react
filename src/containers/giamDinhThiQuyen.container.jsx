@@ -7,7 +7,7 @@ import '../assets/css/style-giam_dinh_hd.css';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-class GiamDinhHdContainer extends Component {
+class GiamDinhThiQuyenContainer extends Component {
   constructor(props) {
     super(props);
     const me = this;
@@ -409,4 +409,4 @@ class GiamDinhHdContainer extends Component {
   }
 }
 
-export default GiamDinhHdContainer;
+export default GiamDinhThiQuyenContainer;
