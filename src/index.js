@@ -9,7 +9,7 @@ import TestContainer from './containers/test.container';
 import InformationDkContainer from './containers/infomationDK.container';
 import ChamDiemDkContainer from './containers/chamDiemDk.container';
 import ChamDiemHdContainer from './containers/chamDiemHd.container';
-import GiamDinhHdContainer from './containers/giamDinhHd.container';
+// import GiamDinhHdContainer from './containers/giamDinhHd.container';
 import GiamDinhDkContainer from './containers/giamDinhDk.container';
 import SettingContainer from './containers/setting.container';
 import LoginContainer from './containers/login.container';
@@ -23,7 +23,7 @@ ReactDOM.render(
       <Route path="/info-dk" component={InformationDkContainer} />
       <Route path="/cham-diem-dk" component={ChamDiemDkContainer} />
       <Route path="/cham-diem-hd" component={ChamDiemHdContainer} />
-      <Route path="/giam-dinh-hd" component={GiamDinhHdContainer} />
+      {/* <Route path="/giam-dinh-hd" component={GiamDinhHdContainer} /> */}
       <Route path="/giam-dinh-dk" component={GiamDinhDkContainer} />
       <Route path="/setting" component={SettingContainer} />
       <Route path="/login" component={LoginContainer} />
