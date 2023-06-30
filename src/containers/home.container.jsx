@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { Route,NavLink,HashRouter } from "react-router-dom";
 
 class HomeContainer extends Component {
   constructor(props) {
@@ -37,7 +38,7 @@ class HomeContainer extends Component {
                 </div>
                 <div className="card-body">
                   <span className="d-block text-center pb-3 bigIcon"><i className="fa-solid fa-tv"></i></span>
-                  <button type="button" className="w-100 btn btn-lg btn-success" onClick={this.handleClickCDDK}>Bắt đầu</button>
+                  <NavLink to="cham-diem-dk"><button type="button" className="w-100 btn btn-lg btn-success">Bắt đầu</button></NavLink>
                 </div>
               </div>
             </div>
@@ -48,7 +49,7 @@ class HomeContainer extends Component {
                 </div>
                 <div className="card-body">
                   <span className="d-block text-center pb-3 bigIcon"><i className="fa-solid fa-table-columns"></i></span>
-                  <button type="button" className="w-100 btn btn-lg btn-success" onClick={this.handleClickGDDK}>Bắt đầu</button>
+                  <NavLink to="giam-dinh-dk"><button type="button" className="w-100 btn btn-lg btn-success">Bắt đầu</button></NavLink>
                 </div>
               </div>
             </div>
@@ -59,7 +60,7 @@ class HomeContainer extends Component {
                 </div>
                 <div className="card-body">
                   <span className="d-block text-center pb-3 bigIcon"><i className="fa-solid fa-tv"></i></span>
-                  <button type="button" className="w-100 btn btn-lg btn-warning" onClick={this.handleClickCDHD}>Bắt đầu</button>
+                  <NavLink to="cham-diem-hd"><button type="button" className="w-100 btn btn-lg btn-warning">Bắt đầu</button></NavLink>
                 </div>
               </div>
             </div>
@@ -70,7 +71,7 @@ class HomeContainer extends Component {
                 </div>
                 <div className="card-body">
                   <span className="d-block text-center pb-3 bigIcon"><i className="fa-solid fa-calculator"></i></span>
-                  <button type="button" className="w-100 btn btn-lg btn-warning" onClick={this.handleClickGDHD}>Bắt đầu</button>
+                  <NavLink to="giam-dinh-hd"><button type="button" className="w-100 btn btn-lg btn-warning">Bắt đầu</button></NavLink>
                 </div>
               </div>
             </div>
@@ -81,7 +82,7 @@ class HomeContainer extends Component {
                 </div>
                 <div className="card-body">
                   <span className="d-block text-center pb-3 bigIcon"><i className="fa-solid fa-tv"></i></span>
-                  <button type="button" className="w-100 btn btn-lg btn-primary" onClick={this.handleClickInfo}>Xem</button>
+                  <NavLink to="info-dk"><button type="button" className="w-100 btn btn-lg btn-primary">Bắt đầu</button></NavLink>
                 </div>
               </div>
             </div>
@@ -102,7 +103,7 @@ class HomeContainer extends Component {
                 </div>
                 <div className="card-body">
                   <span className="d-block text-center pb-3 bigIcon"><i className="fa-solid fa-gear"></i></span>
-                  <button type="button" className="w-100 btn btn-lg btn-primary" onClick={this.handleClickSetting}>Truy cập</button>
+                  <NavLink to="setting"><button type="button" className="w-100 btn btn-lg btn-primary">Bắt đầu</button></NavLink>
                 </div>
               </div>
             </div>
@@ -110,16 +111,17 @@ class HomeContainer extends Component {
           </div>
         </div>
 
-        <div className="body login">
+        {/* <div className="body login">
           <h1>
-            <a href="/test">Test</a><br />
+          <NavLink to="test">Test</NavLink>
+          <br />
             <br />
-            <a href="/login">Login</a><br />
+            <NavLink to="login">login</NavLink>
             <br />
-            <a href="/signup">Signup</a><br />
+            <NavLink to="signup">signup</NavLink>
             <br />
           </h1>
-        </div>
+        </div> */}
 
 
       </div>
