@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import './index.css';
 import 'bootstrap/dist/css/bootstrap.css';
 import '../src/assets/css/style.css';
-import { BrowserRouter, Route } from 'react-router-dom'
+import { BrowserRouter, Route, HashRouter } from 'react-router-dom'
 import HomeContainer from './containers/home.container';
 import TestContainer from './containers/test.container';
 import InformationDkContainer from './containers/infomationDK.container';
@@ -16,19 +16,19 @@ import LoginContainer from './containers/login.container';
 import SignupContainer from './containers/signup.container';
 
 ReactDOM.render(
-  <BrowserRouter>
+  <HashRouter>
     <div>
       <Route path="/" exact component={HomeContainer} />
       <Route path="/test" component={TestContainer} />
-      <Route path="/info-dk" component={InformationDkContainer} />
-      <Route path="/cham-diem-dk" component={ChamDiemDkContainer} />
-      <Route path="/cham-diem-hd" component={ChamDiemHdContainer} />
+      <Route path="/thong-tin-doi-khang" component={InformationDkContainer} />
+      <Route path="/giam-sat-doi-khang" component={ChamDiemDkContainer} />
+      <Route path="/giam-sat-thi-quyen" component={ChamDiemHdContainer} />
       <Route path="/giam-dinh-thi-quyen" component={GiamDinhThiQuyenContainer} />
-      <Route path="/giam-dinh-dk" component={GiamDinhDkContainer} />
-      <Route path="/setting" component={SettingContainer} />
+      <Route path="/giam-dinh-doi-khang" component={GiamDinhDkContainer} />
+      <Route path="/thiet-dat" component={SettingContainer} />
       <Route path="/login" component={LoginContainer} />
       <Route path="/signup" component={SignupContainer} />
     </div>
-  </BrowserRouter>,
+  </HashRouter>,
   document.getElementById('root')
 );

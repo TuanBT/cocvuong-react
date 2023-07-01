@@ -48,8 +48,8 @@ class GiamDinhThiQuyenContainer extends Component {
     if (password != null && password != "") {
       get(ref(this.db, 'pass/firstPass')).then((snapshot) => {
         if (password == snapshot.val()) {
-          this.hidePasswordModal();
-          this.main();
+        this.hidePasswordModal();
+        this.main();
         } else {
           toast.error("Sai mật khẩu!");
         }
@@ -262,6 +262,7 @@ class GiamDinhThiQuyenContainer extends Component {
               </header>
             </div>
 
+
             <div className="pricing-header px-3 py-3 pt-md-5 pb-md-4 mx-auto text-center text-belize-hole">
               <h1 className="display-4">
                 <span id="match-martial-name">
@@ -274,31 +275,31 @@ class GiamDinhThiQuyenContainer extends Component {
               </h1>
               <p className="lead text-danger" id="internet-status"></p>
             </div>
-          </div>
 
-          <div className="container cal mt-3">
-            <div className="card-deck mb-3 text-center">
-              <div className="card mb-4 box-shadow">
-                <div className="card-header">
-                  <h1 className="my-0 font-weight-normal" id="referee-result-box">00</h1>
-                </div>
-                <div className="card-body">
-                  <div className="buttons">
-                    <div className="button num-button seven" onClick={() => this.input('7')}>7</div>
-                    <div className="button num-button eight" onClick={() => this.input('8')}>8</div>
-                    <div className="button num-button  nine" onClick={() => this.input('9')}>9</div>
-                    <div className="button num-button  four" onClick={() => this.input('4')}>4</div>
-                    <div className="button num-button  five" onClick={() => this.input('5')}>5</div>
-                    <div className="button num-button  six" onClick={() => this.input('6')}>6</div>
-                    <div className="button num-button  one" onClick={() => this.input('1')}>1</div>
-                    <div className="button num-button  two" onClick={() => this.input('2')}>2</div>
-                    <div className="button num-button  three" onClick={() => this.input('3')}>3</div>
-                    <div className="button action-btn eraser" onClick={this.clearInput}><i
-                      className="fa-regular fa-trash-can"></i>
+            <div className="container cal mt-3">
+              <div className="card-deck mb-3 text-center">
+                <div className="card mb-4 box-shadow">
+                  <div className="card-header">
+                    <h1 className="my-0 font-weight-normal" id="referee-result-box">00</h1>
+                  </div>
+                  <div className="card-body">
+                    <div className="buttons">
+                      <div className="button num-button seven" onClick={() => this.input('7')}>7</div>
+                      <div className="button num-button eight" onClick={() => this.input('8')}>8</div>
+                      <div className="button num-button  nine" onClick={() => this.input('9')}>9</div>
+                      <div className="button num-button  four" onClick={() => this.input('4')}>4</div>
+                      <div className="button num-button  five" onClick={() => this.input('5')}>5</div>
+                      <div className="button num-button  six" onClick={() => this.input('6')}>6</div>
+                      <div className="button num-button  one" onClick={() => this.input('1')}>1</div>
+                      <div className="button num-button  two" onClick={() => this.input('2')}>2</div>
+                      <div className="button num-button  three" onClick={() => this.input('3')}>3</div>
+                      <div className="button action-btn eraser" onClick={this.clearInput}><i
+                        className="fa-regular fa-trash-can"></i>
+                      </div>
+                      <div className="button num-button" onClick={() => this.input('0')}>0</div>
+                      <div className="button action-btn enter" onClick={this.submitInput}><i
+                        className="fa-solid fa-check"></i></div>
                     </div>
-                    <div className="button num-button" onClick={() => this.input('0')}>0</div>
-                    <div className="button action-btn enter" onClick={this.submitInput}><i
-                      className="fa-solid fa-check"></i></div>
                   </div>
                 </div>
               </div>
