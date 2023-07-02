@@ -3,7 +3,7 @@ import $ from 'jquery';
 import Firebase from '../firebase';
 import { ref, set, get, update, remove, child, onValue } from "firebase/database";
 import logo from '../assets/img/logo.png';
-import '../assets/css/style-giam_dinh_hd.css';
+// import '../assets/css/style-giam_dinh_hd.css';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -23,7 +23,6 @@ class GiamDinhThiQuyenContainer extends Component {
     this.matchMartial;
     this.teamMartial;
     this.matchMartialNoCurrent = 1;
-    this.refereeMartialScore = '';
 
     this.refereeName = "";
     this.referreIndex = -1;
@@ -39,7 +38,8 @@ class GiamDinhThiQuyenContainer extends Component {
 
   componentDidMount() {
     document.addEventListener("keydown", this._handleKeyDown);
-    this.showPasswordModal();
+    // this.showPasswordModal();
+    this.main();
   }
 
   verifyPassword = () => {
@@ -48,8 +48,8 @@ class GiamDinhThiQuyenContainer extends Component {
     if (password != null && password != "") {
       get(ref(this.db, 'pass/firstPass')).then((snapshot) => {
         if (password == snapshot.val()) {
-        this.hidePasswordModal();
-        this.main();
+          this.hidePasswordModal();
+          this.main();
         } else {
           toast.error("Sai mật khẩu!");
         }
@@ -187,7 +187,7 @@ class GiamDinhThiQuyenContainer extends Component {
     $("#referee-result-box").html(this.refereeMartialScore);
   }
 
-  clearInput() {
+  clearInput = () => {
     this.refereeMartialScore = "";
     $("#referee-result-box").html("00");
   }
@@ -243,44 +243,22 @@ class GiamDinhThiQuyenContainer extends Component {
 
         <div className="body style-gd-hd-body" style={{ height: '100vh' }}>
           <div className="vsc-initialized">
-            <div className="container-fluit">
-              <header className="blog-header p-3">
-                <div className="row flex-nowrap justify-content-between align-items-center">
-                  <div className="col-4 pt-1 text-center">
-                    <span className="text-pomegrante" id="tournamentName"></span>
-                  </div>
-                  <div className="col-4 text-center">
-                    <h2 className="blog-header-logo text-midnight-blue" id="gd-name"></h2>
-                  </div>
-                  <div className="col-4 d-flex justify-content-end align-items-center">
-                    <span className="text-muted">
-                      <a href="#" onClick={this.showShortcut}><img src={logo} alt="FPT University - FVC - Bùi Tiến Tuân"
-                        className="img-fluid" style={{ height: '50px' }} /></a>
-                    </span>
-                  </div>
-                </div>
-              </header>
-            </div>
-
 
             <div className="pricing-header px-3 py-3 pt-md-5 pb-md-4 mx-auto text-center text-belize-hole">
-              <h1 className="display-4">
-                <span id="match-martial-name">
-                </span>
-                <span>
-                  -
-                </span>
-                <span id="match-martial-no">
-                </span>
-              </h1>
+              <h1 className="blog-header-logo text-midnight-blue" id="gd-name"></h1>
+              <h2>
+                <span id="match-martial-name"></span>
+                <span> - </span>
+                <span id="match-martial-no"></span>
+              </h2>
               <p className="lead text-danger" id="internet-status"></p>
             </div>
 
-            <div className="container cal mt-3">
+            <div className="container cal">
               <div className="card-deck mb-3 text-center">
                 <div className="card mb-4 box-shadow">
                   <div className="card-header">
-                    <h1 className="my-0 font-weight-normal" id="referee-result-box">00</h1>
+                    <h1 className="my-0 display-2" id="referee-result-box">00</h1>
                   </div>
                   <div className="card-body">
                     <div className="buttons">
