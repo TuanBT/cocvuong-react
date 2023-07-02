@@ -5,9 +5,12 @@ import { ref, set, get, update, remove, child, onValue } from "firebase/database
 import logo from '../assets/img/logo.png';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { read, utils } from 'xlsx';
-import MauDuLieuChuan from '../assets/template/1-Mau-Du-Lieu-Chuan.xlsx';
-import MauDuLieuTho from '../assets/template/2-Mau-Du-Lieu-Tho.xlsx';
+import { read, write, utils } from 'xlsx';
+import FileSaver from "file-saver";
+import mauchuandoikhang from '../assets/template/1-Mau_Chuan_Doi_Khang.xlsx';
+import mauchuanthiquyen from '../assets/template/2-Mau-Chuan_Thi_Quyen.xlsx';
+import mauthodoikhang from '../assets/template/3-Mau_Tho_Doi_Khang.xlsx';
+import mauthothiquyen from '../assets/template/4-Mau_Tho_Thi_Quyen.xlsx';
 
 class SettingContainer extends Component {
   constructor(props) {
@@ -22,6 +25,7 @@ class SettingContainer extends Component {
     this.tournamentObj;
     this.tournamentMartialObj;
     this.tournamentStandardArray = [];
+    this.tournamentArray = [];
 
     this.matchObj = { "match": { "no": 1, "type": "", "category": "", "win": "" }, "fighters": { "redFighter": { "name": "Đỏ", "code": "", "score": 0 }, "blueFighter": { "name": "Xanh", "code": "", "score": 0 } } };
     this.fightersMartialObj = { "fighters": [], "no": 0, "score": 0, "refereeMartial": [{ "score": 0 }, { "score": 0 }, { "score": 0 }], };
@@ -50,19 +54,21 @@ class SettingContainer extends Component {
   }
 
   componentDidMount() {
-    this.showPasswordModal();
+    // this.showPasswordModal();
+    this.main();
   }
 
   verifyPassword = () => {
     var password = $('#txtPassword').val();
 
     if (password != null && password != "") {
-      get(ref(this.db, 'pass/firstPass')).then((snapshot) => {
+      onValue(ref(this.db, 'pass/firstPass'), (snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           this.main();
         } else {
           toast.error("Sai mật khẩu!");
+          location.reload();
         }
       })
     } else {
@@ -90,7 +96,7 @@ class SettingContainer extends Component {
     console.log("resetSetting Start");
     this.settingObj = JSON.parse(JSON.stringify(this.settingConst));
 
-    update(ref(this.db, 'setting'), this.settingObj.setting, () => {
+    update(ref(this.db, 'setting'), this.settingObj.setting).then(() => {
       get(ref(this.db, 'setting')).then((snapshot) => {
         this.settingObj = snapshot.val();
         $("input[name=timeRound]").val(this.settingObj.timeRound);
@@ -114,7 +120,7 @@ class SettingContainer extends Component {
       "timeExtraBreak": parseInt($("input[name=timeExtraBreak]").val()),
       "tournamentName": $("input[name=tournamentName]").val(),
     }
-    update(ref(this.db, 'setting'), this.settingObj, () => {
+    update(ref(this.db, 'setting'), this.settingObj).then(() => {
       toast.success("Cập nhập thông tin giải đấu thành công!");
     });
     console.log("updateSetting End");
@@ -130,7 +136,7 @@ class SettingContainer extends Component {
       const data = new Uint8Array(event.target.result);
       const workbook = read(data, { type: 'array' });
       // const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets['DOI KHANG'];
+      const worksheet = workbook.Sheets['data'];
       const excelData = utils.sheet_to_json(worksheet, { header: 1 });
       this.tournamentArray = [];
 
@@ -168,13 +174,18 @@ class SettingContainer extends Component {
 
   importTournament = () => {
     console.log("importTournament Start");
-    update(ref(this.db), this.tournamentObj, () => {
+    update(ref(this.db), this.tournamentObj).then(() => {
       toast.success("Cập nhập thông tin giải đấu thành công!");
     });
     console.log("importTournament End");
   }
 
-
+  downloadTournament = () => {
+    console.log("downloadTournament Start");
+    this.tournamentArrangeHeader = ["TRẬN", "HẠNG CÂN", "LOẠI TRẬN", "TÊN GIÁP ĐỎ", "CODE/ĐƠN VỊ GIÁP ĐỎ", "TÊN GIÁP XANH", "CODE/ĐƠN VỊ GIÁP XANH"];
+    this.exportExcel(this.tournamentArrangeHeader, this.state.data, "Thong tin DOI KHANG");
+    console.log("downloadTournament End");
+  }
 
   handleimportTournamentMartialFile = (event) => {
     console.log("handleimportTournamentMartialFile Start");
@@ -189,7 +200,7 @@ class SettingContainer extends Component {
       const data = new Uint8Array(event.target.result);
       const workbook = read(data, { type: 'array' });
       // const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets['QUYEN'];
+      const worksheet = workbook.Sheets['data'];
       const excelData = utils.sheet_to_json(worksheet, { header: 1 });
       this.tournamentMartialArray = [];
 
@@ -235,7 +246,7 @@ class SettingContainer extends Component {
 
   importTournamentMartial = () => {
     console.log("importTournamentMartial Start");
-    update(ref(this.db), this.tournamentMartialObj, () => {
+    update(ref(this.db), this.tournamentMartialObj).then(() => {
       toast.success("Cập nhập thông tin giải đấu thành công!");
     });
     console.log("importTournamentMartial End");
@@ -249,7 +260,7 @@ class SettingContainer extends Component {
       const data = new Uint8Array(event.target.result);
       const workbook = read(data, { type: 'array' });
       // const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets['DOI KHANG THO'];
+      const worksheet = workbook.Sheets['data'];
       const excelData = utils.sheet_to_json(worksheet, { header: 1 });
       this.tournamentArrayRaw = [];
 
@@ -457,6 +468,20 @@ class SettingContainer extends Component {
     return arr;
   }
 
+  exportExcel(header, rowData, fileName) {
+    const fileType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8";
+    const fileExtension = ".xlsx";
+    let newRowData = rowData.slice();
+    newRowData.unshift(header);
+    const ws =  utils.aoa_to_sheet(newRowData);
+    // const ws = utils.json_to_sheet(rowData);
+    utils.sheet_add_aoa(ws, [header], { origin: "A1" });
+    const wb = { Sheets: { "data": ws }, SheetNames: ["data"] };
+    const excelBuffer = write(wb, { bookType: "xlsx", type: "array" });
+    const data = new Blob([excelBuffer], { type: fileType });
+    FileSaver.saveAs(data, fileName + fileExtension);
+  };
+
   showPasswordModal = () => {
     $('#passwordModal').removeClass('modal display-none').addClass('modal display-block');
   };
@@ -488,41 +513,61 @@ class SettingContainer extends Component {
               </header>
 
               <div className="container">
-                <form className="form-style-7 mb-5 mt-3">
+                <form className="form-style-7 mb-5 mt-3 setting-form">
                   <div className="form-title">
                     <h2><b>Thiết đặt thông tin giải đấu</b></h2>
                   </div>
-                  <label htmlFor="basic-url">Tên giải đấu</label>
-                  <div className="input-group mb-3">
-                    <input type="text" className="form-control" placeholder="" name="tournamentName" />
-                  </div>
-                  <label htmlFor="basic-url">Thời gian hiệp đấu</label>
-                  <div className="input-group mb-3">
-                    <input type="number" className="form-control" placeholder="" name="timeRound" />
-                    <div className="input-group-append">
-                      <span className="input-group-text">giây</span>
+                  <div className="row">
+                    <div className="col">
+                      <label>Tên giải đấu</label>
+                      <div className="input-group mb-3">
+                        <input type="text" className="form-control" placeholder="" name="tournamentName" />
+                      </div>
+                      <div className="form-check form-switch">
+                        <input className="form-check-input" type="checkbox" id="flexSwitchCountryFlag" defaultChecked />
+                        <label className="form-check-label" htmlFor="flexSwitchCountryFlag">Hiển thị cờ quốc gia</label>
+                      </div>
+                    </div>
+                    <div className="col">
+                      <label>Số lượng giám định</label>
+                      <div className="input-group mb-3">
+                        <input type="number" className="form-control" min="1" max="5" placeholder="" name="quantityReferee" />
+                        <span className="input-group-text">vị</span>
+                      </div>
+                      <label>Đặt mật khẩu</label>
+                      <div className="input-group mb-3">
+                        <input type="text" className="form-control" placeholder="" name="password" />
+                      </div>
                     </div>
                   </div>
-                  <label htmlFor="basic-url">Thời gian nghỉ giữa hiệp</label>
-                  <div className="input-group mb-3">
-                    <input type="number" className="form-control" placeholder="" name="timeBreak" />
-                    <div className="input-group-append">
-                      <span className="input-group-text">giây</span>
+
+                  <hr className="mt-4 mb-4" />
+                  <div className="row">
+                    <div className="col">
+                      <label>Thời gian hiệp đấu</label>
+                      <div className="input-group mb-3">
+                        <input type="number" className="form-control" placeholder="" name="timeRound" />
+                        <span className="input-group-text">giây</span>
+                      </div>
+                      <label>Thời gian nghỉ giữa hiệp</label>
+                      <div className="input-group mb-3">
+                        <input type="number" className="form-control" placeholder="" name="timeBreak" />
+                        <span className="input-group-text">giây</span>
+                      </div>
                     </div>
-                  </div>
-                  <label htmlFor="basic-url">Thời gian nghỉ giữa hiệp hiệp phụ</label>
-                  <div className="input-group mb-3">
-                    <input type="number" className="form-control" placeholder="" name="timeExtraBreak" />
-                    <div className="input-group-append">
-                      <span className="input-group-text">giây</span>
+                    <div className="col">
+                      <label>Thời gian nghỉ giữa hiệp hiệp phụ</label>
+                      <div className="input-group mb-3">
+                        <input type="number" className="form-control" placeholder="" name="timeExtraBreak" />
+                        <span className="input-group-text">giây</span>
+                      </div>
+                      <label>Thời gian hiệp phụ</label>
+                      <div className="input-group mb-3">
+                        <input type="number" className="form-control" placeholder="" name="timeExtra" />
+                        <span className="input-group-text">giây</span>
+                      </div>
                     </div>
-                  </div>
-                  <label htmlFor="basic-url">Thời gian hiệp phụ</label>
-                  <div className="input-group mb-3">
-                    <input type="number" className="form-control" placeholder="" name="timeExtra" />
-                    <div className="input-group-append">
-                      <span className="input-group-text">giây</span>
-                    </div>
+                    {/* <hr className="mt-4 mb-4" /> */}
                   </div>
                   <button type="button" className="btn btn-warning" style={{ marginRight: '5px' }} onClick={this.resetSetting}><i className="fa-solid fa-rotate-left"></i> Reset</button>
                   <button type="button" className="btn btn-danger" style={{ marginRight: '5px' }} onClick={this.updateSetting}><i className="fa-solid fa-pen"></i> Cập nhập</button>
@@ -530,15 +575,13 @@ class SettingContainer extends Component {
 
                 <div className="tournament-text mb-5 mt-3">
                   <div className="form-title">
-                    <h2><b>Nhập thông tin thi đấu Đối Kháng CHUẨN</b></h2>
-                    <a href={MauDuLieuChuan} download="1-Mau-Du-Lieu-Chuan.xlsx" target="_blank" rel="noreferrer" >
-                      <span>Download Mau-Du-Lieu-Chuan.xlsx</span>
-                    </a>
+                    <h2><b>Nhập thông tin Đối Kháng CHUẨN</b></h2>
                   </div>
                   <div className="function-button">
                     <div className="input-group">
+                      <a href={mauchuandoikhang} download="1-Mau_Chuan_Doi_Khang" target="_blank" rel="noreferrer" className="btn btn-outline-primary" role="button"><i className="fa-solid fa-file-download"></i> Download mẫu 1</a>
                       <input type="file" className="form-control" onChange={this.handleimportTournamentFile} />
-                      <button className="btn btn-danger" type="button" onClick={this.importTournament}><i className="fa-solid fa-file-import"></i> Import Đối Kháng</button>
+                      <button className="btn btn-danger" type="button" onClick={this.importTournament}><i className="fa-solid fa-file-import"></i> Khởi tạo Đối Kháng</button>
                     </div>
                   </div>
                   <table>
@@ -563,17 +606,13 @@ class SettingContainer extends Component {
 
                 <div className="tournament-text mb-5 mt-3">
                   <div className="form-title">
-                    <h2><b>Nhập thông tin thi Quyền CHUẨN</b></h2>
+                    <h2><b>Nhập thông tin Thi Quyền CHUẨN</b></h2>
                   </div>
-                  <a href={MauDuLieuChuan} download="1-Mau-Du-Lieu-Chuan.xlsx" target="_blank" rel="noreferrer" >
-                    <span>Download Mau-Du-Lieu-Chuan.xlsx</span>
-                  </a>
                   <div className="function-button">
                     <div className="input-group">
-                      <div className="input-group">
-                        <input type="file" className="form-control" onChange={this.handleimportTournamentMartialFile} />
-                        <button className="btn btn-danger" type="button" onClick={this.importTournamentMartial}><i className="fa-solid fa-file-import"></i> Import Thi Quyền</button>
-                      </div>
+                      <a href={mauchuanthiquyen} download="2-Mau_Chuan_Thi_Quyen" target="_blank" rel="noreferrer" className="btn btn-outline-primary" role="button"><i className="fa-solid fa-file-download"></i> Download mẫu 2</a>
+                      <input type="file" className="form-control" onChange={this.handleimportTournamentMartialFile} />
+                      <button className="btn btn-danger" type="button" onClick={this.importTournamentMartial}><i className="fa-solid fa-file-import"></i> Khởi tạo Thi Quyền</button>
                     </div>
                     <table>
                       <thead>
@@ -598,19 +637,59 @@ class SettingContainer extends Component {
 
                 <div className="tournament-text mb-5 mt-3">
                   <div className="form-title">
-                    <h2><b>Xử lý thông tin thi đấu Đối Kháng THÔ</b></h2>
-                    <a href={MauDuLieuTho} download="2-Mau-Du-Lieu-Tho.xlsx" target="_blank" rel="noreferrer" >
-                      <span>Download Mau-Du-Lieu-Tho.xlsx</span>
-                    </a>
+                    <h2><b>Xử lý thông tin Đối Kháng THÔ</b></h2>
                   </div>
                   <div className="function-button">
                     <div className="input-group">
-                      <div className="input-group">
-                        <input type="file" className="form-control" onChange={this.handleimportTournamentRawFile} />
-                        <button className="btn btn-info" type="button" onClick={this.shuffle}><i className="fa-solid fa-shuffle"></i> Xáo trộn danh sách</button>
-                        <button className="btn btn-warning" type="button" onClick={this.arrangeTournament}><i className="fa-solid fa-layer-group"></i> Sắp xếp Đối Kháng</button>
-                        <button className="btn btn-danger" type="button" onClick={this.importTournament}><i className="fa-solid fa-file-import"></i> Import Đối Kháng</button>
-                      </div>
+                      <a href={mauthodoikhang} download="3-Mau_Tho_Doi_Khang" target="_blank" rel="noreferrer" className="btn btn-outline-primary" role="button"><i className="fa-solid fa-file-download"></i> Download mẫu 3</a>
+                      <input type="file" className="form-control" onChange={this.handleimportTournamentRawFile} />
+                      <button className="btn btn-info" type="button" onClick={this.shuffle}><i className="fa-solid fa-shuffle"></i> Xáo trộn danh sách</button>
+                      <button className="btn btn-warning" type="button" onClick={this.arrangeTournament}><i className="fa-solid fa-layer-group"></i> Sắp xếp Đối Kháng</button>
+                      <button className="btn btn-danger" type="button" onClick={this.importTournament}><i className="fa-solid fa-file-import"></i> Khởi tạo Đối Kháng</button>
+                      <button className="btn btn-primary" type="button" onClick={this.downloadTournament}><i className="fa-solid fa-file-download"></i> Download Danh sách</button>
+                    </div>
+                  </div>
+                  <table>
+                    <thead>
+                      <tr>
+                        {this.tournamentArrangeHeader && this.tournamentArrangeHeader.map((header) => <th key={header}>{header}</th>)}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {this.tournamentStandardArray ? this.tournamentStandardArray.map((row, i) => (
+                        <tr key={i}>
+                          {row.map((cell, i) => (
+                            <td key={i}>{cell}</td>
+                          ))}
+                        </tr>
+                      )) :
+                        <tr><td colSpan="2">Không có dữ liệu hiển thị</td></tr>
+                      }
+                      {this.tournamentArrayRaw ? this.tournamentArrayRaw.map((row, i) => (
+                        <tr key={i}>
+                          {row.map((cell, i) => (
+                            <td key={i}>{cell}</td>
+                          ))}
+                        </tr>
+                      )) :
+                        <tr><td colSpan="2">Không có dữ liệu hiển thị</td></tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="tournament-text mb-5 mt-3">
+                  <div className="form-title">
+                    <h2><b>Xử lý thông tin Thi Quyền THÔ</b></h2>
+                  </div>
+                  <div className="function-button">
+                    <div className="input-group">
+                      <a href={mauthodoikhang} download="3-Mau_Tho_Doi_Khang" target="_blank" rel="noreferrer" className="btn btn-outline-primary" role="button"><i className="fa-solid fa-file-download"></i> Download mẫu 3</a>
+                      <input type="file" className="form-control" onChange={this.handleimportTournamentRawFile} />
+                      <button className="btn btn-info" type="button" onClick={this.shuffle}><i className="fa-solid fa-shuffle"></i> Xáo trộn danh sách</button>
+                      <button className="btn btn-warning" type="button" onClick={this.arrangeTournament}><i className="fa-solid fa-layer-group"></i> Sắp xếp Thi Quyền</button>
+                      <button className="btn btn-danger" type="button" onClick={this.importTournament}><i className="fa-solid fa-file-import"></i> Khởi tạo Thi Quyền</button>
+                      <button className="btn btn-primary" type="button" onClick={this.downloadTournament}><i className="fa-solid fa-file-download"></i> Download Danh sách</button>
                     </div>
                   </div>
                   <table>

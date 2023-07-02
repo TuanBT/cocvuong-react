@@ -48,12 +48,13 @@ class GiamDinhDkContainer extends Component {
     var password = $('#txtPassword').val();
 
     if (password != null && password != "") {
-      get(ref(this.db, 'pass/firstPass')).then((snapshot) => {
+      onValue(ref(this.db, 'pass/firstPass'), (snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           this.main();
         } else {
           toast.error("Sai mật khẩu!");
+          location.reload();
         }
       })
     } else {

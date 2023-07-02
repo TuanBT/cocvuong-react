@@ -44,7 +44,7 @@ class InformationDkContainer extends Component {
       this.tournamentObj = snapshot.val();
       this.showListInfo();
 
-      $(".btn").click(() => {
+      $(".btn-check").click(() => {
         let value = $('input[name="optionCategory"]:checked').val();
         this.showListMatchs(value);
       }
@@ -65,7 +65,6 @@ class InformationDkContainer extends Component {
         if (!categoryArray.includes(this.tournamentObj.tournament[i].match.category)) {
           categoryArray.push(this.tournamentObj.tournament[i].match.category);
           $(".category-radio").append(
-            // "<label class='btn btn-warning'><input type='radio' name='optionCategory' value='" + this.tournamentObj.tournament[i].match.category + "' autocomplete='off'>" + this.tournamentObj.tournament[i].match.category + "</label>" +
             "<input type='radio' class='btn-check' name='optionCategory' id='optionCategory" + i + "' value='" + this.tournamentObj.tournament[i].match.category + "' /><label class='btn btn-outline-warning' for='optionCategory" + i + "'><i class='fa-solid fa-user'></i> " + this.tournamentObj.tournament[i].match.category + "</label>"
           );
         }
@@ -142,69 +141,70 @@ class InformationDkContainer extends Component {
   render() {
     return (
       <div>
-        <div className="container">
-          <header className="blog-header py-3">
-            <div className="row flex-nowrap justify-content-between align-items-center">
-              <div className="col-4 pt-1">
-                <h3 className="text-pomegrante" id="tournamentName"></h3>
+        <div className="body" style={{ height: '100vh' }}>
+          <div className="container">
+            <header className="blog-header py-3">
+              <div className="row flex-nowrap justify-content-between align-items-center">
+                <div className="col-4 pt-1">
+                  <h3 className="text-pomegrante" id="tournamentName"></h3>
+                </div>
+                <div className="col-4 text-center">
+                  <h2 className="blog-header-logo text-midnight-blue">Thông tin các trận đấu đối kháng</h2>
+                </div>
+                <div className="col-4 d-flex justify-content-end align-items-center">
+                  <span className="text-muted">
+                    <img src={logo} alt="..." className="img-fluid" style={{ height: "38px" }} />
+                  </span>
+                </div>
               </div>
-              <div className="col-4 text-center">
-                <h2 className="blog-header-logo text-midnight-blue">Thông tin các trận đấu đối kháng</h2>
-              </div>
-              <div className="col-4 d-flex justify-content-end align-items-center">
-                <span className="text-muted">
-                  <img src={logo} alt="..." className="img-fluid" style={{ height: "38px" }} />
-                </span>
-              </div>
-            </div>
-          </header>
-        </div>
+            </header>
+          </div>
 
-        <div className="category-buttons">
-          <section className="btn-group category-radio">
-            <input type="radio" className="btn-check" name="optionCategory" id="optionCategory-1" value="ALL" defaultChecked />
-            <label className="btn btn-outline-warning" htmlFor="optionCategory-1"><i className="fa-solid fa-user"></i> ALL</label>
-          </section>
-        </div>
+          <div className="category-buttons">
+            <section className="btn-group category-radio">
+              <input type="radio" className="btn-check" name="optionCategory" id="optionCategory-1" value="ALL" defaultChecked />
+              <label className="btn btn-outline-warning" htmlFor="optionCategory-1"><i className="fa-solid fa-user"></i> ALL</label>
+            </section>
+          </div>
 
-        <div className=" tbl-info">
-          <table className="tbl-header-tournament-info" id="table" style={{ display: "none" }}>
-            <tbody>
-              <tr>
-                <th className="text-center">
-                  Mã trận đấu
-                </th>
-                <th>
-                  Trận
-                </th>
-                <th>
-                  Hạng cân
-                </th>
-                <th>
-                  Vận động viên đỏ
-                </th>
-                <th>
-                  MSSV
-                </th>
-                <th>
-                  Vận động viên xanh
-                </th>
-                <th>
-                  MSSV
-                </th>
-                <th>
-                  Người thắng
-                </th>
-              </tr>
-            </tbody>
-          </table>
-          <table className="tbl-tournament-info">
-          </table>
-        </div>
+          <div className=" tbl-info">
+            <table className="tbl-header-tournament-info" id="table" style={{ display: "none" }}>
+              <tbody>
+                <tr>
+                  <th className="text-center">
+                    Mã trận đấu
+                  </th>
+                  <th>
+                    Trận
+                  </th>
+                  <th>
+                    Hạng cân
+                  </th>
+                  <th>
+                    Vận động viên đỏ
+                  </th>
+                  <th>
+                    MSSV/Đơn vị
+                  </th>
+                  <th>
+                    Vận động viên xanh
+                  </th>
+                  <th>
+                    MSSV/Đơn vị
+                  </th>
+                  <th>
+                    Người thắng
+                  </th>
+                </tr>
+              </tbody>
+            </table>
+            <table className="tbl-tournament-info">
+            </table>
+          </div>
 
-        <div id="schema-bracket">
+          <div id="schema-bracket">
+          </div>
         </div>
-
       </div>
     );
   }

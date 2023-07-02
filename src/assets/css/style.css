@@ -933,9 +933,19 @@ textarea {
     background: #bdc3c7;
 }
 
+.setting-form{
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgb(218,220,224);
+    padding: 24px 24px;
+}
+
 .tournament-text {
     width: 100%;
-    /* height: 100%; */
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgb(218,220,224);
+    padding: 24px 24px;
 }
 
 .function-button {

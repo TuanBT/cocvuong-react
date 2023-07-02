@@ -38,20 +38,20 @@ class GiamDinhThiQuyenContainer extends Component {
 
   componentDidMount() {
     document.addEventListener("keydown", this._handleKeyDown);
-    // this.showPasswordModal();
-    this.main();
+    this.showPasswordModal();
   }
 
   verifyPassword = () => {
     var password = $('#txtPassword').val();
 
     if (password != null && password != "") {
-      get(ref(this.db, 'pass/firstPass')).then((snapshot) => {
+      onValue(ref(this.db, 'pass/firstPass'), (snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           this.main();
         } else {
           toast.error("Sai mật khẩu!");
+          location.reload();
         }
       })
     } else {
