@@ -117,8 +117,10 @@ class InformationDkContainer extends Component {
           "<td>" + tournament.match.category + "</td>" +
           "<td>" + tournament.fighters.redFighter.name + "</td>" +
           "<td>" + tournament.fighters.redFighter.code + "</td>" +
+          "<td>" + tournament.fighters.redFighter.country + "</td>" +
           "<td>" + tournament.fighters.blueFighter.name + "</td>" +
           "<td>" + tournament.fighters.blueFighter.code + "</td>" +
+          "<td>" + tournament.fighters.blueFighter.country + "</td>" +
           "<td>" + nameWin + "</td>" +
           "</tr>"
         )
@@ -187,10 +189,16 @@ class InformationDkContainer extends Component {
                     MSSV/Đơn vị
                   </th>
                   <th>
+                    QUỐC GIA ĐỎ
+                  </th>
+                  <th>
                     Vận động viên xanh
                   </th>
                   <th>
                     MSSV/Đơn vị
+                  </th>
+                  <th>
+                    QUỐC GIA XANH
                   </th>
                   <th>
                     Người thắng

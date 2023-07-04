@@ -532,7 +532,7 @@ html {
 .referee {
     float: left;
     height: 100%;
-    width: 30%;
+    width: 30%; /* 17% if 5 */
 }
 
 .referee-title {
@@ -1013,4 +1013,38 @@ textarea {
 
 .bigIcon {
     font-size: 5em;
+}
+
+.countryFlag{
+    position: absolute;
+    width: 20%;
+    height: 20%;
+    bottom: 0;
+    cursor: pointer;
+}
+
+.blueFlag{
+    right: 0;
+}
+
+.redFlag{
+    left: 0;
+}
+
+.flagImage{
+    height: 100%; 
+    display: block;
+    border-top: 10px solid #ffffff;
+}
+
+.blueFlag .flagImage{
+    float: right;
+    border-left: 10px solid #ffffff;
+    border-top-left-radius: 30px 30px;
+}
+
+.redFlag .flagImage{
+    float: left;
+    border-right: 10px solid #ffffff;
+    border-top-right-radius: 30px 30px;
 }

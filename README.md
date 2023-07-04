@@ -25,7 +25,7 @@ Lấy 3 số giữa. Riêng 3 GD thì tổng 3 luôn.
 
 8. bốc thăm thứ tự thi đấu từng nội dung của vđv thì tự nhảy tên vào bảng chia cặp đối với đối kháng, quyền thứ tự từ trên xuống 
 Các bước như sau: Tự random số - Sếp schema - Export ra data
-=> Còn bug phần sếp Schema bên đối kháng
+=> Còn làm bên Thi Quyền
 
 Thứ tự ưu tiên:
 6 - 8 - 3 - 4
