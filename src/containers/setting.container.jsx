@@ -39,7 +39,7 @@ class SettingContainer extends Component {
     this.schemaFighters.push('[]');//0
     this.schemaFighters.push('[]');//1
     this.schemaFighters.push('[{"match":1,"weight":1,"type":"Chung Kết","redFighter":{"name":1,"code":1},"blueFighter":{"name":2,"code":2}}]'); //2
-    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Bán Kết","redFighter":{"name":1,"code":1},"blueFighter":{"name":2,"code":2}},{"match":2,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.1","code":""},"blueFighter":{"name":3,"code":3}}]');//3
+    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Bán Kết","redFighter":{"name":1,"code":1},"blueFighter":{"name":2,"code":2}},{"match":2,"weight":1,"type":"Chung Kết","redFighter":{"name":3,"code":3},"blueFighter":{"name":"W.1","code":""}}]');//3
     this.schemaFighters.push('[{"match":1,"weight":1,"type":"Bán Kết","redFighter":{"name":1,"code":1},"blueFighter":{"name":2,"code":2}},{"match":2,"weight":1,"type":"Bán Kết","redFighter":{"name":3,"code":3},"blueFighter":{"name":4,"code":4}},{"match":3,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.1","code":""},"blueFighter":{"name":"W.2","code":""}}]');//4
     this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại","redFighter":{"name":3,"code":3},"blueFighter":{"name":4,"code":4}},{"match":2,"weight":1,"type":"Bán Kết","redFighter":{"name":1,"code":1},"blueFighter":{"name":2,"code":2}},{"match":3,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.1","code":""},"blueFighter":{"name":5,"code":5}},{"match":4,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.2","code":""},"blueFighter":{"name":"W.3","code":""}}]'); //5
     this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại","redFighter":{"name":2,"code":2},"blueFighter":{"name":3,"code":3}},{"match":2,"weight":1,"type":"Vòng loại","redFighter":{"name":4,"code":4},"blueFighter":{"name":5,"code":5}},{"match":3,"weight":1,"type":"Bán Kết","redFighter":{"name":1,"code":1},"blueFighter":{"name":"W.1","code":""}},{"match":4,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.2","code":""},"blueFighter":{"name":6,"code":6}},{"match":5,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.3","code":""},"blueFighter":{"name":"W.4","code":""}}]');//6
@@ -348,24 +348,36 @@ class SettingContainer extends Component {
       matchCount += this.groupMatch.length;
     }
 
-    let tournamentStandard = this.matchs.slice();
-
     // Sắp xếp mảng theo thứ tự "Vòng loại", "Bán kết", "Chung kết"
     this.matchs.sort((a, b) => {
       const typeOrder = { 'Vòng loại': 0, 'Bán Kết': 1, 'Chung Kết': 2 };
       return typeOrder[a.type] - typeOrder[b.type];
     });
 
-    // Tiến hành sắp xếp lại các trận đấu theo đúng thứ tự bằng cách đổi chỗ
+    //Tiến hành sắp xếp lại các trận đấu theo đúng thứ tự bằng cách đổi mã
     for (let i = 0; i < this.matchs.length; i++) {
-      if (this.matchs[i].match !== tournamentStandard[i].match) {
-        this.swapRowsName(tournamentStandard, tournamentStandard[i].match, this.matchs[i].match)
+      let oldMatchNo = this.matchs[i].match;
+      let newMatchNo = i + 1;
+      if (this.matchs[i].match !== newMatchNo) {
+        this.matchs[i].match = newMatchNo;
+        for (let j = 0; j < this.matchs.length; j++) {
+          if (this.matchs[j].redFighter.name === "W." + oldMatchNo) {
+            this.matchs[j].redFighter.name = "W.." + newMatchNo;
+          }
+          if (this.matchs[j].blueFighter.name === "W." + oldMatchNo) {
+            this.matchs[j].blueFighter.name = "W.." + newMatchNo;
+          }
+        }
       }
+    }
+    for (let i = 0; i < this.matchs.length; i++) {
+      this.matchs[i].redFighter.name = (this.matchs[i].redFighter.name).replace(/W\.\.(\d+)/g, "W.$1");
+      this.matchs[i].blueFighter.name = (this.matchs[i].blueFighter.name).replace(/W\.\.(\d+)/g, "W.$1");
     }
 
     //Add to array to show in table and data import
     this.tournamentObj = JSON.parse(JSON.stringify(this.tournamentConst));
-    tournamentStandard.forEach(value => {
+    this.matchs.forEach(value => {
       this.tournamentStandardArray.push([
         value.match, value.weight, value.type, value.redFighter.name, value.redFighter.code, value.blueFighter.name, value.blueFighter.code
       ]);
@@ -415,57 +427,14 @@ class SettingContainer extends Component {
       match.match += variance;
       if (match.redFighter.name.includes('W.')) {
         let number = parseFloat(match.redFighter.name.split('.')[1]);
-        if (newMatchNumber > number) {
-          match.redFighter.name = 'W.' + (number + variance);
-        }
+        match.redFighter.name = 'W.' + (number + variance);
       }
       if (match.blueFighter.name.includes('W.')) {
         let number = parseFloat(match.blueFighter.name.split('.')[1]);
-        if (newMatchNumber > number) {
-          match.blueFighter.name = 'W.' + (number + variance);
-        }
+        match.blueFighter.name = 'W.' + (number + variance);
       }
     })
     return groupMatch;
-  }
-
-  swapRowsName(arr, match1, match2) {
-    // Tìm vị trí của 2 row cần đổi chỗ trong mảng
-    let index1 = arr.findIndex((el) => el.match === match1);
-    let index2 = arr.findIndex((el) => el.match === match2);
-
-    // Nếu không tìm thấy row tương ứng thì trả về mảng ban đầu
-    if (index1 === -1 || index2 === -1) {
-      return arr;
-    }
-
-    //Đổi match
-    let matchTemp = arr[index1].match;
-    arr[index1].match = arr[index2].match;
-    arr[index2].match = matchTemp;
-
-    //Đổi row
-    let temp = arr[index1];
-    arr[index1] = arr[index2];
-    arr[index2] = temp;
-
-    // //Đổi W. tương ứng
-    for (let i = 0; i < arr.length; i++) {
-      if (arr[i].redFighter.name === "W." + match1) {
-        arr[i].redFighter.name = "W." + match2;
-      }
-      if (arr[i].blueFighter.name === "W." + match1) {
-        arr[i].blueFighter.name = "W." + match2;
-      }
-      if (arr[i].redFighter.name === "W." + match2) {
-        arr[i].redFighter.name = "W." + match1;
-      }
-      if (arr[i].blueFighter.name === "W." + match2) {
-        arr[i].blueFighter.name = "W." + match1;
-      }
-    }
-
-    return arr;
   }
 
   exportExcel(header, rowData, fileName) {
