@@ -509,14 +509,13 @@ class SettingContainer extends Component {
                       </div>
                     </div>
                     <div className="col">
-                      <label>Số lượng giám định</label>
-                      <div className="input-group mb-3">
-                        <input type="number" className="form-control" min="1" max="5" placeholder="" name="quantityReferee" />
-                        <span className="input-group-text">vị</span>
-                      </div>
                       <label>Đặt mật khẩu</label>
                       <div className="input-group mb-3">
                         <input type="text" className="form-control" placeholder="" name="password" />
+                      </div>
+                      <div className="form-check form-switch">
+                        <input className="form-check-input" type="checkbox" id="quantityReferee" />
+                        <label className="form-check-label" htmlFor="quantityReferee">Hiển thị 5 giám định</label>
                       </div>
                     </div>
                   </div>

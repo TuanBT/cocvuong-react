@@ -7,6 +7,7 @@
 
 3: thêm cờ nước?
 3. Thêm được. Nếu theo cái hình anh gửi là vào góc. Nhưng sẽ cần thông tin này trong phần import data vdv trước giải đấu.
+=> Thêm mặc định là VN
 
 4: dùng pass khoá lại phần mềm sau khi mình import dữ liệu, sợ 1 ai đó vào chỉnh dữ liệu.
 4. Hệ thống chưa có login. Sẽ cân nhắc.

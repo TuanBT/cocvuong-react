@@ -37,17 +37,17 @@ class GiamDinhThiQuyenContainer extends Component {
   }
 
   componentDidMount() {
-    document.addEventListener("keydown", this._handleKeyDown);
     this.showPasswordModal();
   }
-
+  
   verifyPassword = () => {
     var password = $('#txtPassword').val();
-
+    
     if (password != null && password != "") {
       onValue(ref(this.db, 'pass/firstPass'), (snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
+          document.addEventListener("keydown", this._handleKeyDown);
           this.main();
         } else {
           toast.error("Sai mật khẩu!");
@@ -242,23 +242,22 @@ class GiamDinhThiQuyenContainer extends Component {
       <div>
 
         <div className="body style-gd-hd-body" style={{ height: '100vh' }}>
-          <div className="vsc-initialized">
+          <div className="info-header px-3 py-3 pt-md-5 pb-md-4 mx-auto text-center text-belize-hole">
+            <h1 className="blog-header-logo text-midnight-blue" id="gd-name"></h1>
+            <h2>
+              <span id="match-martial-name"></span>
+              <span> - </span>
+              <span id="match-martial-no"></span>
+            </h2>
+            <p className="lead text-danger" id="internet-status"></p>
+          </div>
 
-            <div className="pricing-header px-3 py-3 pt-md-5 pb-md-4 mx-auto text-center text-belize-hole">
-              <h1 className="blog-header-logo text-midnight-blue" id="gd-name"></h1>
-              <h2>
-                <span id="match-martial-name"></span>
-                <span> - </span>
-                <span id="match-martial-no"></span>
-              </h2>
-              <p className="lead text-danger" id="internet-status"></p>
-            </div>
-
-            <div className="container cal">
-              <div className="card-deck mb-3 text-center">
-                <div className="card mb-4 box-shadow">
+          <div className="container-cal" >
+            <div className="cal">
+              <div className="card-deck text-center">
+                <div className="card box-shadow">
                   <div className="card-header">
-                    <h1 className="my-0 display-2" id="referee-result-box">00</h1>
+                    <h1 className="my-0 display-2 info-text" id="referee-result-box">00</h1>
                   </div>
                   <div className="card-body">
                     <div className="buttons">
@@ -381,7 +380,18 @@ class GiamDinhThiQuyenContainer extends Component {
             </div>
           </div>
         </div>
-        <ToastContainer />
+        <ToastContainer
+          position="top-right"
+          autoClose={1000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss={false}
+          draggable={false}
+          pauseOnHover={false}
+          theme="light"
+        />
 
       </div >
     );

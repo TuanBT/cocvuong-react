@@ -1015,6 +1015,14 @@ textarea {
     font-size: 5em;
 }
 
+.bigIcon a{
+    color: #bdc3c7;
+}
+
+.bigIcon a:hover{
+    color: #7f8c8d;
+}
+
 .countryFlag{
     position: absolute;
     width: 20%;

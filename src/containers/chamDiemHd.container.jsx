@@ -554,11 +554,11 @@ class ChamDiemHdContainer extends Component {
                   <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideTakeMainScoreModal}></button>
                 </div>
                 <div className="modal-body">
-                  <div className="container cal mt-3">
-                    <div className="card-deck mb-3 text-center">
+                  <div className="container cal">
+                    <div className="card-deck text-center">
                       <div className="card mb-4 box-shadow">
                         <div className="card-header">
-                          <h1 className="my-0 font-weight-normal" id="referee-result-box">000</h1>
+                          <h1 className="my-0 display-2" id="referee-result-box">000</h1>
                         </div>
                         <div className="card-body">
                           <div className="buttons">
