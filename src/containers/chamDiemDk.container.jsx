@@ -50,17 +50,6 @@ class ChamDiemDkContainer extends Component {
 
     this.temporaryWin;
 
-    this.settingConst = {
-      "setting":
-      {
-        "timeRound": 90,
-        "timeBreak": 30,
-        "timeExtra": 60,
-        "timeExtraBreak": 15,
-        "tournamentName": "Cóc Vương"
-      }
-    }
-
     this.tournamentConst = {
       "lastMatch":
       {
@@ -174,6 +163,10 @@ class ChamDiemDkContainer extends Component {
     get(child(ref(this.db), 'setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       $('#tournamentName').html(this.settingObj.tournamentName);
+      if(this.settingObj.isShowCountryFlag === true){
+        $(".redFlag").show();
+        $(".blueFlag").show();
+      }
 
       this.startEffectTimer();
 
@@ -1000,7 +993,7 @@ class ChamDiemDkContainer extends Component {
           <div className="score-area">
             <div className="red-score">
               <div className="addition" onClick={this.redAddition}></div>
-              <div className="redFlag countryFlag"><img className="flagImage" src={require('../assets/flag/VN.jpg')}/></div>
+              <div className="redFlag countryFlag" style={{ display: 'none' }}><img className="flagImage" src={require('../assets/flag/VN.jpg')}/></div>
               <div className="subtraction" onClick={this.redSubtraction}></div>
               <span className="info-text">
                 <span id="red-score"></span>
@@ -1008,7 +1001,7 @@ class ChamDiemDkContainer extends Component {
             </div>
             <div className="blue-score">
               <div className="addition" onClick={this.blueAddition}></div>
-              <div className="blueFlag countryFlag"><img className="flagImage" src={require('../assets/flag/VN.jpg')}/></div>
+              <div className="blueFlag countryFlag" style={{ display: 'none' }}><img className="flagImage" src={require('../assets/flag/VN.jpg')}/></div>
               <div className="subtraction" onClick={this.blueSubtraction}></div>
               <span className="info-text">
                 <span id="blue-score"></span>

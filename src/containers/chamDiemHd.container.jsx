@@ -59,17 +59,6 @@ class ChamDiemHdContainer extends Component {
     this.theLastTeamOfMatch;
     this.refereeMartialScore = '';
 
-    this.settingConst = {
-      "setting":
-      {
-        "timeRound": 90,
-        "timeBreak": 30,
-        "timeExtra": 60,
-        "timeExtraBreak": 15,
-        "tournamentName": "Cóc Vương"
-      }
-    }
-
     this.tournamentConst = {
       "lastMatch":
       {
@@ -556,7 +545,7 @@ class ChamDiemHdContainer extends Component {
                 <div className="modal-body">
                   <div className="container cal">
                     <div className="card-deck text-center">
-                      <div className="card mb-4 box-shadow">
+                      <div className="card box-shadow">
                         <div className="card-header">
                           <h1 className="my-0 display-2" id="referee-result-box">000</h1>
                         </div>

@@ -27,6 +27,18 @@ class SettingContainer extends Component {
     this.tournamentStandardArray = [];
     this.tournamentArray = [];
 
+    this.settingConst = {
+      "setting":
+      {
+        "timeRound": 90,
+        "timeBreak": 30,
+        "timeExtra": 60,
+        "timeExtraBreak": 15,
+        "tournamentName": "Cóc Vương",
+        "isShowCountryFlag": false,
+        "isShowFiveReferee": false
+      }
+    }
     this.matchObj = { "match": { "no": 1, "type": "", "category": "", "win": "" }, "fighters": { "redFighter": { "name": "Đỏ", "code": "", "score": 0 }, "blueFighter": { "name": "Xanh", "code": "", "score": 0 } } };
     this.fightersMartialObj = { "fighters": [], "no": 0, "score": 0, "refereeMartial": [{ "score": 0 }, { "score": 0 }, { "score": 0 }], };
     this.tournamentConst = { "lastMatch": { "no": 1 }, "referee": [{ "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }], "tournament": [] };
@@ -84,6 +96,8 @@ class SettingContainer extends Component {
       $("input[name=timeExtra]").val(this.settingObj.timeExtra);
       $("input[name=timeExtraBreak]").val(this.settingObj.timeExtraBreak);
       $("input[name=tournamentName]").val(this.settingObj.tournamentName);
+      $("#flexSwitchCountryFlag").prop("checked", this.settingObj.isShowCountryFlag);
+      $("#quantityReferee").prop("checked", this.settingObj.isShowFiveReferee);
     })
 
     onValue(ref(this.db, 'setting'), (snapshot) => {
@@ -104,6 +118,8 @@ class SettingContainer extends Component {
         $("input[name=timeExtra]").val(this.settingObj.timeExtra);
         $("input[name=timeExtraBreak]").val(this.settingObj.timeExtraBreak);
         $("input[name=tournamentName]").val(this.settingObj.tournamentName);
+        $("#flexSwitchCountryFlag").prop("checked", this.settingObj.isShowCountryFlag);
+        $("#quantityReferee").prop("checked", this.settingObj.isShowFiveReferee);
       })
 
       toast.success("Cập nhập thông tin giải đấu thành công!");
@@ -119,6 +135,8 @@ class SettingContainer extends Component {
       "timeExtra": parseInt($("input[name=timeExtra]").val()),
       "timeExtraBreak": parseInt($("input[name=timeExtraBreak]").val()),
       "tournamentName": $("input[name=tournamentName]").val(),
+      "isShowCountryFlag": $("#flexSwitchCountryFlag").prop("checked"),
+      "isShowFiveReferee": $("#quantityReferee").prop("checked")
     }
     update(ref(this.db, 'setting'), this.settingObj).then(() => {
       toast.success("Cập nhập thông tin giải đấu thành công!");
@@ -504,7 +522,7 @@ class SettingContainer extends Component {
                         <input type="text" className="form-control" placeholder="" name="tournamentName" />
                       </div>
                       <div className="form-check form-switch">
-                        <input className="form-check-input" type="checkbox" id="flexSwitchCountryFlag" defaultChecked />
+                        <input className="form-check-input" type="checkbox" id="flexSwitchCountryFlag"/>
                         <label className="form-check-label" htmlFor="flexSwitchCountryFlag">Hiển thị cờ quốc gia</label>
                       </div>
                     </div>
@@ -514,7 +532,7 @@ class SettingContainer extends Component {
                         <input type="text" className="form-control" placeholder="" name="password" />
                       </div>
                       <div className="form-check form-switch">
-                        <input className="form-check-input" type="checkbox" id="quantityReferee" />
+                        <input className="form-check-input" type="checkbox" id="quantityReferee"/>
                         <label className="form-check-label" htmlFor="quantityReferee">Hiển thị 5 giám định</label>
                       </div>
                     </div>
