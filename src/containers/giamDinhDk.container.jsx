@@ -19,10 +19,6 @@ class GiamDinhDkContainer extends Component {
     this.settingObj;
     this.match;
     this.scoreTimer;
-    this.matchMartial;
-    this.teamMartial;
-    this.matchMartialNoCurrent = 1;
-    this.refereeMartialScore = '';
 
     this.refereeName = "";
     this.referreIndex = -1;
@@ -31,7 +27,6 @@ class GiamDinhDkContainer extends Component {
       "redScore": 0,
       "blueScore": 0
     }
-    this.refereeMartialScore = "";
     this.matchNoCurrentIndex;
     this.teamNoCurrentIndex;
 
@@ -127,29 +122,6 @@ class GiamDinhDkContainer extends Component {
         $("#gd-match").html("Trận số " + matchCurrentNo);
         this.path = "referee/" + this.referreIndex;
       })
-
-      onValue(ref(this.db, 'lastMatchMartial'), (snapshot) => {
-        //Kiểm tra kết nối internet
-        onValue(ref(this.db, '.info/connected'), (snapshot) => {
-          if (!snapshot.val() === true) {
-            $('#internet-status').show();
-          } else {
-            $('#internet-status').hide();
-          }
-        })
-
-        let lastMatchMartial = snapshot.val();
-
-        this.matchNoCurrentIndex = lastMatchMartial.matchMartialNo - 1;
-        this.teamNoCurrentIndex = lastMatchMartial.teamMartialNo - 1;
-
-        get(ref(this.db, '"tournamentMartial/' + this.matchNoCurrentIndex)).then((snapshot) => {
-          $("#match-martial-name").html(snapshot.val().match.name);
-          $("#match-martial-no").html(snapshot.val().team[this.teamNoCurrentIndex].no);
-        })
-
-        this.pathMartial = "tournamentMartial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex + "/refereeMartial/" + this.referreIndex;
-      })
     }
   }
 
@@ -244,14 +216,14 @@ class GiamDinhDkContainer extends Component {
         <div className="body" style={{ height: '100vh' }}>
           <div className="vsc-initialized" style={{ height: '100%' }}>
             <div className="gd-info">
-              <header className="blog-header p-3">
+              {/* <header className="blog-header p-3">
                 <div className="col-12 text-center">
                   <span className="text-muted">
                     <a href="#" onClick={this.showShortcut}><img src={logo} alt="FPT University - FVC - Bùi Tiến Tuân"
                       className="img-fluid" style={{ height: '50px' }} /></a>
                   </span>
                 </div>
-              </header>
+              </header> */}
               <header className="blog-header p-3">
                 <div className="row justify-content-between align-items-center">
 

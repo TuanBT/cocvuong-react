@@ -30,3 +30,8 @@ Các bước như sau: Tự random số - Sếp schema - Export ra data
 
 Thứ tự ưu tiên:
 6 - 8 - 3 - 4
+
+-Chữ nên để dạng in đậm để thấy từ xa
+-màn giám định khi ấn vào hết 3s thì bỏ bôi màu. Ngoài ra trên di động chấm xong không tự bỏ màu hover.
+-chấm quyền, máy chủ ấn số về 0 thì đang hiển hẳn số 0 đáng lẽ nên là 000
+- Chấp nhận điểm của giám định là cho cùng lúc được cả đỏ và xanh (Cho những trường hợp diễn biến trận đấu nhanh)
