@@ -171,14 +171,14 @@ class GiamSatThiQuyenContainer extends Component {
     $("#match-martial-no").html(this.tournamentMartialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].no);
     $("#match-martial-team").html("");
     for (let i = 0; i < this.teamMartial.fighters.length; i++) {
-      $("#match-martial-team").append("<div class='fighter-detail'><div class='countryFlagHD' style=''><img class='flagImageHD' src='"+require('../assets/flag/' + this.teamMartial.fighters[i].fighter.country + '.jpg')+"'></div><div class='style-hd-fighter-code'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.code + "</span></div><div class='style-hd-fighter-name'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.name + "</span></div></div>");
+      $("#match-martial-team").append("<div class='fighter-detail'><div class='countryFlagHD' style=''><img class='flagImageHD' src='" + require('../assets/flag/' + this.teamMartial.fighters[i].fighter.country + '.jpg') + "'></div><div class='style-hd-fighter-code'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.code + "</span></div><div class='style-hd-fighter-name'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.name + "</span></div></div>");
     }
 
     for (let i = 1; i <= this.numReferee; i++) {
       let refereeScore = this.tournamentMartialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].refereeMartial[i - 1].score;
       $("#referee-" + i + "-score").html(this.pad(refereeScore, 2));
     }
-    
+
     $("#averageScore").html(this.pad(this.tournamentMartialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].score, 3));
 
     return;
@@ -324,6 +324,15 @@ class GiamSatThiQuyenContainer extends Component {
       sound.currentTime = 0
     }
     sound.play();
+  }
+
+  inputPw = (value) => {
+    if (value === "-1") {
+      $("#txtPassword").val("");
+    } else {
+      let oldValue = $("#txtPassword").val();
+      $("#txtPassword").val(oldValue + value);
+    }
   }
 
   showPasswordModal = () => {
@@ -522,7 +531,20 @@ class GiamSatThiQuyenContainer extends Component {
                 <div className="modal-body">
                   <div className="input-group mb-3">
                     <span className="input-group-text"><i className="fa fa-key" aria-hidden="true"></i></span>
-                    <input type="password" className="form-control" placeholder="Mật khẩu" id="txtPassword" />
+                    <input type="password" className="form-control" placeholder="Mật khẩu" id="txtPassword" disabled />
+                    <button type="button" className="btn btn-outline-danger btn-lg" onClick={() => this.inputPw('-1')}><i className="fas fa-trash-alt"></i></button>
+                  </div>
+                  <div className="input-group mb-3">
+                    <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('1')}><i className="fa-solid fa-1"></i></button>
+                    <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('2')}><i className="fa-solid fa-2"></i></button>
+                    <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('3')}><i className="fa-solid fa-3"></i></button>
+                    <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('4')}><i className="fa-solid fa-4"></i></button>
+                    <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('5')}><i className="fa-solid fa-5"></i></button>
+                    <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('6')}><i className="fa-solid fa-6"></i></button>
+                    <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('7')}><i className="fa-solid fa-7"></i></button>
+                    <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('8')}><i className="fa-solid fa-8"></i></button>
+                    <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('9')}><i className="fa-solid fa-9"></i></button>
+                    <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('0')}><i className="fa-solid fa-0"></i></button>
                   </div>
                 </div>
                 <div className="modal-footer">

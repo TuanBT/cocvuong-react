@@ -715,6 +715,15 @@ class GiamSatDoiKhangContainer extends Component {
     sound.play();
   }
 
+  inputPw = (value) => {
+    if (value === "-1") {
+      $("#txtPassword").val("");
+    } else {
+      let oldValue = $("#txtPassword").val();
+      $("#txtPassword").val(oldValue + value);
+    }
+  }
+
   showPasswordModal = () => {
     $('#passwordModal').removeClass('modal display-none').addClass('modal display-block');
   };
@@ -943,7 +952,20 @@ class GiamSatDoiKhangContainer extends Component {
                 <div className="modal-body">
                   <div className="input-group mb-3">
                     <span className="input-group-text"><i className="fa fa-key" aria-hidden="true"></i></span>
-                    <input type="password" className="form-control" placeholder="Mật khẩu" id="txtPassword" />
+                    <input type="password" className="form-control" placeholder="Mật khẩu" id="txtPassword" disabled />
+                    <button type="button" className="btn btn-outline-danger btn-lg" onClick={() => this.inputPw('-1')}><i className="fas fa-trash-alt"></i></button>
+                  </div>
+                  <div className="input-group mb-3">
+                    <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('1')}><i className="fa-solid fa-1"></i></button>
+                    <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('2')}><i className="fa-solid fa-2"></i></button>
+                    <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('3')}><i className="fa-solid fa-3"></i></button>
+                    <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('4')}><i className="fa-solid fa-4"></i></button>
+                    <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('5')}><i className="fa-solid fa-5"></i></button>
+                    <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('6')}><i className="fa-solid fa-6"></i></button>
+                    <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('7')}><i className="fa-solid fa-7"></i></button>
+                    <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('8')}><i className="fa-solid fa-8"></i></button>
+                    <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('9')}><i className="fa-solid fa-9"></i></button>
+                    <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('0')}><i className="fa-solid fa-0"></i></button>
                   </div>
                 </div>
                 <div className="modal-footer">

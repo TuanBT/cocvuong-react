@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Route,NavLink,HashRouter } from "react-router-dom";
+import { Route, NavLink, HashRouter } from "react-router-dom";
 
 class HomeContainer extends Component {
   constructor(props) {
@@ -18,8 +18,7 @@ class HomeContainer extends Component {
                   <h4 className="my-0 fw-normal">GIÁM SÁT ĐỐI KHÁNG</h4>
                 </div>
                 <div className="card-body">
-                <span className="d-block text-center pb-3 bigIcon"><NavLink to="giam-sat-doi-khang"><i className="fa-solid fa-tv"></i></NavLink></span>
-                  {/* <NavLink to="cham-diem-dk"><button type="button" className="w-100 btn btn-lg btn-success">Bắt đầu</button></NavLink> */}
+                  <span className="d-block text-center pb-3 bigIcon"><NavLink to="giam-sat-doi-khang"><i className="fa-solid fa-tv"></i></NavLink></span>
                 </div>
               </div>
             </div>
@@ -30,7 +29,6 @@ class HomeContainer extends Component {
                 </div>
                 <div className="card-body">
                   <span className="d-block text-center pb-3 bigIcon"><NavLink to="giam-dinh-doi-khang"><i className="fa-solid fa-table-columns"></i></NavLink></span>
-                  {/* <NavLink to="giam-dinh-dk"><button type="button" className="w-100 btn btn-lg btn-success">Bắt đầu</button></NavLink> */}
                 </div>
               </div>
             </div>
@@ -41,7 +39,6 @@ class HomeContainer extends Component {
                 </div>
                 <div className="card-body">
                   <span className="d-block text-center pb-3 bigIcon"><NavLink to="giam-sat-thi-quyen"><i className="fa-solid fa-tv"></i></NavLink></span>
-                  {/* <NavLink to="cham-diem-hd"><button type="button" className="w-100 btn btn-lg btn-warning">Bắt đầu</button></NavLink> */}
                 </div>
               </div>
             </div>
@@ -52,7 +49,6 @@ class HomeContainer extends Component {
                 </div>
                 <div className="card-body">
                   <span className="d-block text-center pb-3 bigIcon"><NavLink to="giam-dinh-thi-quyen"><i className="fa-solid fa-calculator"></i></NavLink></span>
-                  {/* <NavLink to="giam-dinh-thi-quyen"><button type="button" className="w-100 btn btn-lg btn-warning">Bắt đầu</button></NavLink> */}
                 </div>
               </div>
             </div>
@@ -63,7 +59,6 @@ class HomeContainer extends Component {
                 </div>
                 <div className="card-body">
                   <span className="d-block text-center pb-3 bigIcon"><NavLink to="thong-tin-doi-khang"><i className="fa-solid fa-tv"></i></NavLink></span>
-                  {/* <NavLink to="info-dk"><button type="button" className="w-100 btn btn-lg btn-primary">Bắt đầu</button></NavLink> */}
                 </div>
               </div>
             </div>
@@ -84,25 +79,12 @@ class HomeContainer extends Component {
                 </div>
                 <div className="card-body">
                   <span className="d-block text-center pb-3 bigIcon"><NavLink to="thiet-dat"><i className="fa-solid fa-gear"></i></NavLink></span>
-                  {/* <NavLink to="setting"><button type="button" className="w-100 btn btn-lg btn-primary">Bắt đầu</button></NavLink> */}
                 </div>
               </div>
             </div>
 
           </div>
         </div>
-
-        {/* <div className="body login">
-          <h1>
-          <NavLink to="test">Test</NavLink>
-          <br />
-            <br />
-            <NavLink to="login">login</NavLink>
-            <br />
-            <NavLink to="signup">signup</NavLink>
-            <br />
-          </h1>
-        </div> */}
 
 
       </div>
