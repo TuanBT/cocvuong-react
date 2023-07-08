@@ -7,11 +7,14 @@ import sound from '../assets/sound/bell-school.wav';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-class ChamDiemDkContainer extends Component {
+class GiamSatDoiKhangContainer extends Component {
   constructor(props) {
     super(props);
     const me = this;
     this.db = Firebase();
+    this.state = {
+      data: []
+    };
 
     this.fistRound = "Hiệp 1";
     this.breakRound = "Nghỉ giữa hiệp";
@@ -42,98 +45,15 @@ class ChamDiemDkContainer extends Component {
     this.timer;
     this.effectTimer;
     this.scoreTimer;
-    this.sound;
-    this.ref;
     this.isFirstRefereeScore = false;
     this.isTimerRunning = false;
     this.scoreTimerCount = me.timeScore;
-
     this.temporaryWin;
+    this.countryRed = "red";
+    this.countryBlue = "blue";
 
-    this.tournamentConst = {
-      "lastMatch":
-      {
-        "no": 1
-      },
-      "referee": [
-        {
-          "redScore": 0,
-          "blueScore": 0
-        },
-        {
-          "redScore": 0,
-          "blueScore": 0
-        },
-        {
-          "redScore": 0,
-          "blueScore": 0
-        }
-      ],
-      "tournament": []
-    }
-
-    this.matchObj = {
-      "match": {
-        "no": 1,
-        "type": "",
-        "category": "",
-        "win": ""
-      },
-      "fighters": {
-        "redFighter": {
-          "name": "Đỏ",
-          "code": "",
-          "score": 0
-        },
-        "blueFighter": {
-          "name": "Xanh",
-          "code": "",
-          "score": 0
-        }
-      }
-    };
-
-    this.tournamentMartialConst = {
-      "lastMatchMartial": {
-        "matchMartialNo": 1,
-        "teamMartialNo": 1
-      },
-      "tournamentMartial": [
-      ]
-    }
-
-    this.matchMartialObj = {
-      "match": {
-        "name": ""
-      },
-      "team": []
-    };
-
-    this.fightersMartialObj = {
-      "fighters": [],
-      "no": 0,
-      "score": 0,
-      "refereeMartial": [
-        {
-          "score": 0
-        },
-        {
-          "score": 0
-        },
-        {
-          "score": 0
-        }
-      ],
-    }
-
-    this.fighterMartialObj = {
-      "fighter":
-      {
-        "code": "",
-        "name": "",
-        "country": ""
-      }
-    }
+    this.tournamentConst = { "lastMatch": { "no": 1 }, "referee": [{ "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }], "tournament": [] };
+    this.matchObj = { "match": { "no": 1, "type": "", "category": "", "win": "" }, "fighters": { "redFighter": { "name": "Đỏ", "code": "", "score": 0 }, "blueFighter": { "name": "Xanh", "code": "", "score": 0 } } };
   }
 
   componentDidMount() {
@@ -145,7 +65,7 @@ class ChamDiemDkContainer extends Component {
     var password = $('#txtPassword').val();
 
     if (password != null && password != "") {
-      onValue(ref(this.db, 'pass/firstPass'), (snapshot) => {
+      onValue(ref(this.db, 'setting/password'), (snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           this.main();
@@ -163,20 +83,23 @@ class ChamDiemDkContainer extends Component {
     get(child(ref(this.db), 'setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       $('#tournamentName').html(this.settingObj.tournamentName);
-      if(this.settingObj.isShowCountryFlag === true){
+      this.settingObj = snapshot.val();
+      this.timerCoundown = this.settingObj.timeRound;
+      this.timeBreak = this.settingObj.timeBreak;
+      this.timeExtra = this.settingObj.timeExtra;
+      this.timeExtraBreak = this.settingObj.timeExtraBreak;
+      if (this.settingObj.isShowCountryFlag === true) {
         $(".redFlag").show();
         $(".blueFlag").show();
       }
+      if (this.settingObj.isShowFiveReferee === true) {
+        this.numReferee = 5;
+        let refereeElement45 = "<div class='referee'> <div class='referee-title gd4'> <span class='info-text'> Giám định 4 </span> </div><div class='referee-score'> <div class='red-score-refereeSc'> <span class='info-text'> <span id='red-score-4'></span> </span> </div><div class='blue-score-refereeSc'> <span class='info-text'> <span id='blue-score-4'></span> </span> </div></div></div><div class='line-break'></div><div class='referee'> <div class='referee-title gd5'> <span class='info-text'> Giám định 5 </span> </div><div class='referee-score'> <div class='red-score-refereeSc'> <span class='info-text'> <span id='red-score-5'></span> </span> </div><div class='blue-score-refereeSc'> <span class='info-text'> <span id='blue-score-5'></span> </span> </div></div></div><div class='line-break'></div>";
+        $(".referee-score-area").append(refereeElement45);
+        $(".referee").width("17%");
+      }
 
       this.startEffectTimer();
-
-      onValue(ref(this.db, 'setting'), (snapshot) => {
-        this.settingObj = snapshot.val();
-        this.timerCoundown = this.settingObj.timeRound;
-        this.timeBreak = this.settingObj.timeBreak;
-        this.timeExtra = this.settingObj.timeExtra;
-        this.timeExtraBreak = this.settingObj.timeExtraBreak;
-      })
 
       onValue(ref(this.db, 'tournament'), (snapshot) => {
         this.tournamentObj = snapshot.val();
@@ -314,10 +237,13 @@ class ChamDiemDkContainer extends Component {
     //Khung thông tin vận động viên
     $("#red-fighter").html(this.convertWL(this.match.fighters.redFighter.name));
     $("#red-code").html(this.match.fighters.redFighter.code);
+    this.countryRed = this.match.fighters.redFighter.country !== "" ? this.match.fighters.redFighter.country : "red";
     $("#red-score").html(this.match.fighters.redFighter.score);
     $("#blue-fighter").html(this.convertWL(this.match.fighters.blueFighter.name));
     $("#blue-code").html(this.match.fighters.blueFighter.code);
     $("#blue-score").html(this.match.fighters.blueFighter.score);
+    this.countryBlue = this.match.fighters.blueFighter.country !== "" ? this.match.fighters.blueFighter.country : "blue";
+    this.setState({ data: [] });
 
     //Khung chuyển trận đấu
     //Xóa nút next và Prev nếu gặp biên
@@ -833,13 +759,11 @@ class ChamDiemDkContainer extends Component {
               <div className="referee-score-area">
                 <div className="line-break"></div>
                 <div className="referee">
-                  <a href="http://buitientuan.com/chamdiem/giamdinh.html" target="_blank">
-                    <div className="referee-title gd1">
-                      <span className="info-text">
-                        Giám định I
-                      </span>
-                    </div>
-                  </a>
+                  <div className="referee-title gd1">
+                    <span className="info-text">
+                      Giám định 1
+                    </span>
+                  </div>
                   <div className="referee-score">
                     <div className="red-score-refereeSc">
                       <span className="info-text">
@@ -857,7 +781,7 @@ class ChamDiemDkContainer extends Component {
                 <div className="referee">
                   <div className="referee-title gd2">
                     <span className="info-text">
-                      Giám định II
+                      Giám định 2
                     </span>
                   </div>
                   <div className="referee-score">
@@ -877,7 +801,7 @@ class ChamDiemDkContainer extends Component {
                 <div className="referee">
                   <div className="referee-title gd3">
                     <span className="info-text">
-                      Giám định III
+                      Giám định 3
                     </span>
                   </div>
                   <div className="referee-score">
@@ -993,7 +917,7 @@ class ChamDiemDkContainer extends Component {
           <div className="score-area">
             <div className="red-score">
               <div className="addition" onClick={this.redAddition}></div>
-              <div className="redFlag countryFlag" style={{ display: 'none' }}><img className="flagImage" src={require('../assets/flag/VN.jpg')}/></div>
+              <div className="redFlag countryFlag" style={{ display: 'none' }}><img className="flagImage" src={require('../assets/flag/' + this.countryRed + '.jpg')} /></div>
               <div className="subtraction" onClick={this.redSubtraction}></div>
               <span className="info-text">
                 <span id="red-score"></span>
@@ -1001,7 +925,7 @@ class ChamDiemDkContainer extends Component {
             </div>
             <div className="blue-score">
               <div className="addition" onClick={this.blueAddition}></div>
-              <div className="blueFlag countryFlag" style={{ display: 'none' }}><img className="flagImage" src={require('../assets/flag/VN.jpg')}/></div>
+              <div className="blueFlag countryFlag" style={{ display: 'none' }}><img className="flagImage" src={require('../assets/flag/' + this.countryBlue + '.jpg')} /></div>
               <div className="subtraction" onClick={this.blueSubtraction}></div>
               <span className="info-text">
                 <span id="blue-score"></span>
@@ -1034,7 +958,7 @@ class ChamDiemDkContainer extends Component {
             <div className="modal-dialog" role="document">
               <div className="modal-content">
                 <div className="modal-header">
-                  <h5 className="modal-title" id="modalLabel">Trọn trận đấu</h5>
+                  <h5 className="modal-title" id="modalLabel">Chọn trận đấu</h5>
                   <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideModalChooseMatch}></button>
                 </div>
                 <div className="modal-body">
@@ -1163,4 +1087,4 @@ class ChamDiemDkContainer extends Component {
   }
 }
 
-export default ChamDiemDkContainer;
+export default GiamSatDoiKhangContainer;

@@ -7,7 +7,7 @@ import sound from '../assets/sound/bell-school.wav';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-class ChamDiemHdContainer extends Component {
+class GiamSatThiQuyenContainer extends Component {
   constructor(props) {
     super(props);
     const me = this;
@@ -43,11 +43,11 @@ class ChamDiemHdContainer extends Component {
     this.effectTimer;
     this.scoreTimer;
     this.sound;
-    this.ref;
     this.isFirstRefereeScore = false;
     this.isTimerRunning = false;
     this.scoreTimerCount = me.timeScore;
     this.temporaryWin;
+    this.numReferee = 3; //Số lượng giám định chấm điểm
 
     this.tournamentMartialObj;
     this.matchMartial;
@@ -58,81 +58,11 @@ class ChamDiemHdContainer extends Component {
     this.theLastTeamOfMatch;
     this.refereeMartialScore = '';
 
-    this.tournamentConst = {
-      "lastMatch":
-      {
-        "no": 1
-      },
-      "referee": [
-        {
-          "redScore": 0,
-          "blueScore": 0
-        },
-        {
-          "redScore": 0,
-          "blueScore": 0
-        },
-        {
-          "redScore": 0,
-          "blueScore": 0
-        }
-      ],
-      "tournament": []
-    }
-
-    this.matchObj = {
-      "match": {
-        "no": 1,
-        "type": "",
-        "category": "",
-        "win": ""
-      },
-      "fighters": {
-        "redFighter": {
-          "name": "Đỏ",
-          "code": "",
-          "score": 0
-        },
-        "blueFighter": {
-          "name": "Xanh",
-          "code": "",
-          "score": 0
-        }
-      }
-    };
-
-    this.tournamentMartialConst = {
-      "lastMatchMartial": {
-        "matchMartialNo": 1,
-        "teamMartialNo": 1
-      },
-      "tournamentMartial": [
-      ]
-    }
-
-    this.matchMartialObj = {
-      "match": {
-        "name": ""
-      },
-      "team": []
-    };
-
-    this.fightersMartialObj = {
-      "fighters": [],
-      "no": 0,
-      "score": 0,
-      "refereeMartial": [
-        {
-          "score": 0
-        },
-        {
-          "score": 0
-        },
-        {
-          "score": 0
-        }
-      ],
-    }
+    this.tournamentConst = { "lastMatch": { "no": 1 }, "referee": [{ "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }], "tournament": [] };
+    this.matchObj = { "match": { "no": 1, "type": "", "category": "", "win": "" }, "fighters": { "redFighter": { "name": "Đỏ", "code": "", "score": 0 }, "blueFighter": { "name": "Xanh", "code": "", "score": 0 } } };
+    this.tournamentMartialConst = { "lastMatchMartial": { "matchMartialNo": 1, "teamMartialNo": 1 }, "tournamentMartial": [] };
+    this.matchMartialObj = { "match": { "name": "" }, "team": [] };
+    this.fightersMartialObj = { "fighters": [], "no": 0, "score": 0, "refereeMartial": [{ "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }] }
   }
 
   componentDidMount() {
@@ -144,7 +74,7 @@ class ChamDiemHdContainer extends Component {
     var password = $('#txtPassword').val();
 
     if (password != null && password != "") {
-      onValue(ref(this.db, 'pass/firstPass'), (snapshot) => {
+      onValue(ref(this.db, 'setting/password'), (snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           this.main();
@@ -159,9 +89,15 @@ class ChamDiemHdContainer extends Component {
   }
 
   main() {
-    onValue(ref(this.db, 'setting'), (snapshot) => {
+    get(child(ref(this.db), 'setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       $('#tournamentName').html(this.settingObj.tournamentName);
+      if (this.settingObj.isShowFiveReferee === true) {
+        this.numReferee = 5;
+        let refereeElement45 = "<div class='referee-sub-area'> <div class='style-hd-referee-title'> <span class='info-text'> Giám định 4 </span> </div><div class='referee-sub-score'> <span class='info-text' id='referee-4-score'> 00 </span> </div></div><div class='spec-score'></div><div class='referee-sub-area'> <div class='style-hd-referee-title'> <span class='info-text'> Giám định 5 </span> </div><div class='referee-sub-score'> <span class='info-text' id='referee-5-score'> 00 </span> </div></div><div class='spec-score'></div>";
+        $(".style-hd-referee-score-area").append(refereeElement45);
+        $(".spec-score").width("4.1%");
+      }
     })
 
     get(ref(this.db, 'lastMatchMartial')).then((snapshot) => {
@@ -235,16 +171,14 @@ class ChamDiemHdContainer extends Component {
     $("#match-martial-no").html(this.tournamentMartialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].no);
     $("#match-martial-team").html("");
     for (let i = 0; i < this.teamMartial.fighters.length; i++) {
-      $("#match-martial-team").append("<div class='fighter-detail'><div class='style-hd-fighter-code'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.code + "</span></div><div class='style-hd-fighter-name'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.name + "</span></div></div>");
+      $("#match-martial-team").append("<div class='fighter-detail'><div class='countryFlagHD' style=''><img class='flagImageHD' src='"+require('../assets/flag/' + this.teamMartial.fighters[i].fighter.country + '.jpg')+"'></div><div class='style-hd-fighter-code'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.code + "</span></div><div class='style-hd-fighter-name'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.name + "</span></div></div>");
     }
 
-    let referee1Score = this.tournamentMartialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].refereeMartial[0].score;
-    let referee2Score = this.tournamentMartialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].refereeMartial[1].score;
-    let referee3Score = this.tournamentMartialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].refereeMartial[2].score;
-    $("#referee-1-score").html(this.pad(referee1Score, 2));
-    $("#referee-2-score").html(this.pad(referee2Score, 2));
-    $("#referee-3-score").html(this.pad(referee3Score, 2));
-
+    for (let i = 1; i <= this.numReferee; i++) {
+      let refereeScore = this.tournamentMartialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].refereeMartial[i - 1].score;
+      $("#referee-" + i + "-score").html(this.pad(refereeScore, 2));
+    }
+    
     $("#averageScore").html(this.pad(this.tournamentMartialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].score, 3));
 
     return;
@@ -304,7 +238,7 @@ class ChamDiemHdContainer extends Component {
     console.log("restoreMatch() End");
   }
 
-  takeAverageScore = () => {
+  takeMainScore = () => {
     this.showTakeMainScoreModal();
   }
 
@@ -324,7 +258,7 @@ class ChamDiemHdContainer extends Component {
 
   submitInput = () => {
     $('#modalConfirm .modal-title').html("Xác nhận việc ghi đè điểm tổng");
-    $('#modalConfirm .modal-body').html("<b>Lưu ý:</b> Việc ghi đè điểm tổng sẽ chuyển điểm cả 3 giám định về 00!");
+    $('#modalConfirm .modal-body').html("<b>Lưu ý:</b> Việc ghi đè điểm tổng sẽ chuyển điểm tất cả giám định về 00!");
     this.showModalConfirm();
   }
 
@@ -334,7 +268,7 @@ class ChamDiemHdContainer extends Component {
     }
     this.pathMartial = "tournamentMartial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex;
     update(ref(this.db, this.pathMartial), { "score": parseInt(this.refereeMartialScore) });
-    update(ref(this.db, this.pathMartial), { "refereeMartial": [{ "score": 0 }, { "score": 0 }, { "score": 0 }] });
+    update(ref(this.db, this.pathMartial), { "refereeMartial": [{ "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }] });
     this.refereeMartialScore = "";
     $("#referee-result-box").html("000");
     $("#averageScore").html(this.tournamentMartialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].score);
@@ -486,15 +420,16 @@ class ChamDiemHdContainer extends Component {
               </div>
             </div>
             <div className="main-score">
-              <span className="info-text" id="averageScore" onClick={this.takeAverageScore}>
+              <span className="info-text" id="averageScore" onClick={this.takeMainScore}>
                 000
               </span>
             </div>
             <div className="style-hd-referee-score-area">
+              <div className="spec-score"></div>
               <div className="referee-sub-area">
                 <div className="style-hd-referee-title">
                   <span className="info-text">
-                    Giám định I
+                    Giám định 1
                   </span>
                 </div>
                 <div className="referee-sub-score">
@@ -503,12 +438,11 @@ class ChamDiemHdContainer extends Component {
                   </span>
                 </div>
               </div>
-              <div className="spec-score">
-              </div>
+              <div className="spec-score"></div>
               <div className="referee-sub-area">
                 <div className="style-hd-referee-title">
                   <span className="info-text">
-                    Giám định II
+                    Giám định 2
                   </span>
                 </div>
                 <div className="referee-sub-score">
@@ -517,12 +451,11 @@ class ChamDiemHdContainer extends Component {
                   </span>
                 </div>
               </div>
-              <div className="spec-score">
-              </div>
+              <div className="spec-score"></div>
               <div className="referee-sub-area">
                 <div className="style-hd-referee-title">
                   <span className="info-text">
-                    Giám định III
+                    Giám định 3
                   </span>
                 </div>
                 <div className="referee-sub-score">
@@ -531,6 +464,7 @@ class ChamDiemHdContainer extends Component {
                   </span>
                 </div>
               </div>
+              <div className="spec-score"></div>
             </div>
           </div>
 
@@ -675,4 +609,4 @@ class ChamDiemHdContainer extends Component {
   }
 }
 
-export default ChamDiemHdContainer;
+export default GiamSatThiQuyenContainer;

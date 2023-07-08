@@ -3,7 +3,6 @@ import $ from 'jquery';
 import Firebase from '../firebase';
 import { ref, set, get, update, remove, child, onValue } from "firebase/database";
 import logo from '../assets/img/logo.png';
-// import '../assets/css/style-giam_dinh_hd.css';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -23,6 +22,7 @@ class GiamDinhThiQuyenContainer extends Component {
     this.matchMartial;
     this.teamMartial;
     this.matchMartialNoCurrent = 1;
+    this.numReferee = 3; //Số lượng giám định chấm điểm
 
     this.refereeName = "";
     this.referreIndex = -1;
@@ -39,12 +39,12 @@ class GiamDinhThiQuyenContainer extends Component {
   componentDidMount() {
     this.showPasswordModal();
   }
-  
+
   verifyPassword = () => {
     var password = $('#txtPassword').val();
-    
+
     if (password != null && password != "") {
-      onValue(ref(this.db, 'pass/firstPass'), (snapshot) => {
+      onValue(ref(this.db, 'setting/password'), (snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           document.addEventListener("keydown", this._handleKeyDown);
@@ -60,9 +60,16 @@ class GiamDinhThiQuyenContainer extends Component {
   }
 
   main() {
-    onValue(ref(this.db, 'setting'), (snapshot) => {
+    get(child(ref(this.db), 'setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       $('#tournamentName').html(this.settingObj.tournamentName);
+      let refereeChoose123 = "<input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee1' value='1' checked><label class='btn btn-outline-secondary' for='optionsReferee1'><i class='fa-solid fa-user'></i><br>Giám định 1</label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee2' value='2'><label class='btn btn-outline-secondary' for='optionsReferee2'><i class='fa-solid fa-user'></i><br>Giám định 2</label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee3' value='3'><label class='btn btn-outline-secondary' for='optionsReferee3'><i class='fa-solid fa-user'></i><br>Giám định 3</label>";
+        $(".refereeChoose").append(refereeChoose123);  
+      if (this.settingObj.isShowFiveReferee === true) {
+        this.numReferee = 5;
+        let refereeChoose45 = "<input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee4' value='4'/> <label class='btn btn-outline-secondary' for='optionsReferee4'> <i class='fa-solid fa-user'></i> <br/>Giám định 4 </label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee5' value='5'/> <label class='btn btn-outline-secondary' for='optionsReferee5'> <i class='fa-solid fa-user'></i> <br/>Giám định 5 </label>"
+        $(".refereeChoose").append(refereeChoose45);
+      }
       this.showChooseRefereeNoModal();
     })
   }
@@ -124,15 +131,15 @@ class GiamDinhThiQuyenContainer extends Component {
       this.hideChooseRefereeNoModal();
 
       if (refereeNo == "1") {
-        this.refereeName = "Giám định I";
+        this.refereeName = "Giám định 1";
         this.referreIndex = 0;
       }
       else if (refereeNo == "2") {
-        this.refereeName = "Giám định II";
+        this.refereeName = "Giám định 2";
         this.referreIndex = 1;
       }
       else if (refereeNo == "3") {
-        this.refereeName = "Giám định III";
+        this.refereeName = "Giám định 3";
         this.referreIndex = 2;
       }
       $("#gd-name").html(this.refereeName);
@@ -202,11 +209,22 @@ class GiamDinhThiQuyenContainer extends Component {
     this.pathMartialScore = "tournamentMartial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex;
     get(ref(this.db, this.pathMartialScore)).then((snapshot) => {
       let refereeMartialObj = snapshot.val();
-      let referee1Score = refereeMartialObj.refereeMartial[0].score;
-      let referee2Score = refereeMartialObj.refereeMartial[1].score;
-      let referee3Score = refereeMartialObj.refereeMartial[2].score;
-      let totalScore = referee1Score + referee2Score + referee3Score;
-      update(ref(this.db, this.pathMartialScore), { "score": parseInt(totalScore) });
+      let finalScore = 0;
+      let refereeScore = 0;
+      let minScore = 0;
+      let maxScore = 0;
+      for (let i = 1; i <= this.numReferee; i++) {
+        let score = refereeMartialObj.refereeMartial[i - 1].score;
+        refereeScore += score;
+        minScore = score < minScore ? score : minScore;
+        maxScore = score > maxScore ? score : maxScore;
+      }
+      if (this.numReferee === 5) {
+        finalScore = refereeScore - (minScore + maxScore);
+      } else {
+        finalScore = refereeScore;
+      }
+      update(ref(this.db, this.pathMartialScore), { "score": parseInt(finalScore) });
     })
 
     this.refereeMartialScore = "";
@@ -316,13 +334,13 @@ class GiamDinhThiQuyenContainer extends Component {
                 </div>
                 <div className="modal-body">
                   <div className="category-buttons">
-                    <section className="btn-group">
-                      <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee1" value="1" defaultChecked />
-                      <label className="btn btn-outline-secondary" htmlFor="optionsReferee1"> <i className="fa-solid fa-user"></i> Giám định I </label>
+                    <section className="btn-group refereeChoose">
+                      {/* <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee1" value="1" defaultChecked />
+                      <label className="btn btn-outline-secondary" htmlFor="optionsReferee1"> <i className="fa-solid fa-user"></i> Giám định 1 </label>
                       <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee2" value="2" />
-                      <label className="btn btn-outline-secondary" htmlFor="optionsReferee2"> <i className="fa-solid fa-user"></i> Giám định II </label>
+                      <label className="btn btn-outline-secondary" htmlFor="optionsReferee2"> <i className="fa-solid fa-user"></i> Giám định 2 </label>
                       <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee3" value="3" />
-                      <label className="btn btn-outline-secondary" htmlFor="optionsReferee3"> <i className="fa-solid fa-user"></i> Giám định III </label>
+                      <label className="btn btn-outline-secondary" htmlFor="optionsReferee3"> <i className="fa-solid fa-user"></i> Giám định 3 </label> */}
                     </section>
                   </div>
                 </div>

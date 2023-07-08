@@ -35,7 +35,7 @@ class InformationDkContainer extends Component {
 
 
   main() {
-    onValue(ref(this.db, 'setting'), (snapshot) => {
+    get(child(ref(this.db), 'setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       $('#tournamentName').html(this.settingObj.tournamentName);
     })
