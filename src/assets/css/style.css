@@ -1434,3 +1434,11 @@ textarea {
   #referee-result-box {
     font-size: calc(1.625rem + 6vh);
   }
+
+  .numPadPassword{
+    text-align: center;
+  }
+
+  .numPadPassword .input-group{
+    display: inline-block;
+  }
