@@ -130,17 +130,11 @@ class GiamDinhThiQuyenContainer extends Component {
     if (refereeNo != null && refereeNo != "") {
       this.hideChooseRefereeNoModal();
 
-      if (refereeNo == "1") {
-        this.refereeName = "Giám định 1";
-        this.referreIndex = 0;
-      }
-      else if (refereeNo == "2") {
-        this.refereeName = "Giám định 2";
-        this.referreIndex = 1;
-      }
-      else if (refereeNo == "3") {
-        this.refereeName = "Giám định 3";
-        this.referreIndex = 2;
+      for (let i = 1; i <= this.numReferee; i++) {
+        if (refereeNo === i + "") {
+          this.refereeName = "Giám định " + i;
+          this.referreIndex = i - 1;
+        }
       }
       $("#gd-name").html(this.refereeName);
 
