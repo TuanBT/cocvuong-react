@@ -171,7 +171,8 @@ class GiamSatThiQuyenContainer extends Component {
     $("#match-martial-no").html(this.tournamentMartialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].no);
     $("#match-martial-team").html("");
     for (let i = 0; i < this.teamMartial.fighters.length; i++) {
-      $("#match-martial-team").append("<div class='fighter-detail'><div class='countryFlagHD' style=''><img class='flagImageHD' src='" + require('../assets/flag/' + this.teamMartial.fighters[i].fighter.country + '.jpg') + "'></div><div class='style-hd-fighter-code'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.code + "</span></div><div class='style-hd-fighter-name'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.name + "</span></div></div>");
+      let divFlag = this.settingObj.isShowCountryFlag === true ? "<div class='countryFlagHD'><img class='flagImageHD' src='" + require('../assets/flag/' + this.teamMartial.fighters[i].fighter.country + '.jpg') + "'></div>" : "";
+      $("#match-martial-team").append("<div class='fighter-detail'>" + divFlag + "<div class='style-hd-fighter-code'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.code + "</span></div><div class='style-hd-fighter-name'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.name + "</span></div></div>");
     }
 
     for (let i = 1; i <= this.numReferee; i++) {
