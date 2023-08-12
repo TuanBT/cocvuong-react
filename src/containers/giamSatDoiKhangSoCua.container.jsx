@@ -1,7 +1,5 @@
 import React, { Component } from 'react';
 import $ from 'jquery';
-import Firebase from '../firebase';
-import { ref, set, get, update, remove, child, onValue } from "firebase/database";
 import logo from '../assets/img/logo.png';
 import sound from '../assets/sound/bell-school.wav';
 import { ToastContainer, toast } from 'react-toastify';
@@ -11,7 +9,6 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
   constructor(props) {
     super(props);
     const me = this;
-    this.db = Firebase();
     this.state = {
       data: []
     };
@@ -53,91 +50,22 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
     this.countryBlue = "blue";
 
     this.tournamentConst = { "lastMatch": { "no": 1 }, "referee": [{ "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }], "tournament": [] };
-    this.matchObj = { "match": { "no": 1, "type": "", "category": "", "win": "" }, "fighters": { "redFighter": { "name": "Đỏ", "code": "", "score": 0 }, "blueFighter": { "name": "Xanh", "code": "", "score": 0 } } };
+    this.matchObj = { "match": { "no": 0, "type": "-", "category": "-", "win": "" }, "fighters": { "redFighter": { "name": "Đỏ", "code": "", "score": 0 }, "blueFighter": { "name": "Xanh", "code": "", "score": 0 } } };
+    this.settingObj = { "setting": { "timeRound": 90, "timeBreak": 30, "timeExtra": 60, "timeExtraBreak": 15, "tournamentName": "Cóc Vương", "isShowCountryFlag": false, "isShowFiveReferee": false, "password": 1 } };
   }
 
   componentDidMount() {
     document.addEventListener("keydown", this._handleKeyDown);
-    this.showPasswordModal();
-  }
-
-  verifyPassword = () => {
-    var password = $('#txtPassword').val();
-
-    if (password != null && password != "") {
-      onValue(ref(this.db, 'setting/password'), (snapshot) => {
-        if (password == snapshot.val()) {
-          this.hidePasswordModal();
-          this.main();
-        } else {
-          toast.error("Sai mật khẩu!");
-          location.reload();
-        }
-      })
-    } else {
-      toast.error("Sai mật khẩu!");
-    }
+    this.main();
   }
 
   main() {
-    get(child(ref(this.db), 'setting')).then((snapshot) => {
-      this.settingObj = snapshot.val();
-      $('#tournamentName').html(this.settingObj.tournamentName);
-      this.settingObj = snapshot.val();
-      this.timerCoundown = this.settingObj.timeRound;
-      this.timeBreak = this.settingObj.timeBreak;
-      this.timeExtra = this.settingObj.timeExtra;
-      this.timeExtraBreak = this.settingObj.timeExtraBreak;
-      if (this.settingObj.isShowCountryFlag === true) {
-        $(".redFlag").show();
-        $(".blueFlag").show();
-      }
-      if (this.settingObj.isShowFiveReferee === true) {
-        this.numReferee = 5;
-        let refereeElement45 = "<div class='referee'> <div class='referee-title gd4'> <span class='info-text'> Giám định 4 </span> </div><div class='referee-score'> <div class='red-score-refereeSc'> <span class='info-text'> <span id='red-score-4'></span> </span> </div><div class='blue-score-refereeSc'> <span class='info-text'> <span id='blue-score-4'></span> </span> </div></div></div><div class='line-break'></div><div class='referee'> <div class='referee-title gd5'> <span class='info-text'> Giám định 5 </span> </div><div class='referee-score'> <div class='red-score-refereeSc'> <span class='info-text'> <span id='red-score-5'></span> </span> </div><div class='blue-score-refereeSc'> <span class='info-text'> <span id='blue-score-5'></span> </span> </div></div></div><div class='line-break'></div>";
-        $(".referee-score-area").append(refereeElement45);
-        $(".referee").width("17%");
-      }
-
+    this.timerCoundown = this.settingObj.setting.timeRound;
+      this.timeBreak = this.settingObj.setting.timeBreak;
+      this.timeExtra = this.settingObj.setting.timeExtra;
+      this.timeExtraBreak = this.settingObj.setting.timeExtraBreak;
       this.startEffectTimer();
-
-      onValue(ref(this.db, 'tournament'), (snapshot) => {
-        this.tournamentObj = snapshot.val();
-        if (this.lastMatchObj == null) {
-          this.matchNoCurrent = this.tournamentConst.lastMatch.no;
-          this.matchNoCurrentIndex = this.matchNoCurrent - 1;
-          this.match = this.tournamentObj[this.matchNoCurrentIndex];
-        }
-        if (this.refereeObj == null) {
-          this.refereeObj = this.tournamentConst.referee;
-        }
-        this.showValue();
-      });
-
-      onValue(ref(this.db, 'lastMatch'), (snapshot) => {
-        this.lastMatchObj = snapshot.val();
-        this.matchNoCurrent = this.lastMatchObj.no;
-        this.matchNoCurrentIndex = this.matchNoCurrent - 1;
-        this.match = this.tournamentObj[this.matchNoCurrentIndex];
-
-        this.showValue();
-      })
-
-      onValue(ref(this.db, 'referee'), (snapshot) => {
-        this.refereeObj = snapshot.val();
-        this.showValue();
-      })
-
-      //Kiểm tra kết nối internet
-
-      onValue(ref(this.db, '.info/connected'), (snapshot) => {
-        if (!snapshot.val() === true) {
-          $('#internet-status').show();
-        } else {
-          $('#internet-status').hide();
-        }
-      })
-    })
+    this.showValue();
   }
 
   _handleKeyDown = (e) => {
@@ -182,9 +110,9 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
   showValue() {
     console.log("showValue() Start");
     //Khung thông tin về trận đấu
-    $("#match-no").html(this.match.match.no);
-    $("#match-type").html(this.match.match.type);
-    $("#match-category").html(this.match.match.category);
+    $("#match-no").html(this.matchObj.match.no);
+    $("#match-type").html(this.matchObj.match.type);
+    $("#match-category").html(this.matchObj.match.category);
 
     //Khung thời gian
     if (this.timerCoundown < 0) {
@@ -223,10 +151,10 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
     $("#match-round").html(this.round);
 
     //Khung cúp cho người chiến thắng
-    if (this.match.match.win == "red") {
+    if (this.matchObj.match.win == "red") {
       $(".icon-win-red").css("opacity", 1);
       $(".icon-win-blue").css("opacity", "");
-    } else if (this.match.match.win == "blue") {
+    } else if (this.matchObj.match.win == "blue") {
       $(".icon-win-blue").css("opacity", 1);
       $(".icon-win-red").css("opacity", "");
     } else {
@@ -235,152 +163,33 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
     }
 
     //Khung thông tin vận động viên
-    $("#red-fighter").html(this.convertWL(this.match.fighters.redFighter.name));
-    $("#red-code").html(this.match.fighters.redFighter.code);
-    this.countryRed = this.match.fighters.redFighter.country !== "" ? this.match.fighters.redFighter.country : "red";
-    $("#red-score").html(this.match.fighters.redFighter.score);
-    $("#blue-fighter").html(this.convertWL(this.match.fighters.blueFighter.name));
-    $("#blue-code").html(this.match.fighters.blueFighter.code);
-    $("#blue-score").html(this.match.fighters.blueFighter.score);
-    this.countryBlue = this.match.fighters.blueFighter.country !== "" ? this.match.fighters.blueFighter.country : "blue";
+    $("#red-fighter").html(this.matchObj.fighters.redFighter.name);
+    $("#red-code").html(this.matchObj.fighters.redFighter.code);
+    $("#red-score").html(this.matchObj.fighters.redFighter.score);
+    $("#blue-fighter").html(this.matchObj.fighters.blueFighter.name);
+    $("#blue-code").html(this.matchObj.fighters.blueFighter.code);
+    $("#blue-score").html(this.matchObj.fighters.blueFighter.score);
     this.setState({ data: [] });
 
-    //Khung chuyển trận đấu
-    //Xóa nút next và Prev nếu gặp biên
-    if (this.matchNoCurrent == 1) {
-      $(".match-prev").hide();
-      $(".match-next").show();
-    } else if (this.matchNoCurrent == this.tournamentObj.length) {
-      $(".match-prev").show();
-      $(".match-next").hide();
-    } else {
-      $(".match-prev").show();
-      $(".match-next").show();
-    }
-
-    //Khung các giám định
-    //Hiện điểm các giám định
-    for (let i = 1; i <= this.numReferee; i++) {
-      set(ref(this.db, 'tournament'), this.tournamentObj)
-      $("#red-score-" + i).html(this.refereeObj[i - 1].redScore);
-      $("#blue-score-" + i).html(this.refereeObj[i - 1].blueScore);
-      if (this.refereeObj[i - 1].redScore != 0 || this.refereeObj[i - 1].blueScore != 0) {
-        $(".referee-title.gd" + i).css("background-color", this.greenColor);
-      } else {
-        $(".referee-title.gd" + i).css("background-color", "");
-      }
-    }
     console.log("showValue() End");
   }
 
-  saveMatch() {
-    console.log("saveMatch() Start");
-    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex), this.match);
-    console.log("saveMatch() End");
-  }
-
-  //Gõ số để đi đến trận đấu
-  chooseMatch = () => {
-    console.log("chooseMatch() Start");
-
-    let matchChoose = $('#txtMatchChoose').val();
-
-    if (matchChoose != null && matchChoose != "") {
-      if (matchChoose < 1 || matchChoose > this.tournamentObj.length) {
-        toast.error("Vui lòng nhập số thứ tự trận đấu lớn hơn 1!");
-        return;
-      }
-      this.hideModalChooseMatch();
-      this.matchNoCurrent = matchChoose;
-      this.restoreMatch();
-    }
-    console.log("chooseMatch() End");
-  }
-
-  nextMatch = () => {
-    console.log("nextMatch() Start");
-    if (this.timer == undefined || this.timer == false) {
-      this.matchNoCurrent++;
-      this.restoreMatch();
-    } else {
-      $('#modalConfirm .modal-title').html("Xác nhận");
-      $('#modalConfirm .modal-body').html("Bạn muốn dừng trận đấu và đến trận đấu kế tiếp?");
-      this.showModalConfirm();
-
-      $("#buttonConfirmOK").click(() => {
-        this.matchNoCurrent++;
-        this.restoreMatch();
-        this.hideModalConfirm();
-      })
-    }
-    console.log("nextMatch() End");
-  }
-
-  prevMatch = () => {
-    console.log("prevMatch() Start");
-    if (this.timer == undefined || this.timer == false) {
-      this.matchNoCurrent--;
-      this.restoreMatch();
-    } else {
-      $('#modalConfirm .modal-title').html("Xác nhận");
-      $('#modalConfirm .modal-body').html("Bạn muốn dừng trận đấu và về trận đấu trước đó?");
-      this.showModalConfirm()
-
-      $("#buttonConfirmOK").click(() => {
-        this.matchNoCurrent--;
-        this.restoreMatch();
-        this.hideModalConfirm();
-      })
-    }
-    console.log("prevMatch() End");
-  }
-
-  restoreMatch() {
-    console.log("restoreMatch() Start");
-    $(".red-score").css("background-color", "red");
-    $(".red-score").css("color", this.whiteColor);
-    $(".blue-score").css("background-color", "blue");
-    $(".blue-score").css("color", this.whiteColor);
-    this.stopTimer();
-    this.round = this.fistRound;
-    this.timerCoundown = this.settingObj.timeRound;
-    this.isTimerRunning = false;
-    $(".timer-text").css("background-color", this.silverColor);
-    let minutes = Math.floor(this.timerCoundown / 60);
-    let seconds = Math.floor(this.timerCoundown - (this.minutes * 60));
-    minutes < "10" ? this.minutes = "0" + minutes : this.minutes = minutes;
-    seconds < "10" ? this.seconds = "0" + seconds : this.seconds = seconds;
-    $("#match-time").html(this.minutes + ":" + this.seconds);
-    $("#match-round").html(this.round);
-    set(ref(this.db, 'lastMatch/no'), this.matchNoCurrent)
-    let referees = [];
-    for (let i = 0; i < this.numReferee; i++) {
-      this.refereeObj[i] = { blueScore: 0, redScore: 0 };
-      referees.push(this.refereeObj[i]);
-    }
-    set(ref(this.db, 'referee'), referees)
-    console.log("restoreMatch() End");
-  }
-
-
   redWin = () => {
     console.log("redWin() Start");
-    if (this.match.match.win == "blue") {
+    if (this.matchObj.match.win == "blue") {
       toast.error("XANH đã thắng, bạn không thể thay đổi kết quả được!");
     } else {
       this.temporaryWin = "red";
 
       $('#modalConfirm .modal-title').html("<i class='fa-solid fa-clipboard-check'></i> Xác nhận kết quả <b>THẮNG</b>");
-      $('#modalConfirm .modal-body').html("<h3 style='color: red'><i class='fa-solid fa-medal'></i> " + this.convertWL(this.match.fighters.redFighter.name) + " (" + this.match.fighters.redFighter.code + ")</h3>");
+      $('#modalConfirm .modal-body').html("<h3 style='color: red'><i class='fa-solid fa-medal'></i> " + this.convertWL(this.matchObj.fighters.redFighter.name) + " (" + this.matchObj.fighters.redFighter.code + ")</h3>");
       this.showModalConfirm();
 
       $("#buttonConfirmOK").click(() => {
         if (this.temporaryWin == "red") {
           this.stopTimer();
-          this.replaceFighter("red");
           setTimeout(() => {
-            this.match.match.win = "red";
-            set(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/match/win'), "red")
+            this.matchObj.match.win = "red";
             $(".icon-win-red").css({ opacity: 1 });
             $(".icon-win-blue").css("opacity", "");
             $(".red-score").css("background-color", "red");
@@ -397,22 +206,20 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
 
   blueWin = () => {
     console.log("blueWin() Start");
-    if (this.match.match.win == "red") {
+    if (this.matchObj.match.win == "red") {
       toast.error("ĐỎ đã thắng, bạn không thể thay đổi kết quả được!");
     } else {
       this.temporaryWin = "blue";
 
       $('#modalConfirm .modal-title').html("<i class='fa-solid fa-clipboard-check'></i> Xác nhận kết quả <b>THẮNG</b>");
-      $('#modalConfirm .modal-body').html("<h3 style='color: blue'><i class='fa-solid fa-medal'></i> " + this.convertWL(this.match.fighters.blueFighter.name) + " (" + this.match.fighters.blueFighter.code + ")</h3>");
+      $('#modalConfirm .modal-body').html("<h3 style='color: blue'><i class='fa-solid fa-medal'></i> " + this.convertWL(this.matchObj.fighters.blueFighter.name) + " (" + this.matchObj.fighters.blueFighter.code + ")</h3>");
       this.showModalConfirm();
 
       $("#buttonConfirmOK").click(() => {
         if (this.temporaryWin == "blue") {
           this.stopTimer();
-          this.replaceFighter("blue");
           setTimeout(() => {
-            this.match.match.win = "blue";
-            set(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/match/win'), "blue")
+            this.matchObj.match.win = "blue";
             $(".icon-win-blue").css({ opacity: 1 });
             $(".icon-win-red").css("opacity", "");
             $(".red-score").css("background-color", "red");
@@ -428,115 +235,23 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
   }
 
   redAddition = () => {
-    this.match.fighters.redFighter.score++;
-    this.saveMatch();
+    this.matchObj.fighters.redFighter.score++;
+    $("#red-score").html(this.matchObj.fighters.redFighter.score);
   }
 
   blueAddition = () => {
-    this.match.fighters.blueFighter.score++;
-    this.saveMatch();
+    this.matchObj.fighters.blueFighter.score++;
+    $("#blue-score").html(this.matchObj.fighters.blueFighter.score);
   }
 
   redSubtraction = () => {
-    this.match.fighters.redFighter.score--;
-    this.saveMatch();
+    this.matchObj.fighters.redFighter.score--;
+    $("#red-score").html(this.matchObj.fighters.redFighter.score);
   }
 
   blueSubtraction = () => {
-    this.match.fighters.blueFighter.score--;
-    this.saveMatch();
-  }
-
-  //Hàm dùng để thay thế những trận đấu có ký hiệu W. và L. trong giải đấu
-  replaceFighter(winColor) {
-    console.log("replaceFighter() Start");
-    let matchWin = "W." + this.matchNoCurrent;
-    let matchLose = "L." + this.matchNoCurrent;
-    let winFighter;
-    let loseFighter
-
-    if (winColor == "red") {
-      winFighter = this.match.fighters.redFighter;
-      loseFighter = this.match.fighters.blueFighter;
-    } else {
-      winFighter = this.match.fighters.blueFighter;
-      loseFighter = this.match.fighters.redFighter;
-    }
-
-    for (let i = this.matchNoCurrent; i < this.tournamentObj.length; i++) {
-      let fightersTemp = this.tournamentObj[i].fighters;
-      if (fightersTemp.redFighter.name == matchWin) {
-        fightersTemp.redFighter = JSON.parse(JSON.stringify(winFighter));
-        fightersTemp.redFighter.score = 0;
-        update(ref(this.db, 'tournament/' + i + '/fighters'), fightersTemp);
-        break;
-      }
-
-      if (fightersTemp.redFighter.name == matchLose) {
-        fightersTemp.redFighter = JSON.parse(JSON.stringify(loseFighter));
-        fightersTemp.redFighter.score = 0;
-        update(ref(this.db, 'tournament/' + i + '/fighters'), fightersTemp);
-        break;
-      }
-
-      if (fightersTemp.blueFighter.name == matchWin) {
-        fightersTemp.blueFighter = JSON.parse(JSON.stringify(winFighter));
-        fightersTemp.blueFighter.score = 0;
-        update(ref(this.db, 'tournament/' + i + '/fighters'), fightersTemp);
-        break;
-      }
-
-      if (fightersTemp.blueFighter.name == matchLose) {
-        fightersTemp.blueFighter = JSON.parse(JSON.stringify(loseFighter));
-        fightersTemp.blueFighter.score = 0;
-        update(ref(this.db, 'tournament/' + i + '/fighters'), fightersTemp);
-        break;
-      }
-    }
-    console.log("replaceFighter() End");
-  }
-
-  makeScoreTimer() {
-    for (let i = 0; i < this.numReferee; i++) {
-      if (this.refereeObj[i].redScore != 0 || this.refereeObj[i].blueScore != 0) {
-        if (!this.isFirstRefereeScore) {
-          this.isFirstRefereeScore = true;
-        }
-        this.scoreTimerCount--;
-        console.log(this.scoreTimerCount);
-        //Kết thúc nếu có >50% trọng tài chấm điểm
-        let redScoreCounter = 0;
-        let blueScoreCounter = 0;
-        for (let i = 0; i < this.numReferee; i++) {
-          if (this.refereeObj[i].redScore !== 0) {
-            redScoreCounter++;
-          }
-          if (this.refereeObj[i].blueScore !== 0) {
-            blueScoreCounter++;
-          }
-        }
-        if (this.scoreTimerCount == 0 || redScoreCounter > this.numReferee / 2 || blueScoreCounter > this.numReferee / 2) {
-          console.log("makeScoreTimer() Start");
-          //Tổng kết và tính điểm
-          let redScoreArray = [];
-          let blueScoreArray = [];
-          for (let i = 0; i < this.numReferee; i++) {
-            redScoreArray.push(this.refereeObj[i].redScore);
-            blueScoreArray.push(this.refereeObj[i].blueScore);
-          }
-          this.match.fighters.redFighter.score += this.getModes(redScoreArray);
-          this.match.fighters.blueFighter.score += this.getModes(blueScoreArray);
-          set(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters'), this.match.fighters)
-          //Reset Giám định
-          set(ref(this.db, 'referee'), this.tournamentConst.referee)
-          this.refereeObj = this.tournamentConst.referee;
-          this.scoreTimerCount = this.timeScore;
-          this.isFirstRefereeScore = false;
-          console.log("makeScoreTimer() End");
-          break;
-        }
-      }
-    }
+    this.matchObj.fighters.blueFighter.score--;
+    $("#blue-score").html(this.matchObj.fighters.blueFighter.score);
   }
 
   makeTimer() {
@@ -558,7 +273,7 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
       //Hiệp 2 kết thúc
       else if (this.round == this.secondRound) {
         //Hết trận
-        if (this.match.fighters.redFighter.score != this.match.fighters.blueFighter.score) {
+        if (this.matchObj.fighters.redFighter.score != this.matchObj.fighters.blueFighter.score) {
           this.stopTimer();
           $(".timer-text").css("background-color", this.redColor);
           return;
@@ -628,7 +343,7 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
   }
 
   makeEffectTimer() {
-    if (this.match.match.win == "red") {
+    if (this.matchObj.match.win == "red") {
       if ($(".red-score").css("background-color") == "rgb(255, 0, 0)") {
         $(".red-score").css("background-color", this.bodyBgColor);
         $(".red-score").css("color", "red");
@@ -636,7 +351,7 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
         $(".red-score").css("background-color", "red");
         $(".red-score").css("color", this.whiteColor);
       }
-    } else if (this.match.match.win == "blue") {
+    } else if (this.matchObj.match.win == "blue") {
       if ($(".blue-score").css("background-color") == "rgb(0, 0, 255)") {
         $(".blue-score").css("background-color", this.bodyBgColor);
         $(".blue-score").css("color", "blue");
@@ -652,9 +367,6 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
     if (!this.effectTimer) {
       this.effectTimer = setInterval(() => { this.makeEffectTimer(); }, 500);
     }
-    if (!this.scoreTimer) {
-      this.scoreTimer = setInterval(() => { this.makeScoreTimer(); }, 1000);
-    }
     console.log("startEffectTimer() End");
   }
 
@@ -662,47 +374,6 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
     clearInterval(this.timer);
     this.timer = false;
     this.isTimerRunning = false;
-  }
-
-  getModes(array) {
-    let frequency = {}; // array of frequency.
-    let maxFreq = 0; // holds the max frequency.
-    let modes = [];
-
-    for (let i in array) {
-      frequency[array[i]] = (frequency[array[i]] || 0) + 1; // increment frequency.
-
-      if (frequency[array[i]] > maxFreq) { // is this frequency > max so far ?
-        maxFreq = frequency[array[i]]; // update max.
-      }
-    }
-
-    for (let k in frequency) {
-      if (frequency[k] == maxFreq) {
-        modes.push(k);
-      }
-    }
-
-    if (modes.length == 1) {
-      return +modes[0];
-    }
-
-    return 0;
-  }
-
-  convertWL(type_no) {
-    let type = type_no.split('.')[0];
-    let no = type_no.split('.')[1];
-
-    if (type === "W") {
-      let s = "THẮNG TRẬN " + no;
-      return s
-    } else if (type === "L") {
-      let s = "THUA TRẬN " + no;
-      return s
-    } else {
-      return type_no;
-    }
   }
 
   playSound() {
@@ -715,27 +386,6 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
     sound.play();
   }
 
-  inputPw = (value) => {
-    if (value === "-1") {
-      $("#txtPassword").val("");
-    } else {
-      let oldValue = $("#txtPassword").val();
-      $("#txtPassword").val(oldValue + value);
-    }
-  }
-
-  showPasswordModal = () => {
-    $('#passwordModal').removeClass('modal display-none').addClass('modal display-block');
-  };
-  hidePasswordModal = () => {
-    $('#passwordModal').removeClass('modal display-block').addClass('modal display-none');;
-  };
-  showModalChooseMatch = () => {
-    $('#modalChooseMatch').removeClass('modal display-none').addClass('modal display-block');
-  };
-  hideModalChooseMatch = () => {
-    $('#modalChooseMatch').removeClass('modal display-block').addClass('modal display-none');;
-  };
   showModalConfirm = () => {
     $('#modalConfirm').removeClass('modal display-none').addClass('modal display-block');
   };
@@ -759,6 +409,7 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
               <div className="referee-score-area-top">
                 <span className="info-text">
                   <span id="tournamentName">
+                    Giám Sát Đối Kháng Sơ Cua
                   </span>
                   <span id="internet-status">
                     - Mất kết nối Internet...
@@ -770,18 +421,18 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
                 <div className="referee">
                   <div className="referee-title gd1">
                     <span className="info-text">
-                      Giám định 1
+                      -
                     </span>
                   </div>
                   <div className="referee-score">
                     <div className="red-score-refereeSc">
                       <span className="info-text">
-                        <span id="red-score-1"></span>
+                        <span id="red-score-1">-</span>
                       </span>
                     </div>
                     <div className="blue-score-refereeSc">
                       <span className="info-text">
-                        <span id="blue-score-1"></span>
+                        <span id="blue-score-1">-</span>
                       </span>
                     </div>
                   </div>
@@ -790,18 +441,18 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
                 <div className="referee">
                   <div className="referee-title gd2">
                     <span className="info-text">
-                      Giám định 2
+                      -
                     </span>
                   </div>
                   <div className="referee-score">
                     <div className="red-score-refereeSc">
                       <span className="info-text">
-                        <span id="red-score-2"></span>
+                        <span id="red-score-2">-</span>
                       </span>
                     </div>
                     <div className="blue-score-refereeSc">
                       <span className="info-text">
-                        <span id="blue-score-2"></span>
+                        <span id="blue-score-2">-</span>
                       </span>
                     </div>
                   </div>
@@ -810,18 +461,18 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
                 <div className="referee">
                   <div className="referee-title gd3">
                     <span className="info-text">
-                      Giám định 3
+                      -
                     </span>
                   </div>
                   <div className="referee-score">
                     <div className="red-score-refereeSc">
                       <span className="info-text">
-                        <span id="red-score-3"></span>
+                        <span id="red-score-3">-</span>
                       </span>
                     </div>
                     <div className="blue-score-refereeSc">
                       <span className="info-text">
-                        <span id="blue-score-3"></span>
+                        <span id="blue-score-3">-</span>
                       </span>
                     </div>
                   </div>
@@ -867,21 +518,6 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
             </div>
             <div className="info-match-right-area">
               <div className="match-no">
-                <div className="match-prev" onClick={this.prevMatch}>
-                  <span className=" info-text">
-                    <i className="fa fa-caret-left"></i>
-                  </span>
-                </div>
-                <div className="match-choose" onClick={this.showModalChooseMatch}>
-                  <span className="info-text">
-                    <i className="fa fa-code"></i>
-                  </span>
-                </div>
-                <div className="match-next" onClick={this.nextMatch}>
-                  <span className="info-text">
-                    <i className="fa fa-caret-right"></i>
-                  </span>
-                </div>
                 <span className="info-text">
                   <span id="match-no"></span>
                 </span>
@@ -939,65 +575,6 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
               <span className="info-text">
                 <span id="blue-score"></span>
               </span>
-            </div>
-          </div>
-
-          <div className="modal display-none" id="passwordModal" tabIndex="-1">
-            <div className="modal-dialog">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title"><i className="fa-solid fa-lock"></i> Vui lòng nhập mật khẩu</h5>
-                  <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hidePasswordModal}></button>
-                </div>
-                <div className="modal-body">
-                  <div className="input-group mb-3">
-                    <span className="input-group-text"><i className="fa fa-key" aria-hidden="true"></i></span>
-                    <input type="password" className="form-control" placeholder="Mật khẩu" id="txtPassword" disabled />
-                    <button type="button" className="btn btn-outline-danger btn-lg" onClick={() => this.inputPw('-1')}><i className="fas fa-trash-alt"></i></button>
-                  </div>
-                  <div className="numPadPassword">
-                    <div className="input-group mb-3">
-                      <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('1')}><i className="fa-solid fa-1"></i></button>
-                      <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('2')}><i className="fa-solid fa-2"></i></button>
-                      <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('3')}><i className="fa-solid fa-3"></i></button>
-                      <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('4')}><i className="fa-solid fa-4"></i></button>
-                      <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('5')}><i className="fa-solid fa-5"></i></button>
-                    </div>
-                    <div className="input-group mb-3">
-                      <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('6')}><i className="fa-solid fa-6"></i></button>
-                      <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('7')}><i className="fa-solid fa-7"></i></button>
-                      <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('8')}><i className="fa-solid fa-8"></i></button>
-                      <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('9')}><i className="fa-solid fa-9"></i></button>
-                      <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('0')}><i className="fa-solid fa-0"></i></button>
-                    </div>
-                  </div>
-                </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-primary ok-button" onClick={this.verifyPassword}>OK</button>
-                  <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hidePasswordModal} >Cancel</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="modal display-none" id="modalChooseMatch" tabIndex="-" role="dialog">
-            <div className="modal-dialog" role="document">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title" id="modalLabel">Chọn trận đấu</h5>
-                  <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideModalChooseMatch}></button>
-                </div>
-                <div className="modal-body">
-                  <div className="input-group mb-3">
-                    <span className="input-group-text"><i className="fa fa-code"></i></span>
-                    <input type="number" className="form-control" placeholder="Số thứ tự trận đấu" id="txtMatchChoose" />
-                  </div>
-                </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-primary" onClick={this.chooseMatch}>OK</button>
-                  <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hideModalChooseMatch}>Cancel</button>
-                </div>
-              </div>
             </div>
           </div>
 
