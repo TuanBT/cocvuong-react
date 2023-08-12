@@ -7,6 +7,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { read, write, utils } from 'xlsx';
 import FileSaver from "file-saver";
+import { NavLink } from "react-router-dom";
 import mauchuandoikhang from '../assets/template/1-Mau_Chuan_Doi_Khang.xlsx';
 import mauchuanthiquyen from '../assets/template/2-Mau-Chuan_Thi_Quyen.xlsx';
 import mauthodoikhang from '../assets/template/3-Mau_Tho_Doi_Khang.xlsx';
@@ -827,6 +828,20 @@ class SettingContainer extends Component {
                       }
                     </tbody>
                   </table>
+                </div>
+
+                <div class="container">
+                  <footer class="py-3 my-4">
+                    <ul class="nav justify-content-center border-bottom pb-3 mb-3">
+                      <li class="nav-item"><NavLink class="nav-link px-2 text-muted" to="/">Home</NavLink></li>
+                      <li class="nav-item"><NavLink class="nav-link px-2 text-muted" to="giam-sat-doi-khang">Giám sát đối kháng</NavLink></li>
+                      <li class="nav-item"><NavLink class="nav-link px-2 text-muted" to="giam-dinh-doi-khang">Giám định đối kháng</NavLink></li>
+                      <li class="nav-item"><NavLink class="nav-link px-2 text-muted" to="giam-sat-thi-quyen">Giám sát thi quyền</NavLink></li>
+                      <li class="nav-item"><NavLink class="nav-link px-2 text-muted" to="giam-dinh-thi-quyen">Giám định thi quyền</NavLink></li>
+                      <li class="nav-item"><NavLink class="nav-link px-2 text-muted" to="thong-tin-doi-khang">Thông tin đối kháng</NavLink></li>
+                    </ul>
+                    <p class="text-center text-muted">©Tuân 2022</p>
+                  </footer>
                 </div>
 
               </div>
