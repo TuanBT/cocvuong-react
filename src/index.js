@@ -8,6 +8,7 @@ import HomeContainer from './containers/home.container';
 import TestContainer from './containers/test.container';
 import InformationDkContainer from './containers/infomationDK.container';
 import GiamSatDoiKhangContainer from './containers/giamSatDoiKhang.container';
+import GiamSatDoiKhangSoCuaContainer from './containers/giamSatDoiKhangSoCua.container';
 import GiamSatThiQuyenContainer from './containers/giamSatThiQuyen.container';
 import GiamDinhThiQuyenContainer from './containers/giamDinhThiQuyen.container';
 import GiamDinhDoiKhangContainer from './containers/giamDinhDoiKhang.container';
@@ -22,6 +23,7 @@ ReactDOM.render(
       <Route path="/test" component={TestContainer} />
       <Route path="/thong-tin-doi-khang" component={InformationDkContainer} />
       <Route path="/giam-sat-doi-khang" component={GiamSatDoiKhangContainer} />
+      <Route path="/giam-sat-doi-khang-so-cua" component={GiamSatDoiKhangSoCuaContainer} />
       <Route path="/giam-sat-thi-quyen" component={GiamSatThiQuyenContainer} />
       <Route path="/giam-dinh-thi-quyen" component={GiamDinhThiQuyenContainer} />
       <Route path="/giam-dinh-doi-khang" component={GiamDinhDoiKhangContainer} />

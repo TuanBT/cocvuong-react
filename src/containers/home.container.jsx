@@ -54,6 +54,21 @@ class HomeContainer extends Component {
                 </div>
               </div>
               <div className="col">
+              <div className="card mb-4 rounded-3 shadow-sm border-success">
+                  <div className="card-header py-3 text-bg-success border-success">
+                    <h4 className="my-0 fw-normal">GS ĐỐI KHÁNG SƠ CUA</h4>
+                  </div>
+                  <div className="card-body">
+                    <span className="d-block text-center pb-3 bigIcon"><NavLink to="giam-sat-doi-khang-so-cua"><i className="fa-solid fa-tv"></i></NavLink></span>
+                  </div>
+                </div>
+              </div>
+              <div className="col">
+                <div className="rounded-3">
+
+                </div>
+              </div>
+              <div className="col">
                 <div className="card mb-4 rounded-3 shadow-sm border-primary">
                   <div className="card-header py-3 text-bg-primary border-primary">
                     <h4 className="my-0 fw-normal">THÔNG TIN</h4>
@@ -61,16 +76,6 @@ class HomeContainer extends Component {
                   <div className="card-body">
                     <span className="d-block text-center pb-3 bigIcon"><NavLink to="thong-tin-doi-khang"><i className="fa-solid fa-tv"></i></NavLink></span>
                   </div>
-                </div>
-              </div>
-              <div className="col">
-                <div className="rounded-3">
-
-                </div>
-              </div>
-              <div className="col">
-                <div className="rounded-3">
-
                 </div>
               </div>
               <div className="col">
@@ -88,11 +93,11 @@ class HomeContainer extends Component {
 
           </div>
 
-          <div class="container">
-            <footer class="py-3 my-4">
-              <ul class="nav justify-content-center border-bottom pb-3 mb-3">
+          <div className="container">
+            <footer className="py-3 my-4">
+              <ul className="nav justify-content-center border-bottom pb-3 mb-3">
               </ul>
-              <p class="text-center text-muted">©Tuân 2022</p>
+              <p className="text-center text-muted">©Tuân 2022</p>
             </footer>
           </div>
         </div>

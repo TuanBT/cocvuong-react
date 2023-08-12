@@ -830,17 +830,17 @@ class SettingContainer extends Component {
                   </table>
                 </div>
 
-                <div class="container">
-                  <footer class="py-3 my-4">
-                    <ul class="nav justify-content-center border-bottom pb-3 mb-3">
-                      <li class="nav-item"><NavLink class="nav-link px-2 text-muted" to="/">Home</NavLink></li>
-                      <li class="nav-item"><NavLink class="nav-link px-2 text-muted" to="giam-sat-doi-khang">Giám sát đối kháng</NavLink></li>
-                      <li class="nav-item"><NavLink class="nav-link px-2 text-muted" to="giam-dinh-doi-khang">Giám định đối kháng</NavLink></li>
-                      <li class="nav-item"><NavLink class="nav-link px-2 text-muted" to="giam-sat-thi-quyen">Giám sát thi quyền</NavLink></li>
-                      <li class="nav-item"><NavLink class="nav-link px-2 text-muted" to="giam-dinh-thi-quyen">Giám định thi quyền</NavLink></li>
-                      <li class="nav-item"><NavLink class="nav-link px-2 text-muted" to="thong-tin-doi-khang">Thông tin đối kháng</NavLink></li>
+                <div className="container">
+                  <footer className="py-3 my-4">
+                    <ul className="nav justify-content-center border-bottom pb-3 mb-3">
+                      <li className="nav-item"><NavLink className="nav-link px-2 text-muted" to="/">Home</NavLink></li>
+                      <li className="nav-item"><NavLink className="nav-link px-2 text-muted" to="giam-sat-doi-khang">Giám sát đối kháng</NavLink></li>
+                      <li className="nav-item"><NavLink className="nav-link px-2 text-muted" to="giam-dinh-doi-khang">Giám định đối kháng</NavLink></li>
+                      <li className="nav-item"><NavLink className="nav-link px-2 text-muted" to="giam-sat-thi-quyen">Giám sát thi quyền</NavLink></li>
+                      <li className="nav-item"><NavLink className="nav-link px-2 text-muted" to="giam-dinh-thi-quyen">Giám định thi quyền</NavLink></li>
+                      <li className="nav-item"><NavLink className="nav-link px-2 text-muted" to="thong-tin-doi-khang">Thông tin đối kháng</NavLink></li>
                     </ul>
-                    <p class="text-center text-muted">©Tuân 2022</p>
+                    <p className="text-center text-muted">©Tuân 2022</p>
                   </footer>
                 </div>
 
