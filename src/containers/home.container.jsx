@@ -54,7 +54,7 @@ class HomeContainer extends Component {
                 </div>
               </div>
               <div className="col">
-              <div className="card mb-4 rounded-3 shadow-sm border-success">
+                <div className="card mb-4 rounded-3 shadow-sm border-success">
                   <div className="card-header py-3 text-bg-success border-success">
                     <h4 className="my-0 fw-normal">GS ĐỐI KHÁNG SƠ CUA</h4>
                   </div>
@@ -64,8 +64,13 @@ class HomeContainer extends Component {
                 </div>
               </div>
               <div className="col">
-                <div className="rounded-3">
-
+              <div className="card mb-4 rounded-3 shadow-sm border-success">
+                  <div className="card-header py-3 text-bg-success border-success">
+                    <h4 className="my-0 fw-normal">GĐ ĐỐI KHÁNG SƠ CUA</h4>
+                  </div>
+                  <div className="card-body">
+                    <span className="d-block text-center pb-3 bigIcon"><NavLink to="giam-dinh-doi-khang-so-cua"><i className="fa-solid fa-table-columns"></i></NavLink></span>
+                  </div>
                 </div>
               </div>
               <div className="col">

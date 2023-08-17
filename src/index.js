@@ -12,6 +12,7 @@ import GiamSatDoiKhangSoCuaContainer from './containers/giamSatDoiKhangSoCua.con
 import GiamSatThiQuyenContainer from './containers/giamSatThiQuyen.container';
 import GiamDinhThiQuyenContainer from './containers/giamDinhThiQuyen.container';
 import GiamDinhDoiKhangContainer from './containers/giamDinhDoiKhang.container';
+import GiamDinhDoiKhangSoCuaContainer from './containers/giamDinhDoiKhangSoCua.container';
 import SettingContainer from './containers/setting.container';
 import LoginContainer from './containers/login.container';
 import SignupContainer from './containers/signup.container';
@@ -27,6 +28,7 @@ ReactDOM.render(
       <Route path="/giam-sat-thi-quyen" component={GiamSatThiQuyenContainer} />
       <Route path="/giam-dinh-thi-quyen" component={GiamDinhThiQuyenContainer} />
       <Route path="/giam-dinh-doi-khang" component={GiamDinhDoiKhangContainer} />
+      <Route path="/giam-dinh-doi-khang-so-cua" component={GiamDinhDoiKhangSoCuaContainer} />
       <Route path="/thiet-dat" component={SettingContainer} />
       <Route path="/login" component={LoginContainer} />
       <Route path="/signup" component={SignupContainer} />
