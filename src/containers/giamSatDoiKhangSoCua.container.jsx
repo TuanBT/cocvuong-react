@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import $ from 'jquery';
-import Firebase from '../firebase';
+import Firebase2 from '../firebase2';
 import { ref, set, get, update, remove, child, onValue } from "firebase/database";
 import logo from '../assets/img/logo.png';
 import sound from '../assets/sound/bell-school.wav';
@@ -11,7 +11,7 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
   constructor(props) {
     super(props);
     const me = this;
-    this.db = Firebase();
+    this.db = Firebase2();
     this.state = {
       data: []
     };
@@ -82,7 +82,7 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
   main() {
     get(child(ref(this.db), 'setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
-      // $('#tournamentName').html(this.settingObj.tournamentName);
+      $('#tournamentName').html(this.settingObj.tournamentName);
       this.settingObj = snapshot.val();
       this.timerCoundown = this.settingObj.timeRound;
       this.timeBreak = this.settingObj.timeBreak;
@@ -114,7 +114,7 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
         this.showValue();
       });
 
-      onValue(ref(this.db, 'arena/0/lastMatch'), (snapshot) => {
+      onValue(ref(this.db, 'lastMatch'), (snapshot) => {
         this.lastMatchObj = snapshot.val();
         this.matchNoCurrent = this.lastMatchObj.no;
         this.matchNoCurrentIndex = this.matchNoCurrent - 1;
@@ -123,7 +123,7 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
         this.showValue();
       })
 
-      onValue(ref(this.db, 'arena/0/referee'), (snapshot) => {
+      onValue(ref(this.db, 'referee'), (snapshot) => {
         this.refereeObj = snapshot.val();
         this.showValue();
       })
@@ -352,13 +352,13 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
     seconds < "10" ? this.seconds = "0" + seconds : this.seconds = seconds;
     $("#match-time").html(this.minutes + ":" + this.seconds);
     $("#match-round").html(this.round);
-    set(ref(this.db, 'arena/0/lastMatch/no'), this.matchNoCurrent)
+    set(ref(this.db, 'lastMatch/no'), this.matchNoCurrent)
     let referees = [];
     for (let i = 0; i < this.numReferee; i++) {
       this.refereeObj[i] = { blueScore: 0, redScore: 0 };
       referees.push(this.refereeObj[i]);
     }
-    set(ref(this.db, 'arena/0/referee'), referees)
+    set(ref(this.db, 'referee'), referees)
     console.log("restoreMatch() End");
   }
 
@@ -528,7 +528,7 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
           this.match.fighters.blueFighter.score += this.getModes(blueScoreArray);
           set(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters'), this.match.fighters)
           //Reset Giám định
-          set(ref(this.db, 'arena/0/referee'), this.tournamentConst.referee)
+          set(ref(this.db, 'referee'), this.tournamentConst.referee)
           this.refereeObj = this.tournamentConst.referee;
           this.scoreTimerCount = this.timeScore;
           this.isFirstRefereeScore = false;
@@ -771,7 +771,7 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
                 <div className="referee">
                   <div className="referee-title gd1">
                     <span className="info-text">
-                      Giám định Sơ Cua 1
+                      Giám định 1
                     </span>
                   </div>
                   <div className="referee-score">
@@ -791,7 +791,7 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
                 <div className="referee">
                   <div className="referee-title gd2">
                     <span className="info-text">
-                      Giám định Sơ Cua 2
+                      Giám định 2
                     </span>
                   </div>
                   <div className="referee-score">
@@ -811,7 +811,7 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
                 <div className="referee">
                   <div className="referee-title gd3">
                     <span className="info-text">
-                      Giám định Sơ Cua 3
+                      Giám định 3
                     </span>
                   </div>
                   <div className="referee-score">
