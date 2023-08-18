@@ -3,15 +3,15 @@ import { getDatabase } from "firebase/database";
 
 function Firebase() {
   //Dev
-  const firebaseConfig = {
-    apiKey: "AIzaSyDN_BFuEJOqHqNzQN1w1v-6hWRDIeNgf9I",
-    authDomain: "fvc-score.firebaseapp.com",
-    databaseURL: "https://fvc-score.firebaseio.com",
-    projectId: "fvc-score",
-    storageBucket: "fvc-score.appspot.com",
-    messagingSenderId: "1052570611922",
-    appId: "1:1052570611922:web:d80a668f5fe7e251d5bd0b"
-  };
+  // const firebaseConfig = {
+  //   apiKey: "AIzaSyDN_BFuEJOqHqNzQN1w1v-6hWRDIeNgf9I",
+  //   authDomain: "fvc-score.firebaseapp.com",
+  //   databaseURL: "https://fvc-score.firebaseio.com",
+  //   projectId: "fvc-score",
+  //   storageBucket: "fvc-score.appspot.com",
+  //   messagingSenderId: "1052570611922",
+  //   appId: "1:1052570611922:web:d80a668f5fe7e251d5bd0b"
+  // };
 
   //Prod
   // const firebaseConfig = {
@@ -23,6 +23,17 @@ function Firebase() {
   //   messagingSenderId: "18642638149",
   //   appId: "1:18642638149:web:1695a62cd7947249619a2c"
   // };
+
+  // Backup
+  const firebaseConfig = {
+    apiKey: "AIzaSyBuALHJjUb535qTv0Usi0tzYodzLdf0VMI",
+    authDomain: "buitientuan-1991.firebaseapp.com",
+    databaseURL: "https://buitientuan-1991-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "buitientuan-1991",
+    storageBucket: "buitientuan-1991.appspot.com",
+    messagingSenderId: "847274748591",
+    appId: "1:847274748591:web:f6d7aa026d9f8bb427825a"
+  };
 
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
