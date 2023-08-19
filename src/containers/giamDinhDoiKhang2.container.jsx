@@ -28,6 +28,7 @@ class GiamDinhDoiKhang2Container extends Component {
       "redScore": 0,
       "blueScore": 0
     }
+    this.arenaNoIndex;
     this.matchNoCurrentIndex;
     this.teamNoCurrentIndex;
 
@@ -97,34 +98,40 @@ class GiamDinhDoiKhang2Container extends Component {
   }
 
   chooseRefereeNo = () => {
-    let refereeNo = $("input:radio[name ='optionsReferee']:checked").val();
-    if (refereeNo != null && refereeNo != "") {
-      this.hideChooseRefereeNoModal();
+    let arenaNo = $("input:radio[name ='optionsArena']:checked").val();
+    if (arenaNo != null && arenaNo != "") {
+      this.arenaNoIndex = arenaNo;
 
-      for (let i = 1; i <= this.numReferee; i++) {
-        if (refereeNo === i + "") {
-          this.refereeName = "Giám định 2 " + i;
-          this.referreIndex = i - 1;
-        }
-      }
-      $("#gd-name").html(this.refereeName);
-
-      onValue(ref(this.db, 'lastMatch/no'), (snapshot) => {
-        //Kiểm tra kết nối internet
-        onValue(ref(this.db, '.info/connected'), (snapshot) => {
-          if (!snapshot.val() === true) {
-            $('#internet-status').show();
-          } else {
-            $('#internet-status').hide();
+      let refereeNo = $("input:radio[name ='optionsReferee']:checked").val();
+      if (refereeNo != null && refereeNo != "") {
+        this.hideChooseRefereeNoModal();
+  
+        for (let i = 1; i <= this.numReferee; i++) {
+          if (refereeNo === i + "") {
+            this.refereeName = "Giám định 2 " + i;
+            this.referreIndex = i - 1;
           }
+        }
+        $("#gd-name").html(this.refereeName);
+  
+        onValue(ref(this.db, 'arena/' + this.arenaNoIndex + '/lastMatch/no'), (snapshot) => {
+          //Kiểm tra kết nối internet
+          onValue(ref(this.db, '.info/connected'), (snapshot) => {
+            if (!snapshot.val() === true) {
+              $('#internet-status').show();
+            } else {
+              $('#internet-status').hide();
+            }
+          })
+  
+          let matchCurrentNoIndex = snapshot.val() - 1;
+          let matchCurrentNo = matchCurrentNoIndex + 1
+          $("#gd-match").html("Trận số " + matchCurrentNo);
+          this.path = "arena/" + this.arenaNoIndex + "/referee/" + this.referreIndex;
         })
-
-        let matchCurrentNoIndex = snapshot.val() - 1;
-        let matchCurrentNo = matchCurrentNoIndex + 1
-        $("#gd-match").html("Trận số " + matchCurrentNo);
-        this.path = "referee/" + this.referreIndex;
-      })
+      }
     }
+    
   }
 
   redAddition = (score) => {
@@ -315,9 +322,19 @@ class GiamDinhDoiKhang2Container extends Component {
               <div className="modal-dialog" role="document">
                 <div className="modal-content">
                   <div className="modal-header">
-                    <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn mã Giám định 2 của bạn
+                    <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn sân và mã Giám định 2 của bạn
                     </h5>
                     <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideChooseRefereeNoModal}></button>
+                  </div>
+                  <div className="modal-body">
+                    <div className="category-buttons">
+                      <section className="btn-group arenaChoose">
+                        <input type="radio" className="btn-check" name="optionsArena" id="optionsArenaA" value="0" defaultChecked />
+                        <label className="btn btn-outline-secondary" htmlFor="optionsArenaA"> <i className="fa-solid fa-chess-board"></i> <br />Sân A </label>
+                        <input type="radio" className="btn-check" name="optionsArena" id="optionsArenaB" value="1" />
+                        <label className="btn btn-outline-secondary" htmlFor="optionsArenaB"> <i className="fa-solid fa-chess-board"></i> <br />Sân B </label>
+                      </section>
+                    </div>
                   </div>
                   <div className="modal-body">
                     <div className="category-buttons">

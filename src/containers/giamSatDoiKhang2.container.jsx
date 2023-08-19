@@ -51,6 +51,7 @@ class GiamSatDoiKhang2Container extends Component {
     this.temporaryWin;
     this.countryRed = "red";
     this.countryBlue = "blue";
+    this.arenaNoIndex;
 
     this.tournamentConst = { "lastMatch": { "no": 1 }, "referee": [{ "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }], "tournament": [] };
     this.matchObj = { "match": { "no": 1, "type": "", "category": "", "win": "" }, "fighters": { "redFighter": { "name": "Đỏ", "code": "", "score": 0 }, "blueFighter": { "name": "Xanh", "code": "", "score": 0 } } };
@@ -80,64 +81,74 @@ class GiamSatDoiKhang2Container extends Component {
   }
 
   main() {
-    get(child(ref(this.db), 'setting')).then((snapshot) => {
-      this.settingObj = snapshot.val();
-      $('#tournamentName').html(this.settingObj.tournamentName);
-      this.settingObj = snapshot.val();
-      this.timerCoundown = this.settingObj.timeRound;
-      this.timeBreak = this.settingObj.timeBreak;
-      this.timeExtra = this.settingObj.timeExtra;
-      this.timeExtraBreak = this.settingObj.timeExtraBreak;
-      if (this.settingObj.isShowCountryFlag === true) {
-        $(".redFlag").show();
-        $(".blueFlag").show();
-      }
-      if (this.settingObj.isShowFiveReferee === true) {
-        this.numReferee = 5;
-        let refereeElement45 = "<div class='referee'> <div class='referee-title gd4'> <span class='info-text'> Giám định 4 </span> </div><div class='referee-score'> <div class='red-score-refereeSc'> <span class='info-text'> <span id='red-score-4'></span> </span> </div><div class='blue-score-refereeSc'> <span class='info-text'> <span id='blue-score-4'></span> </span> </div></div></div><div class='line-break'></div><div class='referee'> <div class='referee-title gd5'> <span class='info-text'> Giám định 5 </span> </div><div class='referee-score'> <div class='red-score-refereeSc'> <span class='info-text'> <span id='red-score-5'></span> </span> </div><div class='blue-score-refereeSc'> <span class='info-text'> <span id='blue-score-5'></span> </span> </div></div></div><div class='line-break'></div>";
-        $(".referee-score-area").append(refereeElement45);
-        $(".referee").width("17%");
-      }
+    this.showChooseArenaNoModal();
+  }
 
-      this.startEffectTimer();
+  chooseArenaNo = () => {
+    let arenaNo = $("input:radio[name ='optionsArena']:checked").val();
+    if (arenaNo != null && arenaNo != "") {
+      this.hideChooseArenaNoModal();
+      this.arenaNoIndex = arenaNo;
 
-      onValue(ref(this.db, 'tournament'), (snapshot) => {
-        this.tournamentObj = snapshot.val();
-        if (this.lastMatchObj == null) {
-          this.matchNoCurrent = this.tournamentConst.lastMatch.no;
+      get(child(ref(this.db), 'setting')).then((snapshot) => {
+        this.settingObj = snapshot.val();
+        $('#tournamentName').html(this.settingObj.tournamentName);
+        this.settingObj = snapshot.val();
+        this.timerCoundown = this.settingObj.timeRound;
+        this.timeBreak = this.settingObj.timeBreak;
+        this.timeExtra = this.settingObj.timeExtra;
+        this.timeExtraBreak = this.settingObj.timeExtraBreak;
+        if (this.settingObj.isShowCountryFlag === true) {
+          $(".redFlag").show();
+          $(".blueFlag").show();
+        }
+        if (this.settingObj.isShowFiveReferee === true) {
+          this.numReferee = 5;
+          let refereeElement45 = "<div class='referee'> <div class='referee-title gd4'> <span class='info-text'> Giám định 4 </span> </div><div class='referee-score'> <div class='red-score-refereeSc'> <span class='info-text'> <span id='red-score-4'></span> </span> </div><div class='blue-score-refereeSc'> <span class='info-text'> <span id='blue-score-4'></span> </span> </div></div></div><div class='line-break'></div><div class='referee'> <div class='referee-title gd5'> <span class='info-text'> Giám định 5 </span> </div><div class='referee-score'> <div class='red-score-refereeSc'> <span class='info-text'> <span id='red-score-5'></span> </span> </div><div class='blue-score-refereeSc'> <span class='info-text'> <span id='blue-score-5'></span> </span> </div></div></div><div class='line-break'></div>";
+          $(".referee-score-area").append(refereeElement45);
+          $(".referee").width("17%");
+        }
+
+        this.startEffectTimer();
+
+        onValue(ref(this.db, 'tournament'), (snapshot) => {
+          this.tournamentObj = snapshot.val();
+          if (this.lastMatchObj == null) {
+            this.matchNoCurrent = this.tournamentConst.lastMatch.no;
+            this.matchNoCurrentIndex = this.matchNoCurrent - 1;
+            this.match = this.tournamentObj[this.matchNoCurrentIndex];
+          }
+          if (this.refereeObj == null) {
+            this.refereeObj = this.tournamentConst.referee;
+          }
+          this.showValue();
+        });
+
+        onValue(ref(this.db, 'arena/' + this.arenaNoIndex + '/lastMatch'), (snapshot) => {
+          this.lastMatchObj = snapshot.val();
+          this.matchNoCurrent = this.lastMatchObj.no;
           this.matchNoCurrentIndex = this.matchNoCurrent - 1;
           this.match = this.tournamentObj[this.matchNoCurrentIndex];
-        }
-        if (this.refereeObj == null) {
-          this.refereeObj = this.tournamentConst.referee;
-        }
-        this.showValue();
-      });
 
-      onValue(ref(this.db, 'lastMatch'), (snapshot) => {
-        this.lastMatchObj = snapshot.val();
-        this.matchNoCurrent = this.lastMatchObj.no;
-        this.matchNoCurrentIndex = this.matchNoCurrent - 1;
-        this.match = this.tournamentObj[this.matchNoCurrentIndex];
+          this.showValue();
+        })
 
-        this.showValue();
+        onValue(ref(this.db, 'arena/' + this.arenaNoIndex + '/referee'), (snapshot) => {
+          this.refereeObj = snapshot.val();
+          this.showValue();
+        })
+
+        //Kiểm tra kết nối internet
+
+        onValue(ref(this.db, '.info/connected'), (snapshot) => {
+          if (!snapshot.val() === true) {
+            $('#internet-status').show();
+          } else {
+            $('#internet-status').hide();
+          }
+        })
       })
-
-      onValue(ref(this.db, 'referee'), (snapshot) => {
-        this.refereeObj = snapshot.val();
-        this.showValue();
-      })
-
-      //Kiểm tra kết nối internet
-
-      onValue(ref(this.db, '.info/connected'), (snapshot) => {
-        if (!snapshot.val() === true) {
-          $('#internet-status').show();
-        } else {
-          $('#internet-status').hide();
-        }
-      })
-    })
+    }
   }
 
   _handleKeyDown = (e) => {
@@ -261,7 +272,7 @@ class GiamSatDoiKhang2Container extends Component {
     //Khung các giám định
     //Hiện điểm các giám định
     for (let i = 1; i <= this.numReferee; i++) {
-      set(ref(this.db, 'tournament'), this.tournamentObj)
+      set(ref(this.db, 'tournament/' + this.matchNoCurrentIndex), this.tournamentObj[this.matchNoCurrentIndex])
       $("#red-score-" + i).html(this.refereeObj[i - 1].redScore);
       $("#blue-score-" + i).html(this.refereeObj[i - 1].blueScore);
       if (this.refereeObj[i - 1].redScore != 0 || this.refereeObj[i - 1].blueScore != 0) {
@@ -352,13 +363,13 @@ class GiamSatDoiKhang2Container extends Component {
     seconds < "10" ? this.seconds = "0" + seconds : this.seconds = seconds;
     $("#match-time").html(this.minutes + ":" + this.seconds);
     $("#match-round").html(this.round);
-    set(ref(this.db, 'lastMatch/no'), this.matchNoCurrent)
+    set(ref(this.db, 'arena/' + this.arenaNoIndex + '/lastMatch/no'), this.matchNoCurrent)
     let referees = [];
     for (let i = 0; i < this.numReferee; i++) {
       this.refereeObj[i] = { blueScore: 0, redScore: 0 };
       referees.push(this.refereeObj[i]);
     }
-    set(ref(this.db, 'referee'), referees)
+    set(ref(this.db, 'arena/' + this.arenaNoIndex + '/referee'), referees)
     console.log("restoreMatch() End");
   }
 
@@ -528,7 +539,7 @@ class GiamSatDoiKhang2Container extends Component {
           this.match.fighters.blueFighter.score += this.getModes(blueScoreArray);
           set(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters'), this.match.fighters)
           //Reset Giám định
-          set(ref(this.db, 'referee'), this.tournamentConst.referee)
+          set(ref(this.db, 'arena/' + this.arenaNoIndex + '/referee'), this.tournamentConst.referee)
           this.refereeObj = this.tournamentConst.referee;
           this.scoreTimerCount = this.timeScore;
           this.isFirstRefereeScore = false;
@@ -729,6 +740,12 @@ class GiamSatDoiKhang2Container extends Component {
   };
   hidePasswordModal = () => {
     $('#passwordModal').removeClass('modal display-block').addClass('modal display-none');;
+  };
+  showChooseArenaNoModal = () => {
+    $('#chooseArenaNoModal').removeClass('modal display-none').addClass('modal display-block');
+  };
+  hideChooseArenaNoModal = () => {
+    $('#chooseArenaNoModal').removeClass('modal display-block').addClass('modal display-none');;
   };
   showModalChooseMatch = () => {
     $('#modalChooseMatch').removeClass('modal display-none').addClass('modal display-block');
@@ -976,6 +993,32 @@ class GiamSatDoiKhang2Container extends Component {
                 <div className="modal-footer">
                   <button type="button" className="btn btn-primary ok-button" onClick={this.verifyPassword}>OK</button>
                   <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hidePasswordModal} >Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="modal display-none" id="chooseArenaNoModal" tabIndex="-1" role="dialog">
+            <div className="modal-dialog" role="document">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn sân thi đấu
+                  </h5>
+                  <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideChooseArenaNoModal}></button>
+                </div>
+                <div className="modal-body">
+                  <div className="category-buttons">
+                    <section className="btn-group arenaChoose">
+                      <input type="radio" className="btn-check" name="optionsArena" id="optionsArenaA" value="0" defaultChecked />
+                      <label className="btn btn-outline-secondary" htmlFor="optionsArenaA"> <i className="fa-solid fa-chess-board"></i> <br />Sân A </label>
+                      <input type="radio" className="btn-check" name="optionsArena" id="optionsArenaB" value="1" />
+                      <label className="btn btn-outline-secondary" htmlFor="optionsArenaB"> <i className="fa-solid fa-chess-board"></i> <br />Sân B </label>
+                    </section>
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-primary" onClick={this.chooseArenaNo}>OK</button>
+                  <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hideChooseArenaNoModal}>Cancel</button>
                 </div>
               </div>
             </div>
