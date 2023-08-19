@@ -14,26 +14,26 @@ function Firebase() {
   // };
 
   //Prod
-  // const firebaseConfig = {
-  //   apiKey: "AIzaSyAYhgRYFeTWBjYZhQ0qlFsx16XAq4xae24-6hWRDIeNgf9I",
-  //   authDomain: "cocvuong-se60824.firebaseapp.com",
-  //   databaseURL: "https://cocvuong-se60824-default-rtdb.asia-southeast1.firebasedatabase.app",
-  //   projectId: "cocvuong-se60824",
-  //   storageBucket: "cocvuong-se60824.appspot.com",
-  //   messagingSenderId: "18642638149",
-  //   appId: "1:18642638149:web:1695a62cd7947249619a2c"
-  // };
+  const firebaseConfig = {
+    apiKey: "AIzaSyAYhgRYFeTWBjYZhQ0qlFsx16XAq4xae24-6hWRDIeNgf9I",
+    authDomain: "cocvuong-se60824.firebaseapp.com",
+    databaseURL: "https://cocvuong-se60824-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "cocvuong-se60824",
+    storageBucket: "cocvuong-se60824.appspot.com",
+    messagingSenderId: "18642638149",
+    appId: "1:18642638149:web:1695a62cd7947249619a2c"
+  };
 
   // Backup
-  const firebaseConfig = {
-    apiKey: "AIzaSyBuALHJjUb535qTv0Usi0tzYodzLdf0VMI",
-    authDomain: "buitientuan-1991.firebaseapp.com",
-    databaseURL: "https://buitientuan-1991-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "buitientuan-1991",
-    storageBucket: "buitientuan-1991.appspot.com",
-    messagingSenderId: "847274748591",
-    appId: "1:847274748591:web:f6d7aa026d9f8bb427825a"
-  };
+  // const firebaseConfig = {
+  //   apiKey: "AIzaSyBuALHJjUb535qTv0Usi0tzYodzLdf0VMI",
+  //   authDomain: "buitientuan-1991.firebaseapp.com",
+  //   databaseURL: "https://buitientuan-1991-default-rtdb.asia-southeast1.firebasedatabase.app",
+  //   projectId: "buitientuan-1991",
+  //   storageBucket: "buitientuan-1991.appspot.com",
+  //   messagingSenderId: "847274748591",
+  //   appId: "1:847274748591:web:f6d7aa026d9f8bb427825a"
+  // };
 
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
