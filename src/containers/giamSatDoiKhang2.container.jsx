@@ -1,17 +1,17 @@
 import React, { Component } from 'react';
 import $ from 'jquery';
-import Firebase2 from '../firebase2';
+import Firebase from '../firebase';
 import { ref, set, get, update, remove, child, onValue } from "firebase/database";
 import logo from '../assets/img/logo.png';
 import sound from '../assets/sound/bell-school.wav';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-class GiamSatDoiKhangSoCuaContainer extends Component {
+class GiamSatDoiKhang2Container extends Component {
   constructor(props) {
     super(props);
     const me = this;
-    this.db = Firebase2();
+    this.db = Firebase();
     this.state = {
       data: []
     };
@@ -759,7 +759,7 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
               <div className="referee-score-area-top">
                 <span className="info-text">
                   <span id="tournamentName">
-                    Cóc Vương Sơ Cua
+                    Cóc Vương
                   </span>
                   <span id="internet-status">
                     - Mất kết nối Internet...
@@ -1114,4 +1114,4 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
   }
 }
 
-export default GiamSatDoiKhangSoCuaContainer;
+export default GiamSatDoiKhang2Container;
