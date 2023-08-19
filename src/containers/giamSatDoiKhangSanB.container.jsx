@@ -7,7 +7,7 @@ import sound from '../assets/sound/bell-school.wav';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-class GiamSatDoiKhangSoCuaContainer extends Component {
+class GiamSatDoiKhangSanBContainer extends Component {
   constructor(props) {
     super(props);
     const me = this;
@@ -759,7 +759,7 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
               <div className="referee-score-area-top">
                 <span className="info-text">
                   <span id="tournamentName">
-                    Cóc Vương Sơ Cua
+                    Cóc Vương sân B
                   </span>
                   <span id="internet-status">
                     - Mất kết nối Internet...
@@ -1114,4 +1114,4 @@ class GiamSatDoiKhangSoCuaContainer extends Component {
   }
 }
 
-export default GiamSatDoiKhangSoCuaContainer;
+export default GiamSatDoiKhangSanBContainer;

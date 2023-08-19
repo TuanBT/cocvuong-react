@@ -6,7 +6,7 @@ import logo from '../assets/img/logo.png';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-class GiamDinhDoiKhangSoCuaContainer extends Component {
+class GiamDinhDoiKhangSanBContainer extends Component {
   constructor(props) {
     super(props);
     const me = this;
@@ -19,7 +19,7 @@ class GiamDinhDoiKhangSoCuaContainer extends Component {
     this.settingObj;
     this.match;
     this.scoreTimer;
-    this.numReferee = 3; //Số lượng Giám định sơ cuachấm điểm
+    this.numReferee = 3; //Số lượng Giám định sân B chấm điểm
 
     this.refereeName = "";
     this.referreIndex = -1;
@@ -62,11 +62,11 @@ class GiamDinhDoiKhangSoCuaContainer extends Component {
     get(child(ref(this.db), 'setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       $('#tournamentName').html(this.settingObj.tournamentName);
-      let refereeChoose123 = "<input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee1' value='1' checked><label class='btn btn-outline-secondary' for='optionsReferee1'><i class='fa-solid fa-user'></i><br>Giám định sơ cua1</label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee2' value='2'><label class='btn btn-outline-secondary' for='optionsReferee2'><i class='fa-solid fa-user'></i><br>Giám định sơ cua2</label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee3' value='3'><label class='btn btn-outline-secondary' for='optionsReferee3'><i class='fa-solid fa-user'></i><br>Giám định sơ cua3</label>";
+      let refereeChoose123 = "<input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee1' value='1' checked><label class='btn btn-outline-secondary' for='optionsReferee1'><i class='fa-solid fa-user'></i><br>Giám định sân B 1</label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee2' value='2'><label class='btn btn-outline-secondary' for='optionsReferee2'><i class='fa-solid fa-user'></i><br>Giám định sân B 2</label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee3' value='3'><label class='btn btn-outline-secondary' for='optionsReferee3'><i class='fa-solid fa-user'></i><br>Giám định sân B 3</label>";
       $(".refereeChoose").append(refereeChoose123);
       if (this.settingObj.isShowFiveReferee === true) {
         this.numReferee = 5;
-        let refereeChoose45 = "<input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee4' value='4'/> <label class='btn btn-outline-secondary' for='optionsReferee4'> <i class='fa-solid fa-user'></i> <br/>Giám định sơ cua4 </label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee5' value='5'/> <label class='btn btn-outline-secondary' for='optionsReferee5'> <i class='fa-solid fa-user'></i> <br/>Giám định sơ cua5 </label>"
+        let refereeChoose45 = "<input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee4' value='4'/> <label class='btn btn-outline-secondary' for='optionsReferee4'> <i class='fa-solid fa-user'></i> <br/>Giám định sân B 4 </label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee5' value='5'/> <label class='btn btn-outline-secondary' for='optionsReferee5'> <i class='fa-solid fa-user'></i> <br/>Giám định sân B 5 </label>"
         $(".refereeChoose").append(refereeChoose45);
       }
       this.showChooseRefereeNoModal();
@@ -103,7 +103,7 @@ class GiamDinhDoiKhangSoCuaContainer extends Component {
 
       for (let i = 1; i <= this.numReferee; i++) {
         if (refereeNo === i + "") {
-          this.refereeName = "Giám định sơ cua" + i;
+          this.refereeName = "Giám định sân B " + i;
           this.referreIndex = i - 1;
         }
       }
@@ -315,7 +315,7 @@ class GiamDinhDoiKhangSoCuaContainer extends Component {
               <div className="modal-dialog" role="document">
                 <div className="modal-content">
                   <div className="modal-header">
-                    <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn mã Giám định sơ cuacủa bạn
+                    <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn mã Giám định sân B của bạn
                     </h5>
                     <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideChooseRefereeNoModal}></button>
                   </div>
@@ -323,15 +323,15 @@ class GiamDinhDoiKhangSoCuaContainer extends Component {
                     <div className="category-buttons">
                       <section className="btn-group refereeChoose">
                         {/* <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee1" value="1" defaultChecked />
-                        <label className="btn btn-outline-secondary" htmlFor="optionsReferee1"> <i className="fa-solid fa-user"></i> <br/>Giám định sơ cua1 </label>
+                        <label className="btn btn-outline-secondary" htmlFor="optionsReferee1"> <i className="fa-solid fa-user"></i> <br/>Giám định sân B 1 </label>
                         <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee2" value="2" />
-                        <label className="btn btn-outline-secondary" htmlFor="optionsReferee2"> <i className="fa-solid fa-user"></i> <br/>Giám định sơ cua2 </label>
+                        <label className="btn btn-outline-secondary" htmlFor="optionsReferee2"> <i className="fa-solid fa-user"></i> <br/>Giám định sân B 2 </label>
                         <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee3" value="3" />
-                        <label className="btn btn-outline-secondary" htmlFor="optionsReferee3"> <i className="fa-solid fa-user"></i> <br/>Giám định sơ cua3 </label>
+                        <label className="btn btn-outline-secondary" htmlFor="optionsReferee3"> <i className="fa-solid fa-user"></i> <br/>Giám định sân B 3 </label>
                         <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee4" value="4" />
-                        <label className="btn btn-outline-secondary" htmlFor="optionsReferee4"> <i className="fa-solid fa-user"></i> <br/>Giám định sơ cua4 </label>
+                        <label className="btn btn-outline-secondary" htmlFor="optionsReferee4"> <i className="fa-solid fa-user"></i> <br/>Giám định sân B 4 </label>
                         <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee5" value="5" />
-                        <label className="btn btn-outline-secondary" htmlFor="optionsReferee5"> <i className="fa-solid fa-user"></i> <br/>Giám định sơ cua5 </label> */}
+                        <label className="btn btn-outline-secondary" htmlFor="optionsReferee5"> <i className="fa-solid fa-user"></i> <br/>Giám định sân B 5 </label> */}
                       </section>
                     </div>
                   </div>
@@ -409,4 +409,4 @@ class GiamDinhDoiKhangSoCuaContainer extends Component {
   }
 }
 
-export default GiamDinhDoiKhangSoCuaContainer;
+export default GiamDinhDoiKhangSanBContainer;

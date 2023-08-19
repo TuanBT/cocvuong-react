@@ -109,7 +109,7 @@ class GiamDinhDoiKhangContainer extends Component {
       }
       $("#gd-name").html(this.refereeName);
 
-      onValue(ref(this.db, 'lastMatch/no'), (snapshot) => {
+      onValue(ref(this.db, 'arena/0/lastMatch/no'), (snapshot) => {
         //Kiểm tra kết nối internet
         onValue(ref(this.db, '.info/connected'), (snapshot) => {
           if (!snapshot.val() === true) {

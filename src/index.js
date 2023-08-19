@@ -8,11 +8,11 @@ import HomeContainer from './containers/home.container';
 import TestContainer from './containers/test.container';
 import InformationDkContainer from './containers/infomationDK.container';
 import GiamSatDoiKhangContainer from './containers/giamSatDoiKhang.container';
-import GiamSatDoiKhangSoCuaContainer from './containers/giamSatDoiKhangSoCua.container';
+import GiamSatDoiKhangSanBContainer from './containers/giamSatDoiKhangSanB.container';
 import GiamSatThiQuyenContainer from './containers/giamSatThiQuyen.container';
 import GiamDinhThiQuyenContainer from './containers/giamDinhThiQuyen.container';
 import GiamDinhDoiKhangContainer from './containers/giamDinhDoiKhang.container';
-import GiamDinhDoiKhangSoCuaContainer from './containers/giamDinhDoiKhangSoCua.container';
+import GiamDinhDoiKhangSanBContainer from './containers/giamDinhDoiKhangSanB.container';
 import SettingContainer from './containers/setting.container';
 import LoginContainer from './containers/login.container';
 import SignupContainer from './containers/signup.container';
@@ -24,11 +24,11 @@ ReactDOM.render(
       <Route path="/test" component={TestContainer} />
       <Route path="/thong-tin-doi-khang" component={InformationDkContainer} />
       <Route path="/giam-sat-doi-khang" component={GiamSatDoiKhangContainer} />
-      <Route path="/giam-sat-doi-khang-so-cua" component={GiamSatDoiKhangSoCuaContainer} />
+      <Route path="/giam-sat-doi-khang-san-b" component={GiamSatDoiKhangSanBContainer} />
       <Route path="/giam-sat-thi-quyen" component={GiamSatThiQuyenContainer} />
       <Route path="/giam-dinh-thi-quyen" component={GiamDinhThiQuyenContainer} />
       <Route path="/giam-dinh-doi-khang" component={GiamDinhDoiKhangContainer} />
-      <Route path="/giam-dinh-doi-khang-so-cua" component={GiamDinhDoiKhangSoCuaContainer} />
+      <Route path="/giam-dinh-doi-khang-san-b" component={GiamDinhDoiKhangSanBContainer} />
       <Route path="/thiet-dat" component={SettingContainer} />
       <Route path="/login" component={LoginContainer} />
       <Route path="/signup" component={SignupContainer} />
