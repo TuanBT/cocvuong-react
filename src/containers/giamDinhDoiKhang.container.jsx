@@ -19,7 +19,7 @@ class GiamDinhDoiKhangContainer extends Component {
     this.settingObj;
     this.match;
     this.scoreTimer;
-    this.numReferee = 3; //Số lượng giám định chấm điểm
+    this.numReferee = 3; //Số lượng Giám định chấm điểm
 
     this.refereeName = "";
     this.referreIndex = -1;
@@ -28,6 +28,7 @@ class GiamDinhDoiKhangContainer extends Component {
       "redScore": 0,
       "blueScore": 0
     }
+    this.arenaNoIndex;
     this.matchNoCurrentIndex;
     this.teamNoCurrentIndex;
 
@@ -97,34 +98,43 @@ class GiamDinhDoiKhangContainer extends Component {
   }
 
   chooseRefereeNo = () => {
-    let refereeNo = $("input:radio[name ='optionsReferee']:checked").val();
-    if (refereeNo != null && refereeNo != "") {
-      this.hideChooseRefereeNoModal();
-
-      for (let i = 1; i <= this.numReferee; i++) {
-        if (refereeNo === i + "") {
-          this.refereeName = "Giám định " + i;
-          this.referreIndex = i - 1;
-        }
-      }
-      $("#gd-name").html(this.refereeName);
-
-      onValue(ref(this.db, 'lastMatch/no'), (snapshot) => {
-        //Kiểm tra kết nối internet
-        onValue(ref(this.db, '.info/connected'), (snapshot) => {
-          if (!snapshot.val() === true) {
-            $('#internet-status').show();
-          } else {
-            $('#internet-status').hide();
-          }
-        })
-
-        let matchCurrentNoIndex = snapshot.val() - 1;
-        let matchCurrentNo = matchCurrentNoIndex + 1
-        $("#gd-match").html("Trận số " + matchCurrentNo);
-        this.path = "referee/" + this.referreIndex;
+    let arenaNo = $("input:radio[name ='optionsArena']:checked").val();
+    if (arenaNo != null && arenaNo != "") {
+      this.arenaNoIndex = arenaNo;
+      get(child(ref(this.db), 'arena/' + this.arenaNoIndex + '/arenaName')).then((snapshot) => {
+        $('#arena-name').html(snapshot.val());
       })
+
+      let refereeNo = $("input:radio[name ='optionsReferee']:checked").val();
+      if (refereeNo != null && refereeNo != "") {
+        this.hideChooseRefereeNoModal();
+  
+        for (let i = 1; i <= this.numReferee; i++) {
+          if (refereeNo === i + "") {
+            this.refereeName = "Giám định " + i;
+            this.referreIndex = i - 1;
+          }
+        }
+        $("#gd-name").html(this.refereeName);
+  
+        onValue(ref(this.db, 'arena/' + this.arenaNoIndex + '/lastMatch/no'), (snapshot) => {
+          //Kiểm tra kết nối internet
+          onValue(ref(this.db, '.info/connected'), (snapshot) => {
+            if (!snapshot.val() === true) {
+              $('#internet-status').show();
+            } else {
+              $('#internet-status').hide();
+            }
+          })
+  
+          let matchCurrentNoIndex = snapshot.val() - 1;
+          let matchCurrentNo = matchCurrentNoIndex + 1
+          $("#gd-match").html("Trận số " + matchCurrentNo);
+          this.path = "arena/" + this.arenaNoIndex + "/referee/" + this.referreIndex;
+        })
+      }
     }
+    
   }
 
   redAddition = (score) => {
@@ -239,8 +249,9 @@ class GiamDinhDoiKhangContainer extends Component {
                 <div className="row justify-content-between align-items-center">
 
                   <div className="col-12 text-center">
-                    <h1 className="blog-header-logo text-midnight-blue" id="gd-name">&nbsp;</h1>
-                    <h1 className="blog-header-logo" id="gd-match">&nbsp;</h1>
+                    <h1 className="" id="arena-name">&nbsp;</h1>
+                    <h1 className="text-midnight-blue" id="gd-name">&nbsp;</h1>
+                    <h1 className="" id="gd-match">&nbsp;</h1>
                   </div>
 
                 </div>
@@ -315,9 +326,19 @@ class GiamDinhDoiKhangContainer extends Component {
               <div className="modal-dialog" role="document">
                 <div className="modal-content">
                   <div className="modal-header">
-                    <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn mã giám định của bạn
+                    <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn sân và mã giám định của bạn
                     </h5>
                     <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideChooseRefereeNoModal}></button>
+                  </div>
+                  <div className="modal-body">
+                    <div className="category-buttons">
+                      <section className="btn-group arenaChoose">
+                        <input type="radio" className="btn-check" name="optionsArena" id="optionsArena0" value="0" defaultChecked />
+                        <label className="btn btn-outline-secondary" htmlFor="optionsArena0"> <i className="fa-solid fa-chess-board"></i> <br />Sân A </label>
+                        <input type="radio" className="btn-check" name="optionsArena" id="optionsArena1" value="1" />
+                        <label className="btn btn-outline-secondary" htmlFor="optionsArena1"> <i className="fa-solid fa-chess-board"></i> <br />Sân B </label>
+                      </section>
+                    </div>
                   </div>
                   <div className="modal-body">
                     <div className="category-buttons">
