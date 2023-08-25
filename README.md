@@ -43,7 +43,7 @@ Thứ tự ưu tiên:
 => Không thay đổi
 
 - Chấp nhận điểm của giám định là cho cùng lúc được cả đỏ và xanh (Cho những trường hợp diễn biến trận đấu nhanh)
-=> Bỏ cơ chế này
+=> Done
 
 ----------------------
 -Các tính năng đã làm:
@@ -53,6 +53,9 @@ Thứ tự ưu tiên:
 + Cho phép 50% giám định chấm điểm là lập tức ghi nhận điểm. Cho phép chấm trong 2s.
 + 5 giám định thi quyền thì đếm tổng 3 Giám định điểm ở giữa.
 + Cho phép sắp xếp giải đấu từ dữ liệu thô ở cả Thi Quyền và Đối Kháng (Tự động xếp trận thi đấu). Export ra file để sử dụng.
++ Cho phép chấm liên tục từ các GĐ
++ Cho phép chấm trên 2 sân A và B, đồng bộ hóa kết quả
++ Hiển thị được Schema với tên VDV bị trùng
 
 -Các tính năng chưa làm:
 + Chưa thể export theo template có sẵn kết quả thi đấu

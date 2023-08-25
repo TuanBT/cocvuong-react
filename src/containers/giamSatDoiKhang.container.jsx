@@ -385,7 +385,7 @@ class GiamSatDoiKhangContainer extends Component {
       this.temporaryWin = "red";
 
       $('#modalConfirm .modal-title').html("<i class='fa-solid fa-clipboard-check'></i> Xác nhận kết quả <b>THẮNG</b>");
-      $('#modalConfirm .modal-body').html("<h3 style='color: red'><i class='fa-solid fa-medal'></i> " + this.convertWL(this.match.fighters.redFighter.name) + " (" + this.match.fighters.redFighter.code + ")</h3>");
+      $('#modalConfirm .modal-body').html("<h3 style='color: red'><i class='fa-solid fa-hand-back-fist'></i> " + this.convertWL(this.match.fighters.redFighter.name) + " (" + this.match.fighters.redFighter.code + ")</h3>");
       this.showModalConfirm();
 
       $("#buttonConfirmOK").click(() => {
@@ -417,7 +417,7 @@ class GiamSatDoiKhangContainer extends Component {
       this.temporaryWin = "blue";
 
       $('#modalConfirm .modal-title').html("<i class='fa-solid fa-clipboard-check'></i> Xác nhận kết quả <b>THẮNG</b>");
-      $('#modalConfirm .modal-body').html("<h3 style='color: blue'><i class='fa-solid fa-medal'></i> " + this.convertWL(this.match.fighters.blueFighter.name) + " (" + this.match.fighters.blueFighter.code + ")</h3>");
+      $('#modalConfirm .modal-body').html("<h3 style='color: blue'><i class='fa-solid fa-hand-back-fist'></i> " + this.convertWL(this.match.fighters.blueFighter.name) + " (" + this.match.fighters.blueFighter.code + ")</h3>");
       this.showModalConfirm();
 
       $("#buttonConfirmOK").click(() => {
@@ -864,7 +864,7 @@ class GiamSatDoiKhangContainer extends Component {
 
                   <span className="info-text-fighter-name-red" onClick={this.redWin}>
                     <span className="icon-win-red">
-                      <i className="fa-solid fa-medal"></i>
+                      <i className="fa-solid fa-hand-back-fist"></i>&nbsp;
                     </span>
                     <span id="red-fighter">
                     </span>
@@ -942,7 +942,7 @@ class GiamSatDoiKhangContainer extends Component {
                   <span className="info-text-fighter-name-blue" onClick={this.blueWin}>
                     <span id="blue-fighter"></span>
                     <span className="icon-win-blue">
-                      <i className="fa-solid fa-medal"></i>
+                      &nbsp;<i className="fa-solid fa-hand-back-fist"></i>
                     </span>
                   </span>
                 </div>

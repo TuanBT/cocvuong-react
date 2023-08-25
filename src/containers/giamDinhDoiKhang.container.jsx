@@ -24,16 +24,9 @@ class GiamDinhDoiKhangContainer extends Component {
     this.refereeName = "";
     this.referreIndex = -1;
     this.path = "";
-    this.refereeScore = {
-      "redScore": 0,
-      "blueScore": 0
-    }
     this.arenaNoIndex;
     this.matchNoCurrentIndex;
     this.teamNoCurrentIndex;
-
-
-
   }
 
   componentDidMount() {
@@ -90,11 +83,6 @@ class GiamDinhDoiKhangContainer extends Component {
     if (e.which == 40) {
       this.blueAddition(1);
     }
-    //Space
-    if (e.which == 32) {
-      this.redAddition(0);
-      this.blueAddition(0);
-    }
   }
 
   chooseRefereeNo = () => {
@@ -108,7 +96,7 @@ class GiamDinhDoiKhangContainer extends Component {
       let refereeNo = $("input:radio[name ='optionsReferee']:checked").val();
       if (refereeNo != null && refereeNo != "") {
         this.hideChooseRefereeNoModal();
-  
+
         for (let i = 1; i <= this.numReferee; i++) {
           if (refereeNo === i + "") {
             this.refereeName = "Giám định " + i;
@@ -116,7 +104,7 @@ class GiamDinhDoiKhangContainer extends Component {
           }
         }
         $("#gd-name").html(this.refereeName);
-  
+
         onValue(ref(this.db, 'arena/' + this.arenaNoIndex + '/lastMatch/no'), (snapshot) => {
           //Kiểm tra kết nối internet
           onValue(ref(this.db, '.info/connected'), (snapshot) => {
@@ -126,7 +114,7 @@ class GiamDinhDoiKhangContainer extends Component {
               $('#internet-status').hide();
             }
           })
-  
+
           let matchCurrentNoIndex = snapshot.val() - 1;
           let matchCurrentNo = matchCurrentNoIndex + 1
           $("#gd-match").html("Trận số " + matchCurrentNo);
@@ -134,68 +122,35 @@ class GiamDinhDoiKhangContainer extends Component {
         })
       }
     }
-    
+
   }
 
   redAddition = (score) => {
-    this.refereeScore.redScore = score;
-    update(ref(this.db, this.path), this.refereeScore);
-    if (score >= 0) {
-      toast.error("+" + score + " điểm cho ĐỎ", {
-        position: "top-left",
-        autoClose: 1000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: false,
-        progress: undefined,
-        theme: "light",
-      });
-    } else {
-      toast.error(score + " điểm cho ĐỎ", {
-        position: "top-left",
-        autoClose: 1000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: false,
-        progress: undefined,
-        theme: "light",
-      });
-    }
-
-    this.refereeScore.redScore = 0;
-    this.refereeScore.blueScore = 0;
+    update(ref(this.db, this.path), { "redScore": score });
+    toast.error("+" + score + " điểm cho ĐỎ", {
+      position: "top-left",
+      autoClose: 1000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: false,
+      draggable: false,
+      progress: undefined,
+      theme: "light",
+    });
   }
 
   blueAddition = (score) => {
-    this.refereeScore.blueScore = score;
-    update(ref(this.db, this.path), this.refereeScore);
-    if (score >= 0) {
-      toast.info("+" + score + " điểm cho XANH", {
-        position: "top-right",
-        autoClose: 1000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: false,
-        progress: undefined,
-        theme: "light",
-      });
-    } else {
-      toast.info(score + " điểm cho XANH", {
-        position: "top-right",
-        autoClose: 1000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: false,
-        progress: undefined,
-        theme: "light",
-      });
-    }
-    this.refereeScore.redScore = 0;
-    this.refereeScore.blueScore = 0;
+    update(ref(this.db, this.path), { "blueScore": score });
+    toast.info("+" + score + " điểm cho XANH", {
+      position: "top-right",
+      autoClose: 1000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: false,
+      draggable: false,
+      progress: undefined,
+      theme: "light",
+    });
   }
 
   showShortcut = () => {
@@ -298,21 +253,21 @@ class GiamDinhDoiKhangContainer extends Component {
                       <button type="button" className="btn btn-outline-danger btn-lg" onClick={() => this.inputPw('-1')}><i className="fas fa-trash-alt"></i></button>
                     </div>
                     <div className="numPadPassword">
-                    <div className="input-group mb-3">
-                      <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('1')}><i className="fa-solid fa-1"></i></button>
-                      <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('2')}><i className="fa-solid fa-2"></i></button>
-                      <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('3')}><i className="fa-solid fa-3"></i></button>
-                      <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('4')}><i className="fa-solid fa-4"></i></button>
-                      <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('5')}><i className="fa-solid fa-5"></i></button>
+                      <div className="input-group mb-3">
+                        <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('1')}><i className="fa-solid fa-1"></i></button>
+                        <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('2')}><i className="fa-solid fa-2"></i></button>
+                        <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('3')}><i className="fa-solid fa-3"></i></button>
+                        <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('4')}><i className="fa-solid fa-4"></i></button>
+                        <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('5')}><i className="fa-solid fa-5"></i></button>
+                      </div>
+                      <div className="input-group mb-3">
+                        <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('6')}><i className="fa-solid fa-6"></i></button>
+                        <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('7')}><i className="fa-solid fa-7"></i></button>
+                        <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('8')}><i className="fa-solid fa-8"></i></button>
+                        <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('9')}><i className="fa-solid fa-9"></i></button>
+                        <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('0')}><i className="fa-solid fa-0"></i></button>
+                      </div>
                     </div>
-                    <div className="input-group mb-3">
-                      <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('6')}><i className="fa-solid fa-6"></i></button>
-                      <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('7')}><i className="fa-solid fa-7"></i></button>
-                      <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('8')}><i className="fa-solid fa-8"></i></button>
-                      <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('9')}><i className="fa-solid fa-9"></i></button>
-                      <button type="button" className="btn btn-outline-secondary btn-lg" onClick={() => this.inputPw('0')}><i className="fa-solid fa-0"></i></button>
-                    </div>
-                  </div>
                   </div>
                   <div className="modal-footer">
                     <button type="button" className="btn btn-primary ok-button" onClick={this.verifyPassword}>OK</button>
