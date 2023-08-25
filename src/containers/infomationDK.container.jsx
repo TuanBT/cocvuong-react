@@ -92,11 +92,11 @@ class InformationDkContainer extends Component {
       if (this.tournamentObj.tournament[i].match.category === category || category === "ALL") {
         matchNum++;
         let tournament = this.tournamentObj.tournament[i];
-        if (!fighters.includes(tournament.fighters.redFighter.name) && !tournament.fighters.redFighter.name.includes("W.") && !tournament.fighters.redFighter.name.includes("L.")) {
-          fighters.push(tournament.fighters.redFighter.name);
+        if (!fighters.includes(tournament.fighters.redFighter.name + tournament.fighters.redFighter.code) && !tournament.fighters.redFighter.name.includes("W.") && !tournament.fighters.redFighter.name.includes("L.")) {
+          fighters.push(tournament.fighters.redFighter.name + tournament.fighters.redFighter.code);
         }
-        if (!fighters.includes(tournament.fighters.blueFighter.name) && !tournament.fighters.blueFighter.name.includes("W.") && !tournament.fighters.blueFighter.name.includes("L.")) {
-          fighters.push(tournament.fighters.blueFighter.name);
+        if (!fighters.includes(tournament.fighters.blueFighter.name + tournament.fighters.blueFighter.code) && !tournament.fighters.blueFighter.name.includes("W.") && !tournament.fighters.blueFighter.name.includes("L.")) {
+          fighters.push(tournament.fighters.blueFighter.name + tournament.fighters.blueFighter.code);
         }
       }
     }

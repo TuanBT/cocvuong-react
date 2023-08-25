@@ -123,7 +123,7 @@ class SettingContainer extends Component {
         $("#quantityReferee").prop("checked", this.settingObj.isShowFiveReferee);
       })
 
-      toast.success("Cập nhập thông tin giải đấu thành công!");
+      toast.success("Cài lại thiết đặt thành công!");
     });
     console.log("resetSetting End");
   }
@@ -686,7 +686,7 @@ class SettingContainer extends Component {
                     </div>
                     {/* <hr className="mt-4 mb-4" /> */}
                   </div>
-                  <button type="button" className="btn btn-warning" style={{ marginRight: '5px' }} onClick={this.resetSetting}><i className="fa-solid fa-rotate-left"></i> Reset</button>
+                  <button type="button" className="btn btn-warning" style={{ marginRight: '5px' }} onClick={this.resetSetting}><i className="fa-solid fa-rotate-left"></i> Cài lại thiết đặt </button>
                   <button type="button" className="btn btn-danger" style={{ marginRight: '5px' }} onClick={this.updateSetting}><i className="fa-solid fa-pen"></i> Cập nhập</button>
                 </form>
 
