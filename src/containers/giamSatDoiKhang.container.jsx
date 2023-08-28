@@ -461,6 +461,102 @@ class GiamSatDoiKhangContainer extends Component {
     this.saveMatch();
   }
 
+  remindRedDecrease = () => {
+    $('#remind-red').val(function (i, oldval) {
+      if (oldval <= 0) {
+        return oldval;
+      } else {
+        return --oldval;
+      }
+    });
+  }
+  remindRedIncrease = () => {
+    $('#remind-red').val(function (i, oldval) {
+      if (oldval >= 3) {
+        return oldval;
+      } else {
+        return ++oldval;
+      }
+    });
+  }
+  warningRedDecrease = () => {
+    $('#warning-red').val(function (i, oldval) {
+      if (oldval <= 0) {
+        return oldval;
+      } else {
+        return --oldval;
+      }
+    });
+  }
+  warningRedIncrease = () => {
+    $('#warning-red').val(function (i, oldval) {
+      $('#remind-red').val(0);
+      return ++oldval;
+    });
+  }
+  medicalRedDecrease = () => {
+    $('#medical-red').val(function (i, oldval) {
+      if (oldval <= 0) {
+        return oldval;
+      } else {
+        return --oldval;
+      }
+    });
+  }
+  medicalRedIncrease = () => {
+    $('#medical-red').val(function (i, oldval) {
+      return ++oldval;
+    });
+  }
+
+  remindBlueDecrease = () => {
+    $('#remind-blue').val(function (i, oldval) {
+      if (oldval <= 0) {
+        return oldval;
+      } else {
+        return --oldval;
+      }
+    });
+  }
+  remindBlueIncrease = () => {
+    $('#remind-blue').val(function (i, oldval) {
+      if (oldval >= 3) {
+        return oldval;
+      } else {
+        return ++oldval;
+      }
+    });
+  }
+  warningBlueDecrease = () => {
+    $('#warning-blue').val(function (i, oldval) {
+      if (oldval <= 0) {
+        return oldval;
+      } else {
+        return --oldval;
+      }
+    });
+  }
+  warningBlueIncrease = () => {
+    $('#warning-blue').val(function (i, oldval) {
+      $('#remind-blue').val(0);
+      return ++oldval;
+    });
+  }
+  medicalBlueDecrease = () => {
+    $('#medical-blue').val(function (i, oldval) {
+      if (oldval <= 0) {
+        return oldval;
+      } else {
+        return --oldval;
+      }
+    });
+  }
+  medicalBlueIncrease = () => {
+    $('#medical-blue').val(function (i, oldval) {
+      return ++oldval;
+    });
+  }
+
   //Hàm dùng để thay thế những trận đấu có ký hiệu W. và L. trong giải đấu
   replaceFighter(winColor) {
     console.log("replaceFighter() Start");
@@ -554,7 +650,7 @@ class GiamSatDoiKhangContainer extends Component {
   }
 
   makeTimer() {
-    console.log("makeTimer() Start");
+    // console.log("makeTimer() Start");
     if (this.timerCoundown < 0) {
       //Hiệp 1 kết thúc
       if (this.round == this.fistRound) {
@@ -618,7 +714,7 @@ class GiamSatDoiKhangContainer extends Component {
 
     this.timerCoundown--;
 
-    console.log("makeTimer() End");
+    // console.log("makeTimer() End");
   }
 
   showShortcut = () => {
@@ -953,7 +1049,49 @@ class GiamSatDoiKhangContainer extends Component {
             <div className="red-score">
               <div className="addition" onClick={this.redAddition}></div>
               <div className="redFlag countryFlag" style={{ display: 'none' }}><img className="flagImage" src={require('../assets/flag/' + this.countryRed + '.jpg')} /></div>
-              <div className="subtraction" onClick={this.redSubtraction}></div>
+              <div className="subtraction subtraction-red" onClick={this.redSubtraction}></div>
+              <div className="red-cautions-information">
+                <div className="line-break-caution"></div>
+                <div className="cautions-box">
+                  <div className="input-group">
+                    <span className="input-group-text cautions-label-red"><i className="fas fa-exclamation-circle"></i>&nbsp;Nhắc nhở </span>
+                    <button className="btn btn-decrement-red btn-danger" type="button" onClick={this.remindRedDecrease}>
+                      <strong>−</strong>
+                    </button>
+                    <input type="number" className="form-control text-cautions-number-red" id="remind-red" defaultValue="0" disabled />
+                    <button className="btn btn-increment-red btn-danger" type="button" onClick={this.remindRedIncrease}>
+                      <strong>+</strong>
+                    </button>
+                  </div>
+                </div>
+                <div className="line-break-caution"></div>
+                <div className="cautions-box">
+                  <div className="input-group">
+                    <span className="input-group-text cautions-label-red"><i className="fas fa-exclamation-triangle"></i>&nbsp;Cảnh cáo </span>
+                    <button className="btn btn-decrement-red btn-danger" type="button" onClick={this.warningRedDecrease}>
+                      <strong>−</strong>
+                    </button>
+                    <input type="number" className="form-control text-cautions-number-red" id="warning-red" defaultValue="0" disabled />
+                    <button className="btn btn-increment-red btn-danger" type="button" onClick={this.warningRedIncrease}>
+                      <strong>+</strong>
+                    </button>
+                  </div>
+                </div>
+                <div className="line-break-caution"></div>
+                <div className="cautions-box">
+                  <div className="input-group">
+                    <span className="input-group-text cautions-label-red"><i className="fas fa-briefcase-medical"></i>&nbsp;Y Tế </span>
+                    <button className="btn btn-decrement-red btn-danger" type="button" onClick={this.medicalRedDecrease}>
+                      <strong>−</strong>
+                    </button>
+                    <input type="number" className="form-control text-cautions-number-red" id="medical-red" defaultValue="0" disabled />
+                    <button className="btn btn-increment-red btn-danger" type="button" onClick={this.medicalRedIncrease}>
+                      <strong>+</strong>
+                    </button>
+                  </div>
+                </div>
+                <div className="line-break-caution"></div>
+              </div>
               <span className="info-text">
                 <span id="red-score"></span>
               </span>
@@ -961,7 +1099,54 @@ class GiamSatDoiKhangContainer extends Component {
             <div className="blue-score">
               <div className="addition" onClick={this.blueAddition}></div>
               <div className="blueFlag countryFlag" style={{ display: 'none' }}><img className="flagImage" src={require('../assets/flag/' + this.countryBlue + '.jpg')} /></div>
-              <div className="subtraction" onClick={this.blueSubtraction}></div>
+              <div className="blue-cautions-information">
+                <div className="remind-box"></div>
+                <div className="warning-box"></div>
+                <div className="medical-box"></div>
+              </div>
+              <div className="subtraction subtraction-blue" onClick={this.blueSubtraction}></div>
+              <div className="red-cautions-information">
+                <div className="line-break-caution"></div>
+                <div className="cautions-box">
+                  <div className="input-group">
+                    <span className="input-group-text cautions-label-blue"><i className="fas fa-exclamation-circle"></i>&nbsp;Nhắc nhở </span>
+                    <button className="btn btn-decrement-blue btn-primary" type="button" onClick={this.remindBlueDecrease}>
+                      <strong>−</strong>
+                    </button>
+                    <input type="number" className="form-control text-cautions-number-blue" id="remind-blue" defaultValue="0" disabled />
+                    <button className="btn btn-increment-blue btn-primary" type="button" onClick={this.remindBlueIncrease}>
+                      <strong>+</strong>
+                    </button>
+                  </div>
+                </div>
+                <div className="line-break-caution"></div>
+                <div className="cautions-box">
+                  <div className="input-group">
+                    <span className="input-group-text cautions-label-blue"><i className="fas fa-exclamation-triangle"></i>&nbsp;Cảnh cáo </span>
+                    <button className="btn btn-decrement-blue btn-primary" type="button" onClick={this.warningBlueDecrease}>
+                      <strong>−</strong>
+                    </button>
+                    <input type="number" className="form-control text-cautions-number-blue" id="warning-blue" defaultValue="0" disabled />
+                    <button className="btn btn-increment-blue btn-primary" type="button" onClick={this.warningBlueIncrease}>
+                      <strong>+</strong>
+                    </button>
+                  </div>
+                </div>
+                <div className="line-break-caution"></div>
+                <div className="cautions-box">
+                  <div className="input-group">
+                    <span className="input-group-text cautions-label-blue"><i className="fas fa-briefcase-medical"></i>&nbsp;Y Tế </span>
+                    <button className="btn btn-decrement-blue btn-primary" type="button" onClick={this.medicalBlueDecrease}>
+                      <strong>−</strong>
+                    </button>
+                    <input type="number" className="form-control text-cautions-number-blue" id="medical-blue" defaultValue="0" disabled />
+                    <button className="btn btn-increment-blue btn-primary" type="button" onClick={this.medicalBlueIncrease}>
+                      <strong>+</strong>
+                    </button>
+                  </div>
+                </div>
+                <div className="line-break-caution"></div>
+              </div>
               <span className="info-text">
                 <span id="blue-score"></span>
               </span>
