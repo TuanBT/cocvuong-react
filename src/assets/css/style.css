@@ -480,6 +480,7 @@ html {
     position: absolute;
     width: 100%;
     height: 20%;
+    /* height: 10%; */
     top: 80%;
     cursor: pointer;
     z-index: 1;
@@ -498,11 +499,11 @@ html {
     background: rgba(0, 0, 0, 0.3);
 }
 
-.subtraction.subtraction-red{
+.subtraction.subtraction-red {
     right: 0;
 }
 
-.subtraction.subtraction-blue{
+.subtraction.subtraction-blue {
     left: 0;
 }
 
@@ -553,7 +554,7 @@ html {
 .referee {
     float: left;
     height: 85%;
-    width: 30%; 
+    width: 30%;
     /* width: 17%; */
 }
 
@@ -769,40 +770,122 @@ html {
     border-bottom: 1px solid #bdc3c7;
 }
 
-.btn-decrement-red{
+.btn-decrement {
+    width: 15%;
+    height: 100%;
+    font-size: 1vw;
+    float: left;
+    cursor: pointer;
+    border-radius: 0px 0px 0px 0px;
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    border: 1px solid rgb(255, 255, 255);
+    border-left: 0px;
+    border-right: 0px;
+    position: relative;
+    z-index: 2;
+}
+
+.btn-decrement .info-text{
+    position: relative;
+    z-index: 3;
+}
+
+.btn-decrement-red {
     border-color: white;
     color: white;
     background: red;
 }
 
-.btn-decrement-blue{
+.btn-decrement-red:hover {
+    background-color: #bb2d3b;
+}
+
+.btn-decrement-red:active {
+    background-color: #b02a37;
+}
+
+.btn-decrement-blue {
     border-color: white;
     color: white;
     background: blue;
 }
 
-.btn-increment-red{
+.btn-decrement-blue:hover {
+    background-color: #0b5ed7;
+}
+
+.btn-decrement-blue:active {
+    background-color: #0a58ca;
+}
+
+.btn-increment {
+    width: 15%;
+    font-size: 1vw;
+    float: left;
+    height: 100%;
+    cursor: pointer;
+    border-radius: 0px 5px 5px 0px;
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    border: 1px solid rgb(255, 255, 255);
+    border-left: 0px;
+    position: relative;
+    z-index: 2;
+}
+
+.btn-increment-red {
     border-color: white;
     color: white;
     background: red;
 }
 
-.btn-increment-blue{
+.btn-increment-red:hover {
+    background-color: #bb2d3b;
+}
+
+.btn-increment-red:active {
+    background-color: #b02a37;
+}
+
+.btn-increment-blue {
     border-color: white;
     color: white;
     background: blue;
 }
 
-.text-cautions-number-red{
-    text-align: center;
-    color: white;
-    background-color: red!important;
+.btn-increment-blue:hover {
+    background-color: #0b5ed7;
 }
 
-.text-cautions-number-blue{
+.btn-increment-blue:active {
+    background-color: #0a58ca;
+}
+
+.text-cautions-number {
+    width: 20%;
+    height: 100%;
+    font-size: 1vw;
+    float: left;
+    border-radius: 0px 0px 0px 0px;
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    border: 1px solid rgb(255, 255, 255);
+}
+
+.text-cautions-number-red {
     text-align: center;
     color: white;
-    background-color: blue!important;
+    background-color: red !important;
+}
+
+.text-cautions-number-blue {
+    text-align: center;
+    color: white;
+    background-color: blue !important;
 }
 
 /* ---------End Giám định---------------- */
@@ -991,10 +1074,10 @@ textarea {
     background: #bdc3c7;
 }
 
-.setting-form{
+.setting-form {
     border-radius: 8px;
     overflow: hidden;
-    border: 1px solid rgb(218,220,224);
+    border: 1px solid rgb(218, 220, 224);
     padding: 24px 24px;
 }
 
@@ -1002,7 +1085,7 @@ textarea {
     width: 100%;
     border-radius: 8px;
     overflow: hidden;
-    border: 1px solid rgb(218,220,224);
+    border: 1px solid rgb(218, 220, 224);
     padding: 24px 24px;
 }
 
@@ -1078,15 +1161,15 @@ textarea {
     font-size: 5em;
 }
 
-.bigIcon a{
+.bigIcon a {
     color: #bdc3c7;
 }
 
-.bigIcon a:hover{
+.bigIcon a:hover {
     color: #7f8c8d;
 }
 
-.countryFlag{
+.countryFlag {
     position: absolute;
     width: 20%;
     height: 20%;
@@ -1094,41 +1177,41 @@ textarea {
     cursor: pointer;
 }
 
-.countryFlagHD{
+.countryFlagHD {
     position: absolute;
     width: 20%;
     height: 20%;
     cursor: pointer;
 }
 
-.blueFlag{
+.blueFlag {
     right: 0;
 }
 
-.redFlag{
+.redFlag {
     left: 0;
 }
 
-.flagImage{
-    height: 100%; 
+.flagImage {
+    height: 100%;
     display: block;
     border-bottom: 5px solid #ffffff;
 }
 
-.flagImageHD{
+.flagImageHD {
     height: 100%;
     display: block;
     float: left;
     border-bottom-right-radius: 5px 5px;
 }
 
-.blueFlag .flagImage{
+.blueFlag .flagImage {
     float: right;
     border-left: 5px solid #ffffff;
     border-bottom-left-radius: 30px 30px;
 }
 
-.redFlag .flagImage{
+.redFlag .flagImage {
     float: left;
     border-right: 5px solid #ffffff;
     border-bottom-right-radius: 30px 30px;
@@ -1146,7 +1229,7 @@ textarea {
     text-align: left;
 }
 
-.red-cautions-information{
+.red-cautions-information {
     /* background: #1abc9c; */
     position: absolute;
     height: 10%;
@@ -1154,7 +1237,7 @@ textarea {
     bottom: 0;
 }
 
-.blue-cautions-information{
+.blue-cautions-information {
     position: absolute;
     height: 20%;
     width: 20%;
@@ -1162,24 +1245,36 @@ textarea {
     right: 0;
 }
 
-.red-cautions-information .cautions-box{
+.red-cautions-information .cautions-box {
     width: 25%;
-    height: 100%;
+    height: 75%;
     float: left;
 }
 
-.red-cautions-information .line-break-caution{
+.red-cautions-information .line-break-caution {
     float: left;
     height: 100%;
     width: 6.25%;
 }
 
-.cautions-label-red{
+.cautions-label {
+    width: 50%;
+    height: 100%;
+    font-size: 1vw;
+    float: left;
+    border-radius: 5px 0px 0 5px;
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    border: 1px solid rgb(255, 255, 255);
+}
+
+.cautions-label-red {
     background: red;
     color: white;
 }
 
-.cautions-label-blue{
+.cautions-label-blue {
     background: blue;
     color: white;
 }
@@ -1309,22 +1404,22 @@ textarea {
     font-weight: bold;
 }
 
-#averageScore{
+#averageScore {
     cursor: pointer;
 }
 
-.tournament-quyen-name{
+.tournament-quyen-name {
     color: #c0392b;
     font-size: 4vh;
 }
 
-.logo-quyen{
+.logo-quyen {
     float: right;
     height: 100%;
     /* width: 80%; */
 }
 
-.style-hd-timer-text{
+.style-hd-timer-text {
     height: 100%;
     font-size: 3vw;
     font-family: clockicons;
@@ -1341,8 +1436,7 @@ textarea {
     font-size: 15vh;
 }
 
-.style-hd-match-prev
-{
+.style-hd-match-prev {
     height: 100%;
     left: 0;
     cursor: pointer;
@@ -1359,12 +1453,11 @@ textarea {
     width: 15%;
 }
 
-.style-hd-match-prev:hover
-{
+.style-hd-match-prev:hover {
     color: #636e72;
 }
 
-.style-hd-match-next{
+.style-hd-match-next {
     height: 100%;
     right: 0;
     cursor: pointer;
@@ -1381,16 +1474,15 @@ textarea {
     width: 15%;
 }
 
-.style-hd-match-next .info-text{
+.style-hd-match-next .info-text {
     font-size: 15vh;
 }
 
-.style-hd-match-next:hover
-{
+.style-hd-match-next:hover {
     color: #636e72;
 }
 
-.match-name-no{
+.match-name-no {
     width: 70%;
     height: 100%;
     position: relative;
@@ -1399,12 +1491,12 @@ textarea {
 
 /* ---------End Chấm quyền---------------- */
 
-.info-header{
+.info-header {
     width: 100%;
     height: 20%;
 }
 
-.container-cal{
+.container-cal {
     width: 100%;
     height: 75%;
     padding: 0 16px;
@@ -1417,58 +1509,58 @@ textarea {
     border-radius: 18px;
     background: #e0e0e0;
     box-shadow: 5px 5px 10px #c1c1c1,
-      -5px -5px 10px #c1c1c1;
+        -5px -5px 10px #c1c1c1;
     margin: 0 auto;
     padding: 16px 16px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-  }
+}
 
-  .cal .card-deck{
+.cal .card-deck {
     height: 100%;
-  }
+}
 
-  .cal .card{
+.cal .card {
     height: 100%;
-  }
+}
 
-  .cal .card-header{
+.cal .card-header {
     height: 20%;
-  }
+}
 
-  .cal .card-body{
+.cal .card-body {
     height: 80%;
-  }
-  
-  .cal .result {
+}
+
+.cal .result {
     width: 100%;
     height: 100px;
     border-radius: 10px;
     border-radius: 18px;
     background: #e0e0e0;
     box-shadow: 5px 5px 10px #c1c1c1,
-      -5px -5px 10px #c1c1c1;
-  }
-  
-  .cal .result p {
+        -5px -5px 10px #c1c1c1;
+}
+
+.cal .result p {
     font-size: 25pt;
     overflow-y: auto;
     text-align: right;
     color: #000000;
     padding-right: 10px;
-  }
-  
-  .cal .buttons {
+}
+
+.cal .buttons {
     height: 100%;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-gap: 1em;
     /* margin-left: 1em; */
-  }
-  
-  .cal .buttons .button,
-  .cal .buttons .num-button {
+}
+
+.cal .buttons .button,
+.cal .buttons .num-button {
     cursor: pointer;
     text-align: center;
     font-size: 5vh;
@@ -1485,19 +1577,19 @@ textarea {
     left: 50%;
     transform: translate(-50%, -50%);
     font-weight: 300;
-  }
-  
-  .button:hover {
+}
+
+.button:hover {
     color: #3498db;
     border-radius: 20px;
     background: #d11a1a;
     box-shadow: 5px 5px 10px #c1c1c1,
-      -5px -5px 10px #ffffff;
-  
-  }
-  
-  /*  Big Button */
-  .cal .buttons .zero {
+        -5px -5px 10px #ffffff;
+
+}
+
+/*  Big Button */
+.cal .buttons .zero {
     grid-column: 1/ 3;
     width: 100%;
     font-size: 20px;
@@ -1506,39 +1598,39 @@ textarea {
     border-radius: 18px;
     background: #e0e0e0;
     box-shadow: 5px 5px 10px #c1c1c1,
-      -5px -5px 10px #c1c1c1;
-  }
-  
-  .cal .buttons .eraser{
+        -5px -5px 10px #c1c1c1;
+}
+
+.cal .buttons .eraser {
     background: #7f8c8d;
     color: white;
-  }
-  
-  .cal .buttons .enter{
+}
+
+.cal .buttons .enter {
     background: #1abc9c;
-      color: white;
-  }
-  
-  .action-btn {
+    color: white;
+}
+
+.action-btn {
     color: grey;
     font-weight: bold;
-  }
-  
-  .calc-action-btn {
+}
+
+.calc-action-btn {
     color: #000000;
     font-size: 7vh;
     font-weight: bold;
-  }
-  
-  
-  #referee-result-box {
+}
+
+
+#referee-result-box {
     font-size: calc(1.625rem + 6vh);
-  }
+}
 
-  .numPadPassword{
+.numPadPassword {
     text-align: center;
-  }
+}
 
-  .numPadPassword .input-group{
+.numPadPassword .input-group {
     display: inline-block;
-  }
+}

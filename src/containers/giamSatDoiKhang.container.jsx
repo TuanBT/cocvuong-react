@@ -462,99 +462,111 @@ class GiamSatDoiKhangContainer extends Component {
   }
 
   remindRedDecrease = () => {
-    $('#remind-red').val(function (i, oldval) {
-      if (oldval <= 0) {
-        return oldval;
-      } else {
-        return --oldval;
-      }
-    });
+    let element = $('#remind-red');
+    let value = parseInt(element.text());
+    if (value <= 0) {
+      element.text(value);
+    } else {
+      element.text(--value);
+    }
+    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/redFighter/caution'), { "remind": parseInt(element.text()) });
   }
   remindRedIncrease = () => {
-    $('#remind-red').val(function (i, oldval) {
-      if (oldval >= 3) {
-        return oldval;
-      } else {
-        return ++oldval;
-      }
-    });
+    let element = $('#remind-red');
+    let value = parseInt(element.text());
+    if (value >= 3) {
+      element.text(value);
+    } else {
+      element.text(++value);
+    }
+    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/redFighter/caution'), { "remind": parseInt(element.text()) });
   }
   warningRedDecrease = () => {
-    $('#warning-red').val(function (i, oldval) {
-      if (oldval <= 0) {
-        return oldval;
-      } else {
-        return --oldval;
-      }
-    });
+    let element = $('#warning-red');
+    let value = parseInt(element.text());
+    if (value <= 0) {
+      element.text(value);
+    } else {
+      element.text(--value);
+    }
+    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/redFighter/caution'), { "warning": parseInt(element.text()) });
   }
   warningRedIncrease = () => {
-    $('#warning-red').val(function (i, oldval) {
-      $('#remind-red').val(0);
-      return ++oldval;
-    });
+    let element = $('#warning-red');
+    let value = parseInt(element.text());
+    $('#remind-red').text("0");
+    element.text(++value);
+    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/redFighter/caution'), { "warning": parseInt(element.text()) });
   }
   medicalRedDecrease = () => {
-    $('#medical-red').val(function (i, oldval) {
-      if (oldval <= 0) {
-        return oldval;
-      } else {
-        return --oldval;
-      }
-    });
+    let element = $('#medical-red');
+    let value = parseInt(element.text());
+    if (value <= 0) {
+      element.text(value);
+    } else {
+      element.text(--value);
+    }
+    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/redFighter/caution'), { "medical": parseInt(element.text()) });
   }
   medicalRedIncrease = () => {
-    $('#medical-red').val(function (i, oldval) {
-      return ++oldval;
-    });
+    let element = $('#medical-red');
+    let value = parseInt(element.text());
+    element.text(++value);
+    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/redFighter/caution'), { "medical": parseInt(element.text()) });
   }
 
   remindBlueDecrease = () => {
-    $('#remind-blue').val(function (i, oldval) {
-      if (oldval <= 0) {
-        return oldval;
-      } else {
-        return --oldval;
-      }
-    });
+    let element = $('#remind-blue');
+    let value = parseInt(element.text());
+    if (value <= 0) {
+      element.text(value);
+    } else {
+      element.text(--value);
+    }
+    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/blueFighter/caution'), { "remind": parseInt(element.text()) });
   }
   remindBlueIncrease = () => {
-    $('#remind-blue').val(function (i, oldval) {
-      if (oldval >= 3) {
-        return oldval;
-      } else {
-        return ++oldval;
-      }
-    });
+    let element = $('#remind-blue');
+    let value = parseInt(element.text());
+    if (value >= 3) {
+      element.text(value);
+    } else {
+      element.text(++value);
+    }
+    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/blueFighter/caution'), { "remind": parseInt(element.text()) });
   }
   warningBlueDecrease = () => {
-    $('#warning-blue').val(function (i, oldval) {
-      if (oldval <= 0) {
-        return oldval;
-      } else {
-        return --oldval;
-      }
-    });
+    let element = $('#warning-blue');
+    let value = parseInt(element.text());
+    if (value <= 0) {
+      element.text(value);
+    } else {
+      element.text(--value);
+    }
+    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/blueFighter/caution'), { "warning": parseInt(element.text()) });
   }
   warningBlueIncrease = () => {
-    $('#warning-blue').val(function (i, oldval) {
-      $('#remind-blue').val(0);
-      return ++oldval;
-    });
+    let element = $('#warning-blue');
+    let value = parseInt(element.text());
+    $('#remind-blue').text("0");
+    element.text(++value);
+    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/blueFighter/caution'), { "warning": parseInt(element.text()) });
   }
   medicalBlueDecrease = () => {
-    $('#medical-blue').val(function (i, oldval) {
-      if (oldval <= 0) {
-        return oldval;
-      } else {
-        return --oldval;
-      }
-    });
+    let element = $('#medical-blue');
+    let value = parseInt(element.text());
+    if (value <= 0) {
+      element.text(value);
+    } else {
+      element.text(--value);
+    }
+    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/blueFighter/caution'), { "medical": parseInt(element.text()) });
   }
   medicalBlueIncrease = () => {
-    $('#medical-blue').val(function (i, oldval) {
-      return ++oldval;
-    });
+    let element = $('#medical-blue');
+    let value = parseInt(element.text());
+    element.text(++value);
+    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/blueFighter/caution'), { "medical": parseInt(element.text()) });
   }
 
   //Hàm dùng để thay thế những trận đấu có ký hiệu W. và L. trong giải đấu
@@ -1053,42 +1065,24 @@ class GiamSatDoiKhangContainer extends Component {
               <div className="red-cautions-information">
                 <div className="line-break-caution"></div>
                 <div className="cautions-box">
-                  <div className="input-group">
-                    <span className="input-group-text cautions-label-red"><i className="fas fa-exclamation-circle"></i>&nbsp;Nhắc nhở </span>
-                    <button className="btn btn-decrement-red btn-danger" type="button" onClick={this.remindRedDecrease}>
-                      <strong>−</strong>
-                    </button>
-                    <input type="number" className="form-control text-cautions-number-red" id="remind-red" defaultValue="0" disabled />
-                    <button className="btn btn-increment-red btn-danger" type="button" onClick={this.remindRedIncrease}>
-                      <strong>+</strong>
-                    </button>
-                  </div>
+                  <div className="cautions-label cautions-label-red"><span className="info-text">&nbsp;<i className="fas fa-exclamation-circle"></i>&nbsp;Nhắc nhở&nbsp;</span></div>
+                  <div className="btn-decrement btn-decrement-red" onClick={this.remindRedDecrease}><span className="info-text"><span>-</span></span></div>
+                  <div className="text-cautions-number text-cautions-number-red"><span className="info-text"><span id="remind-red">0</span></span></div>
+                  <div className="btn-increment btn-increment-red" onClick={this.remindRedIncrease}><span className="info-text"><span>+</span></span></div>
                 </div>
                 <div className="line-break-caution"></div>
                 <div className="cautions-box">
-                  <div className="input-group">
-                    <span className="input-group-text cautions-label-red"><i className="fas fa-exclamation-triangle"></i>&nbsp;Cảnh cáo </span>
-                    <button className="btn btn-decrement-red btn-danger" type="button" onClick={this.warningRedDecrease}>
-                      <strong>−</strong>
-                    </button>
-                    <input type="number" className="form-control text-cautions-number-red" id="warning-red" defaultValue="0" disabled />
-                    <button className="btn btn-increment-red btn-danger" type="button" onClick={this.warningRedIncrease}>
-                      <strong>+</strong>
-                    </button>
-                  </div>
+                  <div className="cautions-label cautions-label-red"><span className="info-text">&nbsp;<i className="fas fa-exclamation-triangle"></i>&nbsp;Cảnh cáo&nbsp;</span></div>
+                  <div className="btn-decrement btn-decrement-red" onClick={this.warningRedDecrease}><span className="info-text"><span>-</span></span></div>
+                  <div className="text-cautions-number text-cautions-number-red"><span className="info-text"><span id="warning-red">0</span></span></div>
+                  <div className="btn-increment btn-increment-red" onClick={this.warningRedIncrease}><span className="info-text"><span>+</span></span></div>
                 </div>
                 <div className="line-break-caution"></div>
                 <div className="cautions-box">
-                  <div className="input-group">
-                    <span className="input-group-text cautions-label-red"><i className="fas fa-briefcase-medical"></i>&nbsp;Y Tế </span>
-                    <button className="btn btn-decrement-red btn-danger" type="button" onClick={this.medicalRedDecrease}>
-                      <strong>−</strong>
-                    </button>
-                    <input type="number" className="form-control text-cautions-number-red" id="medical-red" defaultValue="0" disabled />
-                    <button className="btn btn-increment-red btn-danger" type="button" onClick={this.medicalRedIncrease}>
-                      <strong>+</strong>
-                    </button>
-                  </div>
+                  <div className="cautions-label cautions-label-red"><span className="info-text">&nbsp;<i className="fas fa-briefcase-medical"></i>&nbsp;Y Tế&nbsp;</span></div>
+                  <div className="btn-decrement btn-decrement-red" onClick={this.medicalRedDecrease}><span className="info-text"><span>-</span></span></div>
+                  <div className="text-cautions-number text-cautions-number-red"><span className="info-text"><span id="medical-red">0</span></span></div>
+                  <div className="btn-increment btn-increment-red" onClick={this.medicalRedIncrease}><span className="info-text"><span>+</span></span></div>
                 </div>
                 <div className="line-break-caution"></div>
               </div>
@@ -1099,51 +1093,28 @@ class GiamSatDoiKhangContainer extends Component {
             <div className="blue-score">
               <div className="addition" onClick={this.blueAddition}></div>
               <div className="blueFlag countryFlag" style={{ display: 'none' }}><img className="flagImage" src={require('../assets/flag/' + this.countryBlue + '.jpg')} /></div>
-              <div className="blue-cautions-information">
-                <div className="remind-box"></div>
-                <div className="warning-box"></div>
-                <div className="medical-box"></div>
-              </div>
               <div className="subtraction subtraction-blue" onClick={this.blueSubtraction}></div>
               <div className="red-cautions-information">
                 <div className="line-break-caution"></div>
                 <div className="cautions-box">
-                  <div className="input-group">
-                    <span className="input-group-text cautions-label-blue"><i className="fas fa-exclamation-circle"></i>&nbsp;Nhắc nhở </span>
-                    <button className="btn btn-decrement-blue btn-primary" type="button" onClick={this.remindBlueDecrease}>
-                      <strong>−</strong>
-                    </button>
-                    <input type="number" className="form-control text-cautions-number-blue" id="remind-blue" defaultValue="0" disabled />
-                    <button className="btn btn-increment-blue btn-primary" type="button" onClick={this.remindBlueIncrease}>
-                      <strong>+</strong>
-                    </button>
-                  </div>
+                  <div className="cautions-label cautions-label-blue"><span className="info-text">&nbsp;<i className="fas fa-exclamation-circle"></i>&nbsp;Nhắc nhở&nbsp;</span></div>
+                  <div className="btn-decrement btn-decrement-blue" onClick={this.remindBlueDecrease}><span className="info-text"><span>-</span></span></div>
+                  <div className="text-cautions-number text-cautions-number-blue"><span className="info-text"><span id="remind-blue">0</span></span></div>
+                  <div className="btn-increment btn-increment-blue" onClick={this.remindBlueIncrease}><span className="info-text"><span>+</span></span></div>
                 </div>
                 <div className="line-break-caution"></div>
                 <div className="cautions-box">
-                  <div className="input-group">
-                    <span className="input-group-text cautions-label-blue"><i className="fas fa-exclamation-triangle"></i>&nbsp;Cảnh cáo </span>
-                    <button className="btn btn-decrement-blue btn-primary" type="button" onClick={this.warningBlueDecrease}>
-                      <strong>−</strong>
-                    </button>
-                    <input type="number" className="form-control text-cautions-number-blue" id="warning-blue" defaultValue="0" disabled />
-                    <button className="btn btn-increment-blue btn-primary" type="button" onClick={this.warningBlueIncrease}>
-                      <strong>+</strong>
-                    </button>
-                  </div>
+                  <div className="cautions-label cautions-label-blue"><span className="info-text">&nbsp;<i className="fas fa-exclamation-triangle"></i>&nbsp;Cảnh cáo&nbsp;</span></div>
+                  <div className="btn-decrement btn-decrement-blue" onClick={this.warningBlueDecrease}><span className="info-text"><span>-</span></span></div>
+                  <div className="text-cautions-number text-cautions-number-blue"><span className="info-text"><span id="warning-blue">0</span></span></div>
+                  <div className="btn-increment btn-increment-blue" onClick={this.warningBlueIncrease}><span className="info-text"><span>+</span></span></div>
                 </div>
                 <div className="line-break-caution"></div>
                 <div className="cautions-box">
-                  <div className="input-group">
-                    <span className="input-group-text cautions-label-blue"><i className="fas fa-briefcase-medical"></i>&nbsp;Y Tế </span>
-                    <button className="btn btn-decrement-blue btn-primary" type="button" onClick={this.medicalBlueDecrease}>
-                      <strong>−</strong>
-                    </button>
-                    <input type="number" className="form-control text-cautions-number-blue" id="medical-blue" defaultValue="0" disabled />
-                    <button className="btn btn-increment-blue btn-primary" type="button" onClick={this.medicalBlueIncrease}>
-                      <strong>+</strong>
-                    </button>
-                  </div>
+                  <div className="cautions-label cautions-label-blue"><span className="info-text">&nbsp;<i className="fas fa-briefcase-medical"></i>&nbsp;Y Tế&nbsp;</span></div>
+                  <div className="btn-decrement btn-decrement-blue" onClick={this.medicalBlueDecrease}><span className="info-text"><span>-</span></span></div>
+                  <div className="text-cautions-number text-cautions-number-blue"><span className="info-text"><span id="medical-blue">0</span></span></div>
+                  <div className="btn-increment btn-increment-blue" onClick={this.medicalBlueIncrease}><span className="info-text"><span>+</span></span></div>
                 </div>
                 <div className="line-break-caution"></div>
               </div>
