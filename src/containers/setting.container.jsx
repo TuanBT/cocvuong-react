@@ -31,7 +31,7 @@ class SettingContainer extends Component {
     this.tournamentMartialStandardArray = [];
 
     this.settingConst = { "setting": { "timeRound": 90, "timeBreak": 30, "timeExtra": 60, "timeExtraBreak": 15, "tournamentName": "Cóc Vương", "isShowCountryFlag": false, "isShowFiveReferee": false, "password": 1 } };
-    this.matchObj = { "match": { "no": 1, "type": "", "category": "", "win": "" }, "fighters": { "redFighter": { "name": "Đỏ", "code": "", "score": 0 }, "blueFighter": { "name": "Xanh", "code": "", "score": 0 } } };
+    this.matchObj = {"match":{"no":1,"type":"","category":"","win":""},"fighters":{"redFighter":{"result":"","name":"Đỏ","code":"","caution":{"remind":0,"warning":0,"medical":0},"score":0},"blueFighter":{"result":"","name":"Xanh","code":"","caution":{"remind":0,"warning":0,"medical":0},"score":0}}}
     this.tournamentConst = {"arena":[{"arenaName":"Sân A","lastMatch":{"no":1},"referee":[{"blueScore":0,"redScore":0},{"blueScore":0,"redScore":0},{"blueScore":0,"redScore":0},{"blueScore":0,"redScore":0},{"blueScore":0,"redScore":0}]},{"arenaName":"Sân B","lastMatch":{"no":1},"referee":[{"blueScore":0,"redScore":0},{"blueScore":1,"redScore":0},{"blueScore":0,"redScore":0},{"blueScore":0,"redScore":0},{"blueScore":0,"redScore":0}]}],"tournament":[]};
     this.matchMartialObj = { "match": { "name": "" }, "team": [] };
     this.tournamentMartialConst = { "lastMatchMartial": { "matchMartialNo": 1, "teamMartialNo": 1 }, "tournamentMartial": [] };
