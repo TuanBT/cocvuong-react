@@ -379,65 +379,101 @@ class GiamSatDoiKhangContainer extends Component {
 
   redWin = () => {
     console.log("redWin() Start");
-    if (this.match.match.win == "blue") {
-      toast.error("XANH đã thắng, bạn không thể thay đổi kết quả được!");
-    } else {
-      this.temporaryWin = "red";
-
-      $('#modalConfirm .modal-title').html("<i class='fa-solid fa-clipboard-check'></i> Xác nhận kết quả <b>THẮNG</b>");
-      $('#modalConfirm .modal-body').html("<h3 style='color: red'><i class='fa-solid fa-hand-back-fist'></i> " + this.convertWL(this.match.fighters.redFighter.name) + " (" + this.match.fighters.redFighter.code + ")</h3>");
-      this.showModalConfirm();
-
-      $("#buttonConfirmOK").click(() => {
-        if (this.temporaryWin == "red") {
-          this.stopTimer();
-          this.replaceFighter("red");
-          setTimeout(() => {
-            this.match.match.win = "red";
-            set(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/match/win'), "red")
-            $(".icon-win-red").css({ opacity: 1 });
-            $(".icon-win-blue").css("opacity", "");
-            $(".red-score").css("background-color", "red");
-            $(".red-score").css("color", this.whiteColor);
-            $(".blue-score").css("background-color", "blue");
-            $(".blue-score").css("color", this.whiteColor);
-          }, 1000);
-          this.hideModalConfirm();
+    let winMatch = "W." + this.matchNoCurrent;
+    for (let i = this.matchNoCurrent; i < this.tournamentObj.length; i++) {
+      let fightersTemp = this.tournamentObj[i].fighters;
+      if (fightersTemp.redFighter.result === winMatch) {
+        for (let j = i; j < this.tournamentObj.length; j++) {
+          let fightersTemp2 = this.tournamentObj[j].fighters;
+          let winMatch2 = "W." + j;
+          if (fightersTemp2.redFighter.result === winMatch2)
+            if (fightersTemp2.redFighter.name !== winMatch2) {
+              toast.error("Bạn không thể chấm lại trận đấu này!");
+              return;
+            }
+          if (fightersTemp2.blueFighter.result === winMatch2) {
+            if (fightersTemp2.blueFighter.name !== winMatch2) {
+              toast.error("Bạn không thể chấm lại trận đấu này!");
+              return;
+            }
+          }
         }
-      })
+      }
     }
+
+    this.temporaryWin = "red";
+
+    $('#modalConfirm .modal-title').html("<i class='fa-solid fa-clipboard-check'></i> Xác nhận kết quả <b>THẮNG</b>");
+    $('#modalConfirm .modal-body').html("<h3 style='color: red'><i class='fa-solid fa-hand-back-fist'></i> " + this.convertWL(this.match.fighters.redFighter.name) + "</h3><h3 style='color: red'>" + this.match.fighters.redFighter.code + "</h3>");
+    this.showModalConfirm();
+
+    $("#buttonConfirmOK").click(() => {
+      if (this.temporaryWin == "red") {
+        this.stopTimer();
+        this.replaceFighter("red");
+        setTimeout(() => {
+          this.match.match.win = "red";
+          set(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/match/win'), "red")
+          $(".icon-win-red").css({ opacity: 1 });
+          $(".icon-win-blue").css("opacity", "");
+          $(".red-score").css("background-color", "red");
+          $(".red-score").css("color", this.whiteColor);
+          $(".blue-score").css("background-color", "blue");
+          $(".blue-score").css("color", this.whiteColor);
+        }, 1000);
+        this.hideModalConfirm();
+      }
+    })
     console.log("redWin() End");
   }
 
   blueWin = () => {
     console.log("blueWin() Start");
-    if (this.match.match.win == "red") {
-      toast.error("ĐỎ đã thắng, bạn không thể thay đổi kết quả được!");
-    } else {
-      this.temporaryWin = "blue";
-
-      $('#modalConfirm .modal-title').html("<i class='fa-solid fa-clipboard-check'></i> Xác nhận kết quả <b>THẮNG</b>");
-      $('#modalConfirm .modal-body').html("<h3 style='color: blue'><i class='fa-solid fa-hand-back-fist'></i> " + this.convertWL(this.match.fighters.blueFighter.name) + " (" + this.match.fighters.blueFighter.code + ")</h3>");
-      this.showModalConfirm();
-
-      $("#buttonConfirmOK").click(() => {
-        if (this.temporaryWin == "blue") {
-          this.stopTimer();
-          this.replaceFighter("blue");
-          setTimeout(() => {
-            this.match.match.win = "blue";
-            set(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/match/win'), "blue")
-            $(".icon-win-blue").css({ opacity: 1 });
-            $(".icon-win-red").css("opacity", "");
-            $(".red-score").css("background-color", "red");
-            $(".red-score").css("color", this.whiteColor);
-            $(".blue-score").css("background-color", "blue");
-            $(".blue-score").css("color", this.whiteColor);
-          }, 1000);
-          this.hideModalConfirm();
+    let winMatch = "W." + this.matchNoCurrent;
+    for (let i = this.matchNoCurrent; i < this.tournamentObj.length; i++) {
+      let fightersTemp = this.tournamentObj[i].fighters;
+      if (fightersTemp.redFighter.result === winMatch) {
+        for (let j = i; j < this.tournamentObj.length; j++) {
+          let fightersTemp2 = this.tournamentObj[j].fighters;
+          let winMatch2 = "W." + j;
+          if (fightersTemp2.redFighter.result === winMatch2)
+            if (fightersTemp2.redFighter.name !== winMatch2) {
+              toast.error("Bạn không thể chấm lại trận đấu này!");
+              return;
+            }
+          if (fightersTemp2.blueFighter.result === winMatch2) {
+            if (fightersTemp2.blueFighter.name !== winMatch2) {
+              toast.error("Bạn không thể chấm lại trận đấu này!");
+              return;
+            }
+          }
         }
-      })
+      }
     }
+
+    this.temporaryWin = "blue";
+
+    $('#modalConfirm .modal-title').html("<i class='fa-solid fa-clipboard-check'></i> Xác nhận kết quả <b>THẮNG</b>");
+    $('#modalConfirm .modal-body').html("<h3 style='color: blue'><i class='fa-solid fa-hand-back-fist'></i> " + this.convertWL(this.match.fighters.blueFighter.name) + "</h3><h3 style='color: blue'>" + this.match.fighters.blueFighter.code + "</h3>");
+    this.showModalConfirm();
+
+    $("#buttonConfirmOK").click(() => {
+      if (this.temporaryWin == "blue") {
+        this.stopTimer();
+        this.replaceFighter("blue");
+        setTimeout(() => {
+          this.match.match.win = "blue";
+          set(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/match/win'), "blue")
+          $(".icon-win-blue").css({ opacity: 1 });
+          $(".icon-win-red").css("opacity", "");
+          $(".red-score").css("background-color", "red");
+          $(".red-score").css("color", this.whiteColor);
+          $(".blue-score").css("background-color", "blue");
+          $(".blue-score").css("color", this.whiteColor);
+        }, 1000);
+        this.hideModalConfirm();
+      }
+    })
     console.log("redWin() End");
   }
 
@@ -587,29 +623,33 @@ class GiamSatDoiKhangContainer extends Component {
 
     for (let i = this.matchNoCurrent; i < this.tournamentObj.length; i++) {
       let fightersTemp = this.tournamentObj[i].fighters;
-      if (fightersTemp.redFighter.name == matchWin) {
+      if (fightersTemp.redFighter.result == matchWin) {
         fightersTemp.redFighter = JSON.parse(JSON.stringify(winFighter));
+        fightersTemp.redFighter.result = matchWin;
         fightersTemp.redFighter.score = 0;
         update(ref(this.db, 'tournament/' + i + '/fighters'), fightersTemp);
         break;
       }
 
-      if (fightersTemp.redFighter.name == matchLose) {
+      if (fightersTemp.redFighter.result == matchLose) {
         fightersTemp.redFighter = JSON.parse(JSON.stringify(loseFighter));
+        fightersTemp.redFighter.result = matchLose;
         fightersTemp.redFighter.score = 0;
         update(ref(this.db, 'tournament/' + i + '/fighters'), fightersTemp);
         break;
       }
 
-      if (fightersTemp.blueFighter.name == matchWin) {
+      if (fightersTemp.blueFighter.result == matchWin) {
         fightersTemp.blueFighter = JSON.parse(JSON.stringify(winFighter));
+        fightersTemp.blueFighter.result = matchWin;
         fightersTemp.blueFighter.score = 0;
         update(ref(this.db, 'tournament/' + i + '/fighters'), fightersTemp);
         break;
       }
 
-      if (fightersTemp.blueFighter.name == matchLose) {
+      if (fightersTemp.blueFighter.result == matchLose) {
         fightersTemp.blueFighter = JSON.parse(JSON.stringify(loseFighter));
+        fightersTemp.blueFighter.result = matchLose;
         fightersTemp.blueFighter.score = 0;
         update(ref(this.db, 'tournament/' + i + '/fighters'), fightersTemp);
         break;

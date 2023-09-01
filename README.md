@@ -57,6 +57,7 @@ Thứ tự ưu tiên:
 + Cho phép chấm trên 2 sân A và B, đồng bộ hóa kết quả
 + Hiển thị được Schema với tên VDV bị trùng
 + Thêm khung để ghi nhận NN, CC, YT
++ Làm thêm chức năng chấm lại, tuy nhiên chỉ chấm lại khi chưa sử dụng kết quả trận chấm lại ở trận sau
 
 -Các tính năng chưa làm:
 + Chưa thể export theo template có sẵn kết quả thi đấu
