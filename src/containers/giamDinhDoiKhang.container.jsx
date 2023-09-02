@@ -55,6 +55,22 @@ class GiamDinhDoiKhangContainer extends Component {
   main() {
     get(child(ref(this.db), 'setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
+      if (this.settingObj.isShowArenaB === true) {
+        $(".arenaChooseBox").show();
+        let arenaNo = $("input:radio[name ='optionsArena']:checked").val();
+        if (arenaNo != null && arenaNo != "") {
+          this.arenaNoIndex = arenaNo;
+          get(child(ref(this.db), 'arena/' + this.arenaNoIndex + '/arenaName')).then((snapshot) => {
+            $('#arena-name').html(snapshot.val());
+          })
+        }
+      }
+      else {
+        this.arenaNoIndex = 0;
+        get(child(ref(this.db), 'arena/' + this.arenaNoIndex + '/arenaName')).then((snapshot) => {
+          $('#arena-name').html(snapshot.val());
+        })
+      }
       $('#tournamentName').html(this.settingObj.tournamentName);
       let refereeChoose123 = "<input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee1' value='1' checked><label class='btn btn-outline-secondary' for='optionsReferee1'><i class='fa-solid fa-user'></i><br>Giám định 1</label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee2' value='2'><label class='btn btn-outline-secondary' for='optionsReferee2'><i class='fa-solid fa-user'></i><br>Giám định 2</label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee3' value='3'><label class='btn btn-outline-secondary' for='optionsReferee3'><i class='fa-solid fa-user'></i><br>Giám định 3</label>";
       $(".refereeChoose").append(refereeChoose123);
@@ -86,43 +102,34 @@ class GiamDinhDoiKhangContainer extends Component {
   }
 
   chooseRefereeNo = () => {
-    let arenaNo = $("input:radio[name ='optionsArena']:checked").val();
-    if (arenaNo != null && arenaNo != "") {
-      this.arenaNoIndex = arenaNo;
-      get(child(ref(this.db), 'arena/' + this.arenaNoIndex + '/arenaName')).then((snapshot) => {
-        $('#arena-name').html(snapshot.val());
-      })
+    let refereeNo = $("input:radio[name ='optionsReferee']:checked").val();
+    if (refereeNo != null && refereeNo != "") {
+      this.hideChooseRefereeNoModal();
 
-      let refereeNo = $("input:radio[name ='optionsReferee']:checked").val();
-      if (refereeNo != null && refereeNo != "") {
-        this.hideChooseRefereeNoModal();
-
-        for (let i = 1; i <= this.numReferee; i++) {
-          if (refereeNo === i + "") {
-            this.refereeName = "Giám định " + i;
-            this.referreIndex = i - 1;
-          }
+      for (let i = 1; i <= this.numReferee; i++) {
+        if (refereeNo === i + "") {
+          this.refereeName = "Giám định " + i;
+          this.referreIndex = i - 1;
         }
-        $("#gd-name").html(this.refereeName);
-
-        onValue(ref(this.db, 'arena/' + this.arenaNoIndex + '/lastMatch/no'), (snapshot) => {
-          //Kiểm tra kết nối internet
-          onValue(ref(this.db, '.info/connected'), (snapshot) => {
-            if (!snapshot.val() === true) {
-              $('#internet-status').show();
-            } else {
-              $('#internet-status').hide();
-            }
-          })
-
-          let matchCurrentNoIndex = snapshot.val() - 1;
-          let matchCurrentNo = matchCurrentNoIndex + 1
-          $("#gd-match").html("Trận số " + matchCurrentNo);
-          this.path = "arena/" + this.arenaNoIndex + "/referee/" + this.referreIndex;
-        })
       }
-    }
+      $("#gd-name").html(this.refereeName);
 
+      onValue(ref(this.db, 'arena/' + this.arenaNoIndex + '/lastMatch/no'), (snapshot) => {
+        //Kiểm tra kết nối internet
+        onValue(ref(this.db, '.info/connected'), (snapshot) => {
+          if (!snapshot.val() === true) {
+            $('#internet-status').show();
+          } else {
+            $('#internet-status').hide();
+          }
+        })
+
+        let matchCurrentNoIndex = snapshot.val() - 1;
+        let matchCurrentNo = matchCurrentNoIndex + 1
+        $("#gd-match").html("Trận số " + matchCurrentNo);
+        this.path = "arena/" + this.arenaNoIndex + "/referee/" + this.referreIndex;
+      })
+    }
   }
 
   redAddition = (score) => {
@@ -285,7 +292,7 @@ class GiamDinhDoiKhangContainer extends Component {
                     </h5>
                     <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideChooseRefereeNoModal}></button>
                   </div>
-                  <div className="modal-body">
+                  <div className="modal-body arenaChooseBox" style={{ display: 'none' }}>
                     <div className="category-buttons">
                       <section className="btn-group arenaChoose">
                         <input type="radio" className="btn-check" name="optionsArena" id="optionsArena0" value="0" defaultChecked />

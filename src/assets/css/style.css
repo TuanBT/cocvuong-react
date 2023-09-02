@@ -1229,29 +1229,20 @@ textarea {
     text-align: left;
 }
 
-.red-cautions-information {
-    /* background: #1abc9c; */
+.cautions-information {
     position: absolute;
     height: 10%;
     width: 100%;
     bottom: 0;
 }
 
-.blue-cautions-information {
-    position: absolute;
-    height: 20%;
-    width: 20%;
-    bottom: 0;
-    right: 0;
-}
-
-.red-cautions-information .cautions-box {
+.cautions-information .cautions-box {
     width: 25%;
     height: 75%;
     float: left;
 }
 
-.red-cautions-information .line-break-caution {
+.cautions-information .line-break-caution {
     float: left;
     height: 100%;
     width: 6.25%;

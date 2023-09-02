@@ -81,7 +81,14 @@ class GiamSatDoiKhangContainer extends Component {
   }
 
   main() {
-    this.showChooseArenaNoModal();
+    get(child(ref(this.db), 'setting')).then((snapshot) => {
+      this.settingObj = snapshot.val();
+      if (this.settingObj.isShowArenaB === true) {
+        this.showChooseArenaNoModal();
+      } else {
+        this.showTournamentInfo();
+      }
+    });
   }
 
   chooseArenaNo = () => {
@@ -92,66 +99,76 @@ class GiamSatDoiKhangContainer extends Component {
       get(child(ref(this.db), 'arena/' + this.arenaNoIndex + '/arenaName')).then((snapshot) => {
         $('#arena-name').html(snapshot.val());
       })
+      this.showTournamentInfo();
+    }
+  }
 
-      get(child(ref(this.db), 'setting')).then((snapshot) => {
-        this.settingObj = snapshot.val();
-        $('#tournamentName').html(this.settingObj.tournamentName);
-        this.settingObj = snapshot.val();
-        this.timerCoundown = this.settingObj.timeRound;
-        this.timeBreak = this.settingObj.timeBreak;
-        this.timeExtra = this.settingObj.timeExtra;
-        this.timeExtraBreak = this.settingObj.timeExtraBreak;
-        if (this.settingObj.isShowCountryFlag === true) {
-          $(".redFlag").show();
-          $(".blueFlag").show();
-        }
-        if (this.settingObj.isShowFiveReferee === true) {
-          this.numReferee = 5;
-          let refereeElement45 = "<div class='referee'> <div class='referee-title gd4'> <span class='info-text'> Giám định 4 </span> </div><div class='referee-score'> <div class='red-score-refereeSc'> <span class='info-text'> <span id='red-score-4'></span> </span> </div><div class='blue-score-refereeSc'> <span class='info-text'> <span id='blue-score-4'></span> </span> </div></div></div><div class='line-break'></div><div class='referee'> <div class='referee-title gd5'> <span class='info-text'> Giám định 5 </span> </div><div class='referee-score'> <div class='red-score-refereeSc'> <span class='info-text'> <span id='red-score-5'></span> </span> </div><div class='blue-score-refereeSc'> <span class='info-text'> <span id='blue-score-5'></span> </span> </div></div></div><div class='line-break'></div>";
-          $(".referee-score-area").append(refereeElement45);
-          $(".referee").width("17%");
-        }
+  showTournamentInfo = () => {
+    this.arenaNoIndex = 0;
+    get(child(ref(this.db), 'arena/' + this.arenaNoIndex + '/arenaName')).then((snapshot) => {
+      $('#arena-name').html(snapshot.val());
+    })
+    get(child(ref(this.db), 'setting')).then((snapshot) => {
+      this.settingObj = snapshot.val();
+      $('#tournamentName').html(this.settingObj.tournamentName);
+      this.settingObj = snapshot.val();
+      this.timerCoundown = this.settingObj.timeRound;
+      this.timeBreak = this.settingObj.timeBreak;
+      this.timeExtra = this.settingObj.timeExtra;
+      this.timeExtraBreak = this.settingObj.timeExtraBreak;
+      if (this.settingObj.isShowCountryFlag === true) {
+        $(".redFlag").show();
+        $(".blueFlag").show();
+      }
+      if (this.settingObj.isShowFiveReferee === true) {
+        this.numReferee = 5;
+        let refereeElement45 = "<div class='referee'> <div class='referee-title gd4'> <span class='info-text'> Giám định 4 </span> </div><div class='referee-score'> <div class='red-score-refereeSc'> <span class='info-text'> <span id='red-score-4'></span> </span> </div><div class='blue-score-refereeSc'> <span class='info-text'> <span id='blue-score-4'></span> </span> </div></div></div><div class='line-break'></div><div class='referee'> <div class='referee-title gd5'> <span class='info-text'> Giám định 5 </span> </div><div class='referee-score'> <div class='red-score-refereeSc'> <span class='info-text'> <span id='red-score-5'></span> </span> </div><div class='blue-score-refereeSc'> <span class='info-text'> <span id='blue-score-5'></span> </span> </div></div></div><div class='line-break'></div>";
+        $(".referee-score-area").append(refereeElement45);
+        $(".referee").width("17%");
+      }
+      if (this.settingObj.isShowCautionBox === true) {
+        $(".red-caution").show();
+        $(".blue-caution").show();
+      }
 
-        this.startEffectTimer();
+      this.startEffectTimer();
 
-        onValue(ref(this.db, 'tournament'), (snapshot) => {
-          this.tournamentObj = snapshot.val();
-          if (this.lastMatchObj == null) {
-            this.matchNoCurrent = this.tournamentConst.lastMatch.no;
-            this.matchNoCurrentIndex = this.matchNoCurrent - 1;
-            this.match = this.tournamentObj[this.matchNoCurrentIndex];
-          }
-          if (this.refereeObj == null) {
-            this.refereeObj = this.tournamentConst.referee;
-          }
-          this.showValue();
-        });
-
-        onValue(ref(this.db, 'arena/' + this.arenaNoIndex + '/lastMatch'), (snapshot) => {
-          this.lastMatchObj = snapshot.val();
-          this.matchNoCurrent = this.lastMatchObj.no;
+      onValue(ref(this.db, 'tournament'), (snapshot) => {
+        this.tournamentObj = snapshot.val();
+        if (this.lastMatchObj == null) {
+          this.matchNoCurrent = this.tournamentConst.lastMatch.no;
           this.matchNoCurrentIndex = this.matchNoCurrent - 1;
           this.match = this.tournamentObj[this.matchNoCurrentIndex];
+        }
+        if (this.refereeObj == null) {
+          this.refereeObj = this.tournamentConst.referee;
+        }
+        this.showValue();
+      });
 
-          this.showValue();
-        })
+      onValue(ref(this.db, 'arena/' + this.arenaNoIndex + '/lastMatch'), (snapshot) => {
+        this.lastMatchObj = snapshot.val();
+        this.matchNoCurrent = this.lastMatchObj.no;
+        this.matchNoCurrentIndex = this.matchNoCurrent - 1;
+        this.match = this.tournamentObj[this.matchNoCurrentIndex];
 
-        onValue(ref(this.db, 'arena/' + this.arenaNoIndex + '/referee'), (snapshot) => {
-          this.refereeObj = snapshot.val();
-          this.showValue();
-        })
-
-        //Kiểm tra kết nối internet
-
-        onValue(ref(this.db, '.info/connected'), (snapshot) => {
-          if (!snapshot.val() === true) {
-            $('#internet-status').show();
-          } else {
-            $('#internet-status').hide();
-          }
-        })
+        this.showValue();
       })
-    }
+
+      onValue(ref(this.db, 'arena/' + this.arenaNoIndex + '/referee'), (snapshot) => {
+        this.refereeObj = snapshot.val();
+        this.showValue();
+      })
+
+      //Kiểm tra kết nối internet
+      onValue(ref(this.db, '.info/connected'), (snapshot) => {
+        if (!snapshot.val() === true) {
+          $('#internet-status').show();
+        } else {
+          $('#internet-status').hide();
+        }
+      })
+    })
   }
 
   _handleKeyDown = (e) => {
@@ -1102,7 +1119,7 @@ class GiamSatDoiKhangContainer extends Component {
               <div className="addition" onClick={this.redAddition}></div>
               <div className="redFlag countryFlag" style={{ display: 'none' }}><img className="flagImage" src={require('../assets/flag/' + this.countryRed + '.jpg')} /></div>
               <div className="subtraction subtraction-red" onClick={this.redSubtraction}></div>
-              <div className="red-cautions-information">
+              <div className="red-caution cautions-information" style={{ display: 'none' }}>
                 <div className="line-break-caution"></div>
                 <div className="cautions-box">
                   <div className="cautions-label cautions-label-red"><span className="info-text">&nbsp;<i className="fas fa-exclamation-circle"></i>&nbsp;Nhắc nhở&nbsp;</span></div>
@@ -1134,7 +1151,7 @@ class GiamSatDoiKhangContainer extends Component {
               <div className="addition" onClick={this.blueAddition}></div>
               <div className="blueFlag countryFlag" style={{ display: 'none' }}><img className="flagImage" src={require('../assets/flag/' + this.countryBlue + '.jpg')} /></div>
               <div className="subtraction subtraction-blue" onClick={this.blueSubtraction}></div>
-              <div className="red-cautions-information">
+              <div className="blue-caution cautions-information" style={{ display: 'none' }}>
                 <div className="line-break-caution"></div>
                 <div className="cautions-box">
                   <div className="cautions-label cautions-label-blue"><span className="info-text">&nbsp;<i className="fas fa-exclamation-circle"></i>&nbsp;Nhắc nhở&nbsp;</span></div>

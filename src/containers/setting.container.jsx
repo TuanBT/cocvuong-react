@@ -9,7 +9,7 @@ import { read, write, utils } from 'xlsx';
 import FileSaver from "file-saver";
 import { NavLink } from "react-router-dom";
 import mauchuandoikhang from '../assets/template/1-Mau_Chuan_Doi_Khang.xlsx';
-import mauchuanthiquyen from '../assets/template/2-Mau-Chuan_Thi_Quyen.xlsx';
+import mauchuanthiquyen from '../assets/template/2-Mau_Chuan_Thi_Quyen.xlsx';
 import mauthodoikhang from '../assets/template/3-Mau_Tho_Doi_Khang.xlsx';
 import mauthothiquyen from '../assets/template/4-Mau_Tho_Thi_Quyen.xlsx';
 
@@ -30,7 +30,7 @@ class SettingContainer extends Component {
     this.tournamentMartialArray = [];
     this.tournamentMartialStandardArray = [];
 
-    this.settingConst = { "setting": { "timeRound": 90, "timeBreak": 30, "timeExtra": 60, "timeExtraBreak": 15, "tournamentName": "Cóc Vương", "isShowCountryFlag": false, "isShowFiveReferee": false, "password": 1 } };
+    this.settingConst = {"setting":{"timeRound":90,"timeBreak":30,"timeExtra":60,"timeExtraBreak":15,"tournamentName":"Cóc Vương","isShowCountryFlag":false,"isShowFiveReferee":false,"isShowCautionBox":false,"isShowArenaB":false,"password":1}};
     this.matchObj = { "match": { "no": 1, "type": "", "category": "", "win": "" }, "fighters": { "redFighter": { "result": "", "name": "Đỏ", "code": "", "caution": { "remind": 0, "warning": 0, "medical": 0 }, "score": 0 }, "blueFighter": { "result": "", "name": "Xanh", "code": "", "caution": { "remind": 0, "warning": 0, "medical": 0 }, "score": 0 } } }
     this.tournamentConst = { "arena": [{ "arenaName": "Sân A", "lastMatch": { "no": 1 }, "referee": [{ "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }] }, { "arenaName": "Sân B", "lastMatch": { "no": 1 }, "referee": [{ "blueScore": 0, "redScore": 0 }, { "blueScore": 1, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }] }], "tournament": [] };
     this.matchMartialObj = { "match": { "name": "" }, "team": [] };
@@ -98,6 +98,8 @@ class SettingContainer extends Component {
       $("input[name=tournamentName]").val(this.settingObj.tournamentName);
       $("input[name=password]").val(this.settingObj.password);
       $("#flexSwitchCountryFlag").prop("checked", this.settingObj.isShowCountryFlag);
+      $("#showCautionBox").prop("checked", this.settingObj.isShowCautionBox);
+      $("#showArenaB").prop("checked", this.settingObj.isShowArenaB);
       $("#quantityReferee").prop("checked", this.settingObj.isShowFiveReferee);
     })
 
@@ -105,6 +107,12 @@ class SettingContainer extends Component {
       this.settingObj = snapshot.val();
       $('#tournamentName').html(this.settingObj.tournamentName);
     })
+  }
+
+  resetTournament = () => {
+    console.log("resetSetting Start");
+    toast.success("Cài đặt lại trận đấu thành công - Ảo");
+    console.log("resetSetting End");
   }
 
   resetSetting = () => {
@@ -121,6 +129,8 @@ class SettingContainer extends Component {
         $("input[name=tournamentName]").val(this.settingObj.tournamentName);
         $("input[name=password]").val(this.settingObj.password);
         $("#flexSwitchCountryFlag").prop("checked", this.settingObj.isShowCountryFlag);
+        $("#showCautionBox").prop("checked", this.settingObj.isShowCautionBox);
+        $("#showArenaB").prop("checked", this.settingObj.isShowArenaB);
         $("#quantityReferee").prop("checked", this.settingObj.isShowFiveReferee);
       })
 
@@ -138,6 +148,8 @@ class SettingContainer extends Component {
       "timeExtraBreak": parseInt($("input[name=timeExtraBreak]").val()),
       "tournamentName": $("input[name=tournamentName]").val(),
       "isShowCountryFlag": $("#flexSwitchCountryFlag").prop("checked"),
+      "isShowCautionBox": $("#showCautionBox").prop("checked"),
+      "isShowArenaB": $("#showArenaB").prop("checked"),
       "isShowFiveReferee": $("#quantityReferee").prop("checked"),
       "password": parseInt($("input[name=password]").val()),
     }
@@ -555,10 +567,8 @@ class SettingContainer extends Component {
       let matchName = item[1].trim();
       if (groupedData.has(matchName)) {
         groupedData.get(matchName).push(item);
-
         if (prevMatch !== item[0] + item[1].trim()) {
           matchNo++;
-          prevMatch = item[0] + item[1].trim();
         }
         fighterMartialObjTemp = JSON.parse(JSON.stringify(this.fighterMartialObj));
         fighterMartialObjTemp.fighter.name = item[2].trim();
@@ -567,7 +577,11 @@ class SettingContainer extends Component {
         fightersMartialObjTemp = JSON.parse(JSON.stringify(this.fightersMartialObj));
         fightersMartialObjTemp.no = matchNo;
         fightersMartialObjTemp.fighters.push(fighterMartialObjTemp);
-        this.tournamentMartialObj.tournamentMartial.slice(-1)[0].team.push(fightersMartialObjTemp);
+        if (prevMatch !== item[0] + item[1].trim()) {
+          this.tournamentMartialObj.tournamentMartial.slice(-1)[0].team.push(fightersMartialObjTemp);
+        }else{ //Dòng VDV đồng đội thứ 2 trở đi
+          this.tournamentMartialObj.tournamentMartial.slice(-1)[0].team.slice(-1)[0].fighters.push(fighterMartialObjTemp);
+        }
         this.tournamentMartialStandardArray.push([matchNo, item[1].trim(), item[2].trim(), item[3].trim(), item[4].trim()]);
 
       } else {
@@ -577,8 +591,6 @@ class SettingContainer extends Component {
         matchMartialObjTemp.match.name = matchName;
         this.tournamentMartialStandardArray.push([matchName, '', '', '', '']);
         matchNo = 1;
-        prevMatch = item[0] + item[1].trim();
-
         fighterMartialObjTemp = JSON.parse(JSON.stringify(this.fighterMartialObj));
         fighterMartialObjTemp.fighter.name = item[2].trim();
         fighterMartialObjTemp.fighter.code = item[3].trim();
@@ -589,9 +601,10 @@ class SettingContainer extends Component {
         this.tournamentMartialObj.tournamentMartial.slice(-1)[0].team.push(fightersMartialObjTemp);
         this.tournamentMartialStandardArray.push([matchNo, item[1].trim(), item[2].trim(), item[3].trim(), item[4].trim()]);
       }
+      prevMatch = item[0] + item[1].trim();
     });
 
-    // this.tournamentArrayRaw = [];
+    this.tournamentMartialArrayRaw = [];
     this.tournamentArrangeHeader = ['STT', 'NỘI DUNG', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
     this.setState({ data: this.tournamentMartialStandardArray });
 
@@ -659,6 +672,10 @@ class SettingContainer extends Component {
                         <input className="form-check-input" type="checkbox" id="flexSwitchCountryFlag" />
                         <label className="form-check-label" htmlFor="flexSwitchCountryFlag">Hiển thị cờ quốc gia</label>
                       </div>
+                      <div className="form-check form-switch">
+                        <input className="form-check-input" type="checkbox" id="showCautionBox" />
+                        <label className="form-check-label" htmlFor="showCautionBox">Hiển thị bảng nhắc nhở</label>
+                      </div>
                     </div>
                     <div className="col">
                       <label>Đặt mật khẩu</label>
@@ -668,6 +685,10 @@ class SettingContainer extends Component {
                       <div className="form-check form-switch">
                         <input className="form-check-input" type="checkbox" id="quantityReferee" />
                         <label className="form-check-label" htmlFor="quantityReferee">Hiển thị 5 giám định</label>
+                      </div>
+                      <div className="form-check form-switch">
+                        <input className="form-check-input" type="checkbox" id="showArenaB" />
+                        <label className="form-check-label" htmlFor="showArenaB">Hiển thị thêm Sân B</label>
                       </div>
                     </div>
                   </div>
@@ -700,8 +721,9 @@ class SettingContainer extends Component {
                     </div>
                     {/* <hr className="mt-4 mb-4" /> */}
                   </div>
+                  <button type="button" className="btn btn-danger" style={{ marginRight: '5px' }} onClick={this.resetTournament}><i className="fa-solid fa-arrows-rotate"></i> Cài lại trận đấu </button>
                   <button type="button" className="btn btn-warning" style={{ marginRight: '5px' }} onClick={this.resetSetting}><i className="fa-solid fa-rotate-left"></i> Cài lại thiết đặt </button>
-                  <button type="button" className="btn btn-danger" style={{ marginRight: '5px' }} onClick={this.updateSetting}><i className="fa-solid fa-pen"></i> Cập nhập</button>
+                  <button type="button" className="btn btn-success" style={{ marginRight: '5px' }} onClick={this.updateSetting}><i className="fa-solid fa-floppy-disk"></i> Cập nhập</button>
                 </form>
 
                 <div className="tournament-text mb-5 mt-3">
