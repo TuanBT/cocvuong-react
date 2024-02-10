@@ -301,6 +301,15 @@ class GiamSatDoiKhangContainer extends Component {
         $(".referee-title.gd" + i).css("background-color", "");
       }
     }
+
+    //caution area
+    $("#remind-red").text(this.match.fighters.redFighter.caution.remind);
+    $("#warning-red").text(this.match.fighters.redFighter.caution.warning);
+    $("#medical-red").text(this.match.fighters.redFighter.caution.medical);
+    $("#remind-blue").text(this.match.fighters.blueFighter.caution.remind);
+    $("#warning-blue").text(this.match.fighters.blueFighter.caution.warning);
+    $("#medical-blue").text(this.match.fighters.blueFighter.caution.medical);
+
     console.log("showValue() End");
   }
 
@@ -515,111 +524,69 @@ class GiamSatDoiKhangContainer extends Component {
   }
 
   remindRedDecrease = () => {
-    let element = $('#remind-red');
-    let value = parseInt(element.text());
-    if (value <= 0) {
-      element.text(value);
-    } else {
-      element.text(--value);
+    if (this.match.fighters.redFighter.caution.remind > 0) {
+      this.match.fighters.redFighter.caution.remind--;
     }
-    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/redFighter/caution'), { "remind": parseInt(element.text()) });
+    this.saveMatch();
   }
   remindRedIncrease = () => {
-    let element = $('#remind-red');
-    let value = parseInt(element.text());
-    if (value >= 3) {
-      element.text(value);
-    } else {
-      element.text(++value);
+    if (this.match.fighters.redFighter.caution.remind < 3){
+      this.match.fighters.redFighter.caution.remind++;
     }
-    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/redFighter/caution'), { "remind": parseInt(element.text()) });
+    this.saveMatch();
   }
   warningRedDecrease = () => {
-    let element = $('#warning-red');
-    let value = parseInt(element.text());
-    if (value <= 0) {
-      element.text(value);
-    } else {
-      element.text(--value);
+    if (this.match.fighters.redFighter.caution.warning > 0) {
+      this.match.fighters.redFighter.caution.warning--;
     }
-    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/redFighter/caution'), { "warning": parseInt(element.text()) });
+    this.saveMatch();
   }
   warningRedIncrease = () => {
-    let element = $('#warning-red');
-    let value = parseInt(element.text());
-    $('#remind-red').text("0");
-    element.text(++value);
-    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/redFighter/caution'), { "warning": parseInt(element.text()) });
+    this.match.fighters.redFighter.caution.warning++;
+    this.saveMatch();
   }
   medicalRedDecrease = () => {
-    let element = $('#medical-red');
-    let value = parseInt(element.text());
-    if (value <= 0) {
-      element.text(value);
-    } else {
-      element.text(--value);
+    if (this.match.fighters.redFighter.caution.medical > 0) {
+      this.match.fighters.redFighter.caution.medical--;
     }
-    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/redFighter/caution'), { "medical": parseInt(element.text()) });
+    this.saveMatch();
   }
   medicalRedIncrease = () => {
-    let element = $('#medical-red');
-    let value = parseInt(element.text());
-    element.text(++value);
-    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/redFighter/caution'), { "medical": parseInt(element.text()) });
+    this.match.fighters.redFighter.caution.medical++;
+    this.saveMatch();
   }
 
   remindBlueDecrease = () => {
-    let element = $('#remind-blue');
-    let value = parseInt(element.text());
-    if (value <= 0) {
-      element.text(value);
-    } else {
-      element.text(--value);
+    if (this.match.fighters.blueFighter.caution.remind > 0) {
+      this.match.fighters.blueFighter.caution.remind--;
     }
-    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/blueFighter/caution'), { "remind": parseInt(element.text()) });
+    this.saveMatch();  
   }
   remindBlueIncrease = () => {
-    let element = $('#remind-blue');
-    let value = parseInt(element.text());
-    if (value >= 3) {
-      element.text(value);
-    } else {
-      element.text(++value);
+    if (this.match.fighters.blueFighter.caution.remind < 3){
+      this.match.fighters.blueFighter.caution.remind++;
     }
-    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/blueFighter/caution'), { "remind": parseInt(element.text()) });
+    this.saveMatch();
   }
   warningBlueDecrease = () => {
-    let element = $('#warning-blue');
-    let value = parseInt(element.text());
-    if (value <= 0) {
-      element.text(value);
-    } else {
-      element.text(--value);
+    if (this.match.fighters.blueFighter.caution.warning > 0) {
+      this.match.fighters.blueFighter.caution.warning--;
     }
-    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/blueFighter/caution'), { "warning": parseInt(element.text()) });
+    this.saveMatch();
   }
   warningBlueIncrease = () => {
-    let element = $('#warning-blue');
-    let value = parseInt(element.text());
-    $('#remind-blue').text("0");
-    element.text(++value);
-    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/blueFighter/caution'), { "warning": parseInt(element.text()) });
+    this.match.fighters.blueFighter.caution.warning++;
+    this.saveMatch();
   }
   medicalBlueDecrease = () => {
-    let element = $('#medical-blue');
-    let value = parseInt(element.text());
-    if (value <= 0) {
-      element.text(value);
-    } else {
-      element.text(--value);
+    if (this.match.fighters.blueFighter.caution.medical > 0) {
+      this.match.fighters.blueFighter.caution.medical--;
     }
-    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/blueFighter/caution'), { "medical": parseInt(element.text()) });
+    this.saveMatch();
   }
   medicalBlueIncrease = () => {
-    let element = $('#medical-blue');
-    let value = parseInt(element.text());
-    element.text(++value);
-    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters/blueFighter/caution'), { "medical": parseInt(element.text()) });
+    this.match.fighters.blueFighter.caution.medical++;
+    this.saveMatch();
   }
 
   //Hàm dùng để thay thế những trận đấu có ký hiệu W. và L. trong giải đấu
