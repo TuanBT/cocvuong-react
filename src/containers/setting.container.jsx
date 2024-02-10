@@ -365,6 +365,41 @@ class SettingContainer extends Component {
   arrangeTournament = () => {
     console.log("arrangeTournament Start");
 
+    // Sắp xếp thứ tự ưu tiên: hạng cân nhiều VDV nhất, nếu bằng nhau thì Nam trước.
+    // Count the number of fighters in each weight category
+    const weightCount = {};
+    this.tournamentArrayRaw.forEach((fighter) => {
+      const weight = fighter[1]; // Extract the weight category from the string
+      weightCount[weight] = (weightCount[weight] || 0) + 1;
+    });
+
+    // Sort the fighters based on weight count and maintain the original order within each weight category
+    this.tournamentArrayRaw.sort((a, b) => {
+      const weightA = a[1]; // Extract the weight category from the string
+      const weightB = b[1]; // Extract the weight category from the string
+      const countA = weightCount[weightA];
+      const countB = weightCount[weightB];
+
+      // Sort by weight count in descending order
+      if (countB !== countA) {
+        return countB - countA;
+      }
+
+      // If weight count is the same, sort by lower weight
+      if (weightA !== weightB) {
+        // Move ">" weight category to the end
+        if (weightA.includes('>') && !weightB.includes('>')) {
+          return 1;
+        } else if (!weightA.includes('>') && weightB.includes('>')) {
+          return -1;
+        }
+        return weightA.localeCompare(weightB);
+      }
+
+      // If weight count is the same, maintain the original order
+      return this.tournamentArrayRaw.indexOf(a) - this.tournamentArrayRaw.indexOf(b);
+    });
+
     // Tạo đối tượng Map để gom nhóm các võ sĩ theo hạng cân
     let groupedData = new Map();
     this.tournamentArrayRaw.forEach(item => {
@@ -579,7 +614,7 @@ class SettingContainer extends Component {
         fightersMartialObjTemp.fighters.push(fighterMartialObjTemp);
         if (prevMatch !== item[0] + item[1].trim()) {
           this.tournamentMartialObj.tournamentMartial.slice(-1)[0].team.push(fightersMartialObjTemp);
-        }else{ //Dòng VDV đồng đội thứ 2 trở đi
+        } else { //Dòng VDV đồng đội thứ 2 trở đi
           this.tournamentMartialObj.tournamentMartial.slice(-1)[0].team.slice(-1)[0].fighters.push(fighterMartialObjTemp);
         }
         this.tournamentMartialStandardArray.push([matchNo, item[1].trim(), item[2].trim(), item[3].trim(), item[4].trim()]);
@@ -729,6 +764,7 @@ class SettingContainer extends Component {
                 <div className="tournament-text mb-5 mt-3">
                   <div className="form-title">
                     <h2><b>Nhập thông tin Đối Kháng CHUẨN</b></h2>
+                    <p className="text-muted"><i>Chức năng cho phép tạo một giải đấu đối kháng với thông tin đầu vào đã được sắp xếp và chuẩn hoá theo từng cặp đấu cố định.</i></p>
                   </div>
                   <div className="function-button">
                     <div className="input-group">
@@ -760,6 +796,7 @@ class SettingContainer extends Component {
                 <div className="tournament-text mb-5 mt-3">
                   <div className="form-title">
                     <h2><b>Nhập thông tin Thi Quyền CHUẨN</b></h2>
+                    <p className="text-muted"><i>Chức năng cho phép tạo một giải đấu thi quyền với thông tin đầu vào đã được sắp xếp và chuẩn hoá theo từng trận đấu cố định.</i></p>
                   </div>
                   <div className="function-button">
                     <div className="input-group">
@@ -791,6 +828,8 @@ class SettingContainer extends Component {
                 <div className="tournament-text mb-5 mt-3">
                   <div className="form-title">
                     <h2><b>Xử lý thông tin Đối Kháng THÔ</b></h2>
+                    <p className="text-muted"><i>Chức năng cho phép tạo một giải đấu đối kháng với thông tin đầu vào chỉ bao gồm danh sách vận động viên và hạng cân.
+                      <br />Chú ý: " <i className="fa-solid fa-shuffle"></i> Xáo trộn danh sách" chỉ sử dụng nếu không quan tâm việc bốc thăm.</i></p>
                   </div>
                   <div className="function-button">
                     <div className="input-group">
@@ -834,6 +873,7 @@ class SettingContainer extends Component {
                 <div className="tournament-text mb-5 mt-3">
                   <div className="form-title">
                     <h2><b>Xử lý thông tin Thi Quyền THÔ</b></h2>
+                    <p className="text-muted"><i>Chức năng cho phép tạo một giải đấu thi quyền với thông tin đầu vào chỉ bao gồm danh sách các vận động viên theo từng nội dung.</i></p>
                   </div>
                   <div className="function-button">
                     <div className="input-group">

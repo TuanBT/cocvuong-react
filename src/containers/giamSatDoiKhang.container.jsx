@@ -530,7 +530,7 @@ class GiamSatDoiKhangContainer extends Component {
     this.saveMatch();
   }
   remindRedIncrease = () => {
-    if (this.match.fighters.redFighter.caution.remind < 3){
+    if (this.match.fighters.redFighter.caution.remind < 3) {
       this.match.fighters.redFighter.caution.remind++;
     }
     this.saveMatch();
@@ -543,6 +543,7 @@ class GiamSatDoiKhangContainer extends Component {
   }
   warningRedIncrease = () => {
     this.match.fighters.redFighter.caution.warning++;
+    this.match.fighters.redFighter.caution.remind = 0;
     this.saveMatch();
   }
   medicalRedDecrease = () => {
@@ -560,10 +561,10 @@ class GiamSatDoiKhangContainer extends Component {
     if (this.match.fighters.blueFighter.caution.remind > 0) {
       this.match.fighters.blueFighter.caution.remind--;
     }
-    this.saveMatch();  
+    this.saveMatch();
   }
   remindBlueIncrease = () => {
-    if (this.match.fighters.blueFighter.caution.remind < 3){
+    if (this.match.fighters.blueFighter.caution.remind < 3) {
       this.match.fighters.blueFighter.caution.remind++;
     }
     this.saveMatch();
@@ -576,6 +577,7 @@ class GiamSatDoiKhangContainer extends Component {
   }
   warningBlueIncrease = () => {
     this.match.fighters.blueFighter.caution.warning++;
+    this.match.fighters.blueFighter.caution.remind = 0;
     this.saveMatch();
   }
   medicalBlueDecrease = () => {
