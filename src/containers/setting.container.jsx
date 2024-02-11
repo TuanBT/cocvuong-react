@@ -30,7 +30,7 @@ class SettingContainer extends Component {
     this.tournamentMartialArray = [];
     this.tournamentMartialStandardArray = [];
 
-    this.settingConst = {"setting":{"timeRound":90,"timeBreak":30,"timeExtra":60,"timeExtraBreak":15,"tournamentName":"Cóc Vương","isShowCountryFlag":false,"isShowFiveReferee":false,"isShowCautionBox":false,"isShowArenaB":false,"password":1}};
+    this.settingConst = { "setting": { "timeRound": 90, "timeBreak": 30, "timeExtra": 60, "timeExtraBreak": 15, "tournamentName": "Cóc Vương", "isShowCountryFlag": false, "isShowFiveReferee": false, "isShowCautionBox": false, "isShowArenaB": false, "password": 1 } };
     this.matchObj = { "match": { "no": 1, "type": "", "category": "", "win": "" }, "fighters": { "redFighter": { "result": "", "name": "Đỏ", "code": "", "caution": { "remind": 0, "warning": 0, "medical": 0 }, "score": 0 }, "blueFighter": { "result": "", "name": "Xanh", "code": "", "caution": { "remind": 0, "warning": 0, "medical": 0 }, "score": 0 } } }
     this.tournamentConst = { "arena": [{ "arenaName": "Sân A", "lastMatch": { "no": 1 }, "referee": [{ "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }] }, { "arenaName": "Sân B", "lastMatch": { "no": 1 }, "referee": [{ "blueScore": 0, "redScore": 0 }, { "blueScore": 1, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }] }], "tournament": [] };
     this.matchMartialObj = { "match": { "name": "" }, "team": [] };
@@ -226,6 +226,13 @@ class SettingContainer extends Component {
     console.log("downloadTournament End");
   }
 
+  downloadTournamentOrigin = () => {
+    console.log("downloadTournament Start");
+    this.tournamentArrangeHeader = ["STT", "HẠNG CÂN", "TÊN VẬN ĐỘNG VIÊN", "CODE/ĐƠN VỊ", "QUỐC GIA"];
+    this.exportExcel(this.tournamentArrangeHeader, this.state.data, "Thong tin DOI KHANG");
+    console.log("downloadTournament End");
+  }
+
   handleimportTournamentMartialFile = (event) => {
     console.log("handleimportTournamentMartialFile Start");
     this.tournamentMartialObj = JSON.parse(JSON.stringify(this.tournamentMartialConst));
@@ -327,6 +334,7 @@ class SettingContainer extends Component {
     console.log("handleimportTournamentRawFile End");
   }
 
+  //Sửa lại để chỉ xáo trộn trong hạng cân
   shuffle = () => {
     console.log("shuffle Start");
     let currentIndex = this.tournamentArrayRaw.length;
@@ -345,21 +353,65 @@ class SettingContainer extends Component {
       this.tournamentArrayRaw[randomIndex] = temporaryValue;
     }
 
-    this.tournamentArrayRaw.sort((a, b) => {
-      const weightA = a[1];
-      const weightB = b[1];
-
-      if (weightA < weightB) {
-        return -1;
-      } else if (weightA > weightB) {
-        return 1;
-      } else {
-        return 0;
-      }
-    });
+    this.grouping();
 
     this.setState({ data: this.tournamentArrayRaw });
     console.log("shuffle End");
+  }
+
+  grouping = () => {
+    console.log("grouping Start");
+    // Sắp xếp thứ tự ưu tiên: hạng cân nhiều VDV nhất, nếu bằng nhau thì Nam trước.
+    // Count the number of fighters in each weight category
+    const weightCount = {};
+    this.tournamentArrayRaw.forEach((fighter) => {
+      const weight = fighter[1]; // Extract the weight category from the string
+      weightCount[weight] = (weightCount[weight] || 0) + 1;
+    });
+
+    // Sort the fighters based on weight count and maintain the original order within each weight category
+    this.tournamentArrayRaw.sort((a, b) => {
+      const weightA = a[1]; // Extract the weight category from the string
+      const weightB = b[1]; // Extract the weight category from the string
+      const countA = weightCount[weightA];
+      const countB = weightCount[weightB];
+
+      // Sort by weight count in descending order
+      if (countB !== countA) {
+        return countB - countA;
+      }
+
+      // If weight count is the same, sort by lower weight
+      if (weightA !== weightB) {
+        // Move ">" weight category to the end
+        if (weightA.includes('>') && !weightB.includes('>')) {
+          return 1;
+        } else if (!weightA.includes('>') && weightB.includes('>')) {
+          return -1;
+        }
+        return weightA.localeCompare(weightB);
+      }
+
+      // If weight count is the same, maintain the original order
+      return this.tournamentArrayRaw.indexOf(a) - this.tournamentArrayRaw.indexOf(b);
+    });
+
+    let countId = 1;
+    for (let i = 0; i < this.tournamentArrayRaw.length; i++) {
+      const weightA = this.tournamentArrayRaw[i][1];
+      const weightB = this.tournamentArrayRaw[i + 1] ? this.tournamentArrayRaw[i + 1][1] : null;
+
+      this.tournamentArrayRaw[i][0] = countId;
+
+      if (weightA !== weightB) {
+        countId = 1;
+      } else {
+        countId++;
+      }
+    }
+
+    this.setState({ data: this.tournamentArrayRaw });
+    console.log("grouping End");
   }
 
   arrangeTournament = () => {
@@ -835,10 +887,14 @@ class SettingContainer extends Component {
                     <div className="input-group">
                       <a href={mauthodoikhang} download="3-Mau_Tho_Doi_Khang" target="_blank" rel="noreferrer" className="btn btn-outline-primary" role="button"><i className="fa-solid fa-file-download"></i> Download mẫu 3</a>
                       <input type="file" className="form-control" onChange={this.handleimportTournamentRawFile} />
-                      <button className="btn btn-info" type="button" onClick={this.shuffle}><i className="fa-solid fa-shuffle"></i> Xáo trộn danh sách</button>
                       <button className="btn btn-warning" type="button" onClick={this.arrangeTournament}><i className="fa-solid fa-layer-group"></i> Sắp xếp Đối Kháng</button>
                       <button className="btn btn-danger" type="button" onClick={this.importTournament}><i className="fa-solid fa-file-import"></i> Khởi tạo Đối Kháng</button>
                       <button className="btn btn-primary" type="button" onClick={this.downloadTournament}><i className="fa-solid fa-file-download"></i> Download Danh sách</button>
+                    </div>
+                    <div className="input-group pt-2">
+                      <button className="btn btn-primary" type="button" onClick={this.grouping}><i className="fa-solid fa-shuffle"></i> Nhóm theo hạng cân</button>
+                      <button className="btn btn-info" type="button" onClick={this.shuffle}><i className="fa-solid fa-shuffle"></i> Xáo trộn & Nhóm hạng cân</button>
+                      <button className="btn btn-primary" type="button" onClick={this.downloadTournamentOrigin}><i className="fa-solid fa-file-download"></i> Download Danh sách</button>
                     </div>
                   </div>
                   <table>
