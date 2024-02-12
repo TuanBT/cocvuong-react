@@ -12,6 +12,7 @@ import GiamSatThiQuyenContainer from './containers/giamSatThiQuyen.container';
 import GiamDinhThiQuyenContainer from './containers/giamDinhThiQuyen.container';
 import GiamDinhDoiKhangContainer from './containers/giamDinhDoiKhang.container';
 import SettingContainer from './containers/setting.container';
+import CreateTournamentContainer from './containers/createTournament.container';
 import LoginContainer from './containers/login.container';
 import SignupContainer from './containers/signup.container';
 
@@ -26,6 +27,7 @@ ReactDOM.render(
       <Route path="/giam-dinh-thi-quyen" component={GiamDinhThiQuyenContainer} />
       <Route path="/giam-dinh-doi-khang" component={GiamDinhDoiKhangContainer} />
       <Route path="/thiet-dat" component={SettingContainer} />
+      <Route path="/tao-giai" component={CreateTournamentContainer} />
       <Route path="/login" component={LoginContainer} />
       <Route path="/signup" component={SignupContainer} />
     </div>

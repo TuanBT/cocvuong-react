@@ -54,6 +54,24 @@ class HomeContainer extends Component {
                 </div>
               </div>
               <div className="col">
+                <div className="card mb-4 rounded-3 shadow-sm border-primary">
+                  <div className="card-header py-3 text-bg-primary border-primary">
+                    <h4 className="my-0 fw-normal">THIẾT ĐẶT</h4>
+                  </div>
+                  <div className="card-body">
+                    <span className="d-block text-center pb-3 bigIcon"><NavLink to="thiet-dat"><i className="fa-solid fa-gear"></i></NavLink></span>
+                  </div>
+                </div>
+              </div>
+              <div className="col">
+                <div className="card mb-4 rounded-3 shadow-sm border-primary">
+                  <div className="card-header py-3 text-bg-primary border-primary">
+                    <h4 className="my-0 fw-normal">TẠO GIẢI</h4>
+                  </div>
+                  <div className="card-body">
+                    <span className="d-block text-center pb-3 bigIcon"><NavLink to="tao-giai"><i className="fas fa-file-upload"></i></NavLink></span>
+                  </div>
+                </div>
               </div>
               <div className="col">
               </div>
@@ -64,16 +82,6 @@ class HomeContainer extends Component {
                   </div>
                   <div className="card-body">
                     <span className="d-block text-center pb-3 bigIcon"><NavLink to="thong-tin-doi-khang"><i className="fa-solid fa-tv"></i></NavLink></span>
-                  </div>
-                </div>
-              </div>
-              <div className="col">
-                <div className="card mb-4 rounded-3 shadow-sm border-primary">
-                  <div className="card-header py-3 text-bg-primary border-primary">
-                    <h4 className="my-0 fw-normal">THIẾT ĐẶT</h4>
-                  </div>
-                  <div className="card-body">
-                    <span className="d-block text-center pb-3 bigIcon"><NavLink to="thiet-dat"><i className="fa-solid fa-gear"></i></NavLink></span>
                   </div>
                 </div>
               </div>

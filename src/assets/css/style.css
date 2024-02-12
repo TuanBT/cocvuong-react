@@ -1079,6 +1079,7 @@ textarea {
     overflow: hidden;
     border: 1px solid rgb(218, 220, 224);
     padding: 24px 24px;
+    background: #f5f6fa;
 }
 
 .tournament-text {
@@ -1087,6 +1088,7 @@ textarea {
     overflow: hidden;
     border: 1px solid rgb(218, 220, 224);
     padding: 24px 24px;
+    background: #f5f6fa;
 }
 
 .function-button {
