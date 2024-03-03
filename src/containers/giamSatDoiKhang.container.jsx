@@ -124,7 +124,7 @@ class GiamSatDoiKhangContainer extends Component {
         this.numReferee = 5;
         let refereeElement45 = "<div class='referee'> <div class='referee-title gd4'> <span class='info-text'> Giám định 4 </span> </div><div class='referee-score'> <div class='red-score-refereeSc'> <span class='info-text'> <span id='red-score-4'></span> </span> </div><div class='blue-score-refereeSc'> <span class='info-text'> <span id='blue-score-4'></span> </span> </div></div></div><div class='line-break'></div><div class='referee'> <div class='referee-title gd5'> <span class='info-text'> Giám định 5 </span> </div><div class='referee-score'> <div class='red-score-refereeSc'> <span class='info-text'> <span id='red-score-5'></span> </span> </div><div class='blue-score-refereeSc'> <span class='info-text'> <span id='blue-score-5'></span> </span> </div></div></div><div class='line-break'></div>";
         $(".referee-score-area").append(refereeElement45);
-        $(".referee").width("17%");
+        // $(".referee").width("17%");
       }
       if (this.settingObj.isShowCautionBox === true) {
         $(".red-caution").show();
@@ -306,9 +306,13 @@ class GiamSatDoiKhangContainer extends Component {
     $("#remind-red").text(this.match.fighters.redFighter.caution.remind);
     $("#warning-red").text(this.match.fighters.redFighter.caution.warning);
     $("#medical-red").text(this.match.fighters.redFighter.caution.medical);
+    $("#fall-red").text(this.match.fighters.redFighter.caution.fall);
+    $("#bound-red").text(this.match.fighters.redFighter.caution.bound);
     $("#remind-blue").text(this.match.fighters.blueFighter.caution.remind);
     $("#warning-blue").text(this.match.fighters.blueFighter.caution.warning);
     $("#medical-blue").text(this.match.fighters.blueFighter.caution.medical);
+    $("#fall-blue").text(this.match.fighters.blueFighter.caution.fall);
+    $("#bound-blue").text(this.match.fighters.blueFighter.caution.bound);
 
     console.log("showValue() End");
   }
@@ -556,6 +560,30 @@ class GiamSatDoiKhangContainer extends Component {
     this.match.fighters.redFighter.caution.medical++;
     this.saveMatch();
   }
+  fallRedDecrease = () => {
+    if (this.match.fighters.redFighter.caution.fall > 0) {
+      this.match.fighters.redFighter.caution.fall--;
+      this.match.fighters.blueFighter.score--;
+    }
+    this.saveMatch();
+  }
+  fallRedIncrease = () => {
+    this.match.fighters.redFighter.caution.fall++;
+    this.match.fighters.blueFighter.score++;
+    this.saveMatch();
+  }
+  boundRedDecrease = () => {
+    if (this.match.fighters.redFighter.caution.bound > 0) {
+      this.match.fighters.redFighter.caution.bound--;
+      this.match.fighters.redFighter.score++;
+    }
+    this.saveMatch();
+  }
+  boundRedIncrease = () => {
+    this.match.fighters.redFighter.caution.bound++;
+    this.match.fighters.redFighter.score--;
+    this.saveMatch();
+  }
 
   remindBlueDecrease = () => {
     if (this.match.fighters.blueFighter.caution.remind > 0) {
@@ -588,6 +616,30 @@ class GiamSatDoiKhangContainer extends Component {
   }
   medicalBlueIncrease = () => {
     this.match.fighters.blueFighter.caution.medical++;
+    this.saveMatch();
+  }
+  fallBlueDecrease = () => {
+    if (this.match.fighters.blueFighter.caution.fall > 0) {
+      this.match.fighters.blueFighter.caution.fall--;
+      this.match.fighters.redFighter.score--;
+    }
+    this.saveMatch();
+  }
+  fallBlueIncrease = () => {
+    this.match.fighters.blueFighter.caution.fall++;
+    this.match.fighters.redFighter.score++;
+    this.saveMatch();
+  }
+  boundBlueDecrease = () => {
+    if (this.match.fighters.blueFighter.caution.bound > 0) {
+      this.match.fighters.blueFighter.caution.bound--;
+      this.match.fighters.blueFighter.score++;
+    }
+    this.saveMatch();
+  }
+  boundBlueIncrease = () => {
+    this.match.fighters.blueFighter.caution.bound++;
+    this.match.fighters.blueFighter.score--;
     this.saveMatch();
   }
 
@@ -920,69 +972,7 @@ class GiamSatDoiKhangContainer extends Component {
                   </span>
                 </span>
               </div>
-              <div className="referee-score-area">
-                <div className="line-break"></div>
-                <div className="referee">
-                  <div className="referee-title gd1">
-                    <span className="info-text">
-                      Giám định 1
-                    </span>
-                  </div>
-                  <div className="referee-score">
-                    <div className="red-score-refereeSc">
-                      <span className="info-text">
-                        <span id="red-score-1"></span>
-                      </span>
-                    </div>
-                    <div className="blue-score-refereeSc">
-                      <span className="info-text">
-                        <span id="blue-score-1"></span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="line-break"></div>
-                <div className="referee">
-                  <div className="referee-title gd2">
-                    <span className="info-text">
-                      Giám định 2
-                    </span>
-                  </div>
-                  <div className="referee-score">
-                    <div className="red-score-refereeSc">
-                      <span className="info-text">
-                        <span id="red-score-2"></span>
-                      </span>
-                    </div>
-                    <div className="blue-score-refereeSc">
-                      <span className="info-text">
-                        <span id="blue-score-2"></span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="line-break"></div>
-                <div className="referee">
-                  <div className="referee-title gd3">
-                    <span className="info-text">
-                      Giám định 3
-                    </span>
-                  </div>
-                  <div className="referee-score">
-                    <div className="red-score-refereeSc">
-                      <span className="info-text">
-                        <span id="red-score-3"></span>
-                      </span>
-                    </div>
-                    <div className="blue-score-refereeSc">
-                      <span className="info-text">
-                        <span id="blue-score-3"></span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="line-break"></div>
-              </div>
+              
               <div className="red-fighter">
                 <div className="red-win">
                   <span className="info-text">
@@ -995,7 +985,6 @@ class GiamSatDoiKhangContainer extends Component {
                   </span>
                 </div>
                 <div className="fighter-name red">
-
                   <span className="info-text-fighter-name-red" onClick={this.redWin}>
                     <span className="icon-win-red">
                       <i className="fa-solid fa-hand-back-fist"></i>&nbsp;
@@ -1111,11 +1100,88 @@ class GiamSatDoiKhangContainer extends Component {
                   <div className="btn-increment btn-increment-red" onClick={this.medicalRedIncrease}><span className="info-text"><span>+</span></span></div>
                 </div>
                 <div className="line-break-caution"></div>
+                <div className="cautions-box">
+                  <div className="cautions-label cautions-label-red"><span className="info-text">&nbsp;<i className="fas fa-slash"></i>&nbsp;Ngã&nbsp;</span></div>
+                  <div className="btn-decrement btn-decrement-red" onClick={this.fallRedDecrease}><span className="info-text"><span>-</span></span></div>
+                  <div className="text-cautions-number text-cautions-number-red"><span className="info-text"><span id="fall-red">0</span></span></div>
+                  <div className="btn-increment btn-increment-red" onClick={this.fallRedIncrease}><span className="info-text"><span>+</span></span></div>
+                </div>
+                <div className="line-break-caution"></div>
+                <div className="cautions-box">
+                  <div className="cautions-label cautions-label-red"><span className="info-text">&nbsp;<i className="fas fa-grip-lines-vertical"></i>&nbsp;Biên&nbsp;</span></div>
+                  <div className="btn-decrement btn-decrement-red" onClick={this.boundRedDecrease}><span className="info-text"><span>-</span></span></div>
+                  <div className="text-cautions-number text-cautions-number-red"><span className="info-text"><span id="bound-red">0</span></span></div>
+                  <div className="btn-increment btn-increment-red" onClick={this.boundRedIncrease}><span className="info-text"><span>+</span></span></div>
+                </div>
+                <div className="line-break-caution"></div>
               </div>
               <span className="info-text">
                 <span id="red-score"></span>
               </span>
             </div>
+            <div className="referee-score-area">
+                <div className="line-break"></div>
+                <div className="referee">
+                  <div className="referee-title gd1">
+                    <span className="info-text">
+                      Giám định 1
+                    </span>
+                  </div>
+                  <div className="referee-score">
+                    <div className="red-score-refereeSc">
+                      <span className="info-text">
+                        <span id="red-score-1"></span>
+                      </span>
+                    </div>
+                    <div className="blue-score-refereeSc">
+                      <span className="info-text">
+                        <span id="blue-score-1"></span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="line-break"></div>
+                <div className="referee">
+                  <div className="referee-title gd2">
+                    <span className="info-text">
+                      Giám định 2
+                    </span>
+                  </div>
+                  <div className="referee-score">
+                    <div className="red-score-refereeSc">
+                      <span className="info-text">
+                        <span id="red-score-2"></span>
+                      </span>
+                    </div>
+                    <div className="blue-score-refereeSc">
+                      <span className="info-text">
+                        <span id="blue-score-2"></span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="line-break"></div>
+                <div className="referee">
+                  <div className="referee-title gd3">
+                    <span className="info-text">
+                      Giám định 3
+                    </span>
+                  </div>
+                  <div className="referee-score">
+                    <div className="red-score-refereeSc">
+                      <span className="info-text">
+                        <span id="red-score-3"></span>
+                      </span>
+                    </div>
+                    <div className="blue-score-refereeSc">
+                      <span className="info-text">
+                        <span id="blue-score-3"></span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="line-break"></div>
+              </div>
             <div className="blue-score">
               <div className="addition" onClick={this.blueAddition}></div>
               <div className="blueFlag countryFlag" style={{ display: 'none' }}><img className="flagImage" src={require('../assets/flag/' + this.countryBlue + '.jpg')} /></div>
@@ -1141,6 +1207,20 @@ class GiamSatDoiKhangContainer extends Component {
                   <div className="btn-decrement btn-decrement-blue" onClick={this.medicalBlueDecrease}><span className="info-text"><span>-</span></span></div>
                   <div className="text-cautions-number text-cautions-number-blue"><span className="info-text"><span id="medical-blue">0</span></span></div>
                   <div className="btn-increment btn-increment-blue" onClick={this.medicalBlueIncrease}><span className="info-text"><span>+</span></span></div>
+                </div>
+                <div className="line-break-caution"></div>
+                <div className="cautions-box">
+                  <div className="cautions-label cautions-label-blue"><span className="info-text">&nbsp;<i className="fas fa-slash"></i>&nbsp;Ngã&nbsp;</span></div>
+                  <div className="btn-decrement btn-decrement-blue" onClick={this.fallBlueDecrease}><span className="info-text"><span>-</span></span></div>
+                  <div className="text-cautions-number text-cautions-number-blue"><span className="info-text"><span id="fall-blue">0</span></span></div>
+                  <div className="btn-increment btn-increment-blue" onClick={this.fallBlueIncrease}><span className="info-text"><span>+</span></span></div>
+                </div>
+                <div className="line-break-caution"></div>
+                <div className="cautions-box">
+                  <div className="cautions-label cautions-label-blue"><span className="info-text">&nbsp;<i className="fas fa-grip-lines-vertical"></i>&nbsp;Biên&nbsp;</span></div>
+                  <div className="btn-decrement btn-decrement-blue" onClick={this.boundBlueDecrease}><span className="info-text"><span>-</span></span></div>
+                  <div className="text-cautions-number text-cautions-number-blue"><span className="info-text"><span id="bound-blue">0</span></span></div>
+                  <div className="btn-increment btn-increment-blue" onClick={this.boundBlueIncrease}><span className="info-text"><span>+</span></span></div>
                 </div>
                 <div className="line-break-caution"></div>
               </div>
