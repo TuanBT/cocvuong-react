@@ -5,13 +5,7 @@ import { ref, set, get, update, remove, child, onValue } from "firebase/database
 import logo from '../assets/img/logo.png';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-// import { read, write, utils } from 'xlsx';
-// import FileSaver from "file-saver";
 import { NavLink } from "react-router-dom";
-// import mauchuandoikhang from '../assets/template/1-Mau_Chuan_Doi_Khang.xlsx';
-// import mauchuanthiquyen from '../assets/template/2-Mau_Chuan_Thi_Quyen.xlsx';
-// import mauthodoikhang from '../assets/template/3-Mau_Tho_Doi_Khang.xlsx';
-// import mauthothiquyen from '../assets/template/4-Mau_Tho_Thi_Quyen.xlsx';
 
 class SettingContainer extends Component {
   constructor(props) {
@@ -23,20 +17,8 @@ class SettingContainer extends Component {
 
     this.db = Firebase();
     this.settingObj;
-    // this.tournamentObj;
-    // this.tournamentMartialObj;
-    // this.tournamentStandardArray = [];
-    // this.tournamentArray = [];
-    // this.tournamentMartialArray = [];
-    // this.tournamentMartialStandardArray = [];
 
-    this.settingConst = { "setting": { "timeRound": 90, "timeBreak": 30, "timeExtra": 60, "timeExtraBreak": 15, "tournamentName": "Cóc Vương", "isShowCountryFlag": false, "isShowFiveReferee": false, "isShowCautionBox": false, "isShowArenaB": false, "password": 1 } };
-    // this.matchObj = { "match": { "no": 1, "type": "", "category": "", "win": "" }, "fighters": { "redFighter": { "result": "", "name": "Đỏ", "code": "", "caution": { "remind": 0, "warning": 0, "medical": 0 }, "score": 0 }, "blueFighter": { "result": "", "name": "Xanh", "code": "", "caution": { "remind": 0, "warning": 0, "medical": 0 }, "score": 0 } } }
-    // this.tournamentConst = { "arena": [{ "arenaName": "Sân A", "lastMatch": { "no": 1 }, "referee": [{ "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }] }, { "arenaName": "Sân B", "lastMatch": { "no": 1 }, "referee": [{ "blueScore": 0, "redScore": 0 }, { "blueScore": 1, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }] }], "tournament": [] };
-    // this.matchMartialObj = { "match": { "name": "" }, "team": [] };
-    // this.tournamentMartialConst = { "lastMatchMartial": { "matchMartialNo": 1, "teamMartialNo": 1 }, "tournamentMartial": [] };
-    // this.fightersMartialObj = { "fighters": [], "no": 0, "score": 0, "refereeMartial": [{ "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }] };
-    // this.fighterMartialObj = { "fighter": { "code": "", "name": "", "country": "" } }
+    this.settingConst = { "setting": { "timeRound": 90, "timeBreak": 30, "timeExtra": 60, "timeExtraBreak": 15, "tournamentName": "Cóc Vương", "isShowCountryFlag": false, "isShowFiveReferee": false, "isShowCautionBox": false, "isShowArenaB": false, "passwordSetting": 1, "passwordGiamSat": 1, "passwordGiamDinh": 1 } };
   }
 
   componentDidMount() {
@@ -48,7 +30,7 @@ class SettingContainer extends Component {
     var password = $('#txtPassword').val();
 
     if (password != null && password != "") {
-      onValue(ref(this.db, 'setting/password'), (snapshot) => {
+      onValue(ref(this.db, 'setting/passwordSetting'), (snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           this.main();
@@ -70,7 +52,9 @@ class SettingContainer extends Component {
       $("input[name=timeExtra]").val(this.settingObj.timeExtra);
       $("input[name=timeExtraBreak]").val(this.settingObj.timeExtraBreak);
       $("input[name=tournamentName]").val(this.settingObj.tournamentName);
-      $("input[name=password]").val(this.settingObj.password);
+      $("input[name=passwordSetting]").val(this.settingObj.passwordSetting);
+      $("input[name=passwordGiamDinh]").val(this.settingObj.passwordGiamDinh);
+      $("input[name=passwordGiamSat]").val(this.settingObj.passwordGiamSat);
       $("#flexSwitchCountryFlag").prop("checked", this.settingObj.isShowCountryFlag);
       $("#showCautionBox").prop("checked", this.settingObj.isShowCautionBox);
       $("#showArenaB").prop("checked", this.settingObj.isShowArenaB);
@@ -101,7 +85,9 @@ class SettingContainer extends Component {
         $("input[name=timeExtra]").val(this.settingObj.timeExtra);
         $("input[name=timeExtraBreak]").val(this.settingObj.timeExtraBreak);
         $("input[name=tournamentName]").val(this.settingObj.tournamentName);
-        $("input[name=password]").val(this.settingObj.password);
+        $("input[name=passwordSetting]").val(this.settingObj.passwordSetting);
+        $("input[name=passwordGiamDinh]").val(this.settingObj.passwordGiamDinh);
+        $("input[name=passwordGiamSat]").val(this.settingObj.passwordGiamSat);
         $("#flexSwitchCountryFlag").prop("checked", this.settingObj.isShowCountryFlag);
         $("#showCautionBox").prop("checked", this.settingObj.isShowCautionBox);
         $("#showArenaB").prop("checked", this.settingObj.isShowArenaB);
@@ -125,7 +111,9 @@ class SettingContainer extends Component {
       "isShowCautionBox": $("#showCautionBox").prop("checked"),
       "isShowArenaB": $("#showArenaB").prop("checked"),
       "isShowFiveReferee": $("#quantityReferee").prop("checked"),
-      "password": parseInt($("input[name=password]").val()),
+      "passwordSetting": parseInt($("input[name=passwordSetting]").val()),
+      "passwordGiamDinh": parseInt($("input[name=passwordGiamDinh]").val()),
+      "passwordGiamSat": parseInt($("input[name=passwordGiamSat]").val()),
     }
     update(ref(this.db, 'setting'), this.settingObj).then(() => {
       toast.success("Cập nhập thông tin giải đấu thành công!");
@@ -183,6 +171,15 @@ class SettingContainer extends Component {
                       <div className="input-group mb-3">
                         <input type="text" className="form-control" placeholder="" name="tournamentName" />
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="row">
+                    <div className="col">
+                      <label>Đặt mật khẩu THIẾT ĐẶT</label>
+                      <div className="input-group mb-3">
+                        <input type="number" className="form-control" placeholder="" name="passwordSetting" />
+                      </div>
                       <div className="form-check form-switch">
                         <input className="form-check-input" type="checkbox" id="flexSwitchCountryFlag" />
                         <label className="form-check-label" htmlFor="flexSwitchCountryFlag">Hiển thị cờ quốc gia</label>
@@ -193,9 +190,15 @@ class SettingContainer extends Component {
                       </div>
                     </div>
                     <div className="col">
-                      <label>Đặt mật khẩu</label>
+                      <label>Đặt mật khẩu GIÁM SÁT</label>
                       <div className="input-group mb-3">
-                        <input type="number" className="form-control" placeholder="" name="password" />
+                        <input type="number" className="form-control" placeholder="" name="passwordGiamSat" />
+                      </div>
+                    </div>
+                    <div className="col">
+                      <label>Đặt mật khẩu GIÁM ĐỊNH</label>
+                      <div className="input-group mb-3">
+                        <input type="number" className="form-control" placeholder="" name="passwordGiamDinh" />
                       </div>
                       <div className="form-check form-switch">
                         <input className="form-check-input" type="checkbox" id="quantityReferee" />

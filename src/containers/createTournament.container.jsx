@@ -74,7 +74,7 @@ class CreateTournamentContainer extends Component {
     var password = $('#txtPassword').val();
 
     if (password != null && password != "") {
-      onValue(ref(this.db, 'setting/password'), (snapshot) => {
+      onValue(ref(this.db, 'setting/passwordSetting'), (snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           this.main();

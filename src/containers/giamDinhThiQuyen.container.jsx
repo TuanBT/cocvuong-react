@@ -44,7 +44,7 @@ class GiamDinhThiQuyenContainer extends Component {
     var password = $('#txtPassword').val();
 
     if (password != null && password != "") {
-      onValue(ref(this.db, 'setting/password'), (snapshot) => {
+      onValue(ref(this.db, 'setting/passwordGiamDinh'), (snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           document.addEventListener("keydown", this._handleKeyDown);

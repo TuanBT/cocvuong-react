@@ -74,7 +74,7 @@ class GiamSatThiQuyenContainer extends Component {
     var password = $('#txtPassword').val();
 
     if (password != null && password != "") {
-      onValue(ref(this.db, 'setting/password'), (snapshot) => {
+      onValue(ref(this.db, 'setting/passwordGiamSat'), (snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           this.main();
@@ -172,7 +172,7 @@ class GiamSatThiQuyenContainer extends Component {
     $("#match-martial-team").html("");
     for (let i = 0; i < this.teamMartial.fighters.length; i++) {
       let divFlag = this.settingObj.isShowCountryFlag === true ? "<div class='countryFlagHD'><img class='flagImageHD' src='" + require('../assets/flag/' + this.teamMartial.fighters[i].fighter.country + '.jpg') + "'></div>" : "";
-      $("#match-martial-team").append("<div class='fighter-detail'>" + divFlag + "<div class='style-hd-fighter-code'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.code + "</span></div><div class='style-hd-fighter-name'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.name + "</span></div></div>");
+      $("#match-martial-team").append("<div class='fighter-detail'>" + divFlag + "<div class='style-hd-fighter-name'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.name + "</span></div><div class='style-hd-fighter-code'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.code + "</span></div></div>");
     }
 
     for (let i = 1; i <= this.numReferee; i++) {

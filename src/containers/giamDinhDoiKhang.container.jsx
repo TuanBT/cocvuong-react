@@ -24,7 +24,7 @@ class GiamDinhDoiKhangContainer extends Component {
     this.refereeName = "";
     this.referreIndex = -1;
     this.path = "";
-    this.arenaNoIndex;
+    this.arenaNoIndex = 0;
     this.matchNoCurrentIndex;
     this.teamNoCurrentIndex;
   }
@@ -38,7 +38,7 @@ class GiamDinhDoiKhangContainer extends Component {
     var password = $('#txtPassword').val();
 
     if (password != null && password != "") {
-      onValue(ref(this.db, 'setting/password'), (snapshot) => {
+      onValue(ref(this.db, 'setting/passwordGiamDinh'), (snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           this.main();
@@ -57,19 +57,6 @@ class GiamDinhDoiKhangContainer extends Component {
       this.settingObj = snapshot.val();
       if (this.settingObj.isShowArenaB === true) {
         $(".arenaChooseBox").show();
-        let arenaNo = $("input:radio[name ='optionsArena']:checked").val();
-        if (arenaNo != null && arenaNo != "") {
-          this.arenaNoIndex = arenaNo;
-          get(child(ref(this.db), 'arena/' + this.arenaNoIndex + '/arenaName')).then((snapshot) => {
-            $('#arena-name').html(snapshot.val());
-          })
-        }
-      }
-      else {
-        this.arenaNoIndex = 0;
-        get(child(ref(this.db), 'arena/' + this.arenaNoIndex + '/arenaName')).then((snapshot) => {
-          $('#arena-name').html(snapshot.val());
-        })
       }
       $('#tournamentName').html(this.settingObj.tournamentName);
       let refereeChoose123 = "<input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee1' value='1' checked><label class='btn btn-outline-secondary' for='optionsReferee1'><i class='fa-solid fa-user'></i><br>Giám định 1</label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee2' value='2'><label class='btn btn-outline-secondary' for='optionsReferee2'><i class='fa-solid fa-user'></i><br>Giám định 2</label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee3' value='3'><label class='btn btn-outline-secondary' for='optionsReferee3'><i class='fa-solid fa-user'></i><br>Giám định 3</label>";
@@ -102,6 +89,11 @@ class GiamDinhDoiKhangContainer extends Component {
   }
 
   chooseRefereeNo = () => {
+    let arenaNo = $("input:radio[name ='optionsArena']:checked").val();
+    this.arenaNoIndex = arenaNo;
+    get(child(ref(this.db), 'arena/' + this.arenaNoIndex + '/arenaName')).then((snapshot) => {
+      $('#arena-name').html(snapshot.val());
+    })
     let refereeNo = $("input:radio[name ='optionsReferee']:checked").val();
     if (refereeNo != null && refereeNo != "") {
       this.hideChooseRefereeNoModal();

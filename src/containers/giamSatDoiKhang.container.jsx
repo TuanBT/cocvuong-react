@@ -51,7 +51,7 @@ class GiamSatDoiKhangContainer extends Component {
     this.temporaryWin;
     this.countryRed = "red";
     this.countryBlue = "blue";
-    this.arenaNoIndex;
+    this.arenaNoIndex = 0;
 
     this.tournamentConst = { "lastMatch": { "no": 1 }, "referee": [{ "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }], "tournament": [] };
     this.matchObj = { "match": { "no": 1, "type": "", "category": "", "win": "" }, "fighters": { "redFighter": { "name": "Đỏ", "code": "", "score": 0 }, "blueFighter": { "name": "Xanh", "code": "", "score": 0 } } };
@@ -66,7 +66,7 @@ class GiamSatDoiKhangContainer extends Component {
     var password = $('#txtPassword').val();
 
     if (password != null && password != "") {
-      onValue(ref(this.db, 'setting/password'), (snapshot) => {
+      onValue(ref(this.db, 'setting/passwordGiamSat'), (snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           this.main();
@@ -96,15 +96,14 @@ class GiamSatDoiKhangContainer extends Component {
     if (arenaNo != null && arenaNo != "") {
       this.hideChooseArenaNoModal();
       this.arenaNoIndex = arenaNo;
-      get(child(ref(this.db), 'arena/' + this.arenaNoIndex + '/arenaName')).then((snapshot) => {
-        $('#arena-name').html(snapshot.val());
-      })
+      // get(child(ref(this.db), 'arena/' + this.arenaNoIndex + '/arenaName')).then((snapshot) => {
+      //   $('#arena-name').html(snapshot.val());
+      // })
       this.showTournamentInfo();
     }
   }
 
   showTournamentInfo = () => {
-    this.arenaNoIndex = 0;
     get(child(ref(this.db), 'arena/' + this.arenaNoIndex + '/arenaName')).then((snapshot) => {
       $('#arena-name').html(snapshot.val());
     })
@@ -504,7 +503,7 @@ class GiamSatDoiKhangContainer extends Component {
         this.hideModalConfirm();
       }
     })
-    console.log("redWin() End");
+    console.log("blueWin() End");
   }
 
   redAddition = () => {
@@ -761,6 +760,11 @@ class GiamSatDoiKhangContainer extends Component {
         if (this.match.fighters.redFighter.score != this.match.fighters.blueFighter.score) {
           this.stopTimer();
           $(".timer-text").css("background-color", this.redColor);
+          if (this.match.fighters.redFighter.score > this.match.fighters.blueFighter.score) {
+            this.redWin();
+          }else{
+            this.blueWin();
+          }
           return;
         } else {
           //Hiệp phụ khi kết quả hòa
@@ -780,6 +784,11 @@ class GiamSatDoiKhangContainer extends Component {
       else if (this.round == this.extraRound) {
         this.stopTimer();
         $(".timer-text").css("background-color", this.redColor);
+        if (this.match.fighters.redFighter.score > this.match.fighters.blueFighter.score) {
+          this.redWin();
+        }else if (this.match.fighters.redFighter.score < this.match.fighters.blueFighter.score){
+          this.blueWin();
+        }
         return;
       }
     }
@@ -979,11 +988,6 @@ class GiamSatDoiKhangContainer extends Component {
 
                   </span>
                 </div>
-                <div className="fighter-code red">
-                  <span className="info-text-fighter-code-red">
-                    <span id="red-code"></span>
-                  </span>
-                </div>
                 <div className="fighter-name red">
                   <span className="info-text-fighter-name-red" onClick={this.redWin}>
                     <span className="icon-win-red">
@@ -991,6 +995,11 @@ class GiamSatDoiKhangContainer extends Component {
                     </span>
                     <span id="red-fighter">
                     </span>
+                  </span>
+                </div>
+                <div className="fighter-code red">
+                  <span className="info-text-fighter-code-red">
+                    <span id="red-code"></span>
                   </span>
                 </div>
               </div>
@@ -1056,17 +1065,17 @@ class GiamSatDoiKhangContainer extends Component {
 
                   </span>
                 </div>
-                <div className="fighter-code blue">
-                  <span className="info-text-fighter-code-blue">
-                    <span id="blue-code"></span>
-                  </span>
-                </div>
                 <div className="fighter-name blue">
                   <span className="info-text-fighter-name-blue" onClick={this.blueWin}>
                     <span id="blue-fighter"></span>
                     <span className="icon-win-blue">
                       &nbsp;<i className="fa-solid fa-hand-back-fist"></i>
                     </span>
+                  </span>
+                </div>
+                <div className="fighter-code blue">
+                  <span className="info-text-fighter-code-blue">
+                    <span id="blue-code"></span>
                   </span>
                 </div>
               </div>
