@@ -170,9 +170,10 @@ class GiamSatThiQuyenContainer extends Component {
     $("#match-martial-name").html(this.tournamentMartialObj[this.matchMartialNoCurrent - 1].match.name);
     $("#match-martial-no").html(this.tournamentMartialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].no);
     $("#match-martial-team").html("");
+    let divFlag = this.settingObj.isShowCountryFlag === true ? "<div class='countryFlagHD'><img class='flagImageHD' src='" + require('../assets/flag/' + this.teamMartial.fighters[0].fighter.country + '.jpg') + "'></div>" : "";
+    $("#match-martial-code").html(divFlag + "<div class='style-hd-fighter-code'><span class='info-text'>" + this.teamMartial.fighters[0].fighter.code + "</span></div>");
     for (let i = 0; i < this.teamMartial.fighters.length; i++) {
-      let divFlag = this.settingObj.isShowCountryFlag === true ? "<div class='countryFlagHD'><img class='flagImageHD' src='" + require('../assets/flag/' + this.teamMartial.fighters[i].fighter.country + '.jpg') + "'></div>" : "";
-      $("#match-martial-team").append("<div class='fighter-detail'>" + divFlag + "<div class='style-hd-fighter-name'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.name + "</span></div><div class='style-hd-fighter-code'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.code + "</span></div></div>");
+      $("#match-martial-team").append("<div class='fighter-detail'><div class='style-hd-fighter-name'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.name + "</span></div></div>");
     }
 
     for (let i = 1; i <= this.numReferee; i++) {
@@ -414,9 +415,20 @@ class GiamSatThiQuyenContainer extends Component {
                   </span>
                 </div>
               </div>
-              <div className="match-fighter" id="match-martial-team">
+              <div className="match-fighter">
+                <div id="match-martial-code">
+                  {/* <div className="countryFlagHD">
+                    <img className="flagImageHD" src="/static/media/VN.44c273f2fd2aa811af79.jpg" />
+                  </div>
+                  <div className="style-hd-fighter-code">
+                    <span className="info-text"></span>
+                  </div> */}
+                </div>
+                <div id="match-martial-team">
+
+                </div>
                 {/* <div className="fighter-detail">
-                    <div className="style-hd-style-hd-.fighter-code">
+                    <div className="style-hd-style-hd-fighter-code">
                         <span className="info-text">
                             SE123456
                         </span>
