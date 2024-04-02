@@ -96,7 +96,7 @@ class GiamSatThiQuyenContainer extends Component {
         this.numReferee = 5;
         let refereeElement45 = "<div class='referee-sub-area'> <div class='style-hd-referee-title'> <span class='info-text'> Giám định 4 </span> </div><div class='referee-sub-score'> <span class='info-text' id='referee-4-score'> 00 </span> </div></div><div class='spec-score'></div><div class='referee-sub-area'> <div class='style-hd-referee-title'> <span class='info-text'> Giám định 5 </span> </div><div class='referee-sub-score'> <span class='info-text' id='referee-5-score'> 00 </span> </div></div><div class='spec-score'></div>";
         $(".style-hd-referee-score-area").append(refereeElement45);
-        $(".spec-score").width("4.1%");
+        // $(".spec-score").width("4.1%");
       }
     })
 
@@ -170,9 +170,11 @@ class GiamSatThiQuyenContainer extends Component {
     $("#match-martial-name").html(this.tournamentMartialObj[this.matchMartialNoCurrent - 1].match.name);
     $("#match-martial-no").html(this.tournamentMartialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].no);
     $("#match-martial-team").html("");
+    let divFlag = this.settingObj.isShowCountryFlag === true ? "<div class='countryFlagHD'><img class='info-text flagImageHD' src='" + require('../assets/flag/' + this.teamMartial.fighters[0].fighter.country + '.jpg') + "'></div>" : "";
+    $("#group-fighter-info").html(divFlag);
+    $("#hd-fighter-code").html(this.teamMartial.fighters[0].fighter.code);
     for (let i = 0; i < this.teamMartial.fighters.length; i++) {
-      let divFlag = this.settingObj.isShowCountryFlag === true ? "<div class='countryFlagHD'><img class='flagImageHD' src='" + require('../assets/flag/' + this.teamMartial.fighters[i].fighter.country + '.jpg') + "'></div>" : "";
-      $("#match-martial-team").append("<div class='fighter-detail'>" + divFlag + "<div class='style-hd-fighter-name'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.name + "</span></div><div class='style-hd-fighter-code'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.code + "</span></div></div>");
+      $("#match-martial-team").append("<div class='spec-score'></div><div class='fighter-detail'><div class='style-hd-fighter-name'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.name + "</span></div></div>");
     }
 
     for (let i = 1; i <= this.numReferee; i++) {
@@ -414,9 +416,19 @@ class GiamSatThiQuyenContainer extends Component {
                   </span>
                 </div>
               </div>
-              <div className="match-fighter" id="match-martial-team">
-                {/* <div className="fighter-detail">
-                    <div className="style-hd-style-hd-.fighter-code">
+            </div>
+            <div className="match-fighter">
+              <div className="fighter-detail style-group-fighter-info">
+                <span id="group-fighter-info"></span>
+                <div className="style-hd-fighter-code">
+                  <span className="info-text" id="hd-fighter-code"></span>
+                </div>
+              </div>
+              <span id="match-martial-team">
+
+              </span>
+              {/* <div className="fighter-detail">
+                    <div className="style-hd-style-hd-fighter-code">
                         <span className="info-text">
                             SE123456
                         </span>
@@ -427,7 +439,6 @@ class GiamSatThiQuyenContainer extends Component {
                         </span>
                     </div>
                 </div> */}
-              </div>
             </div>
             <div className="main-score">
               <span className="info-text" id="averageScore" onClick={this.takeMainScore}>
@@ -435,7 +446,6 @@ class GiamSatThiQuyenContainer extends Component {
               </span>
             </div>
             <div className="style-hd-referee-score-area">
-              <div className="spec-score"></div>
               <div className="referee-sub-area">
                 <div className="style-hd-referee-title">
                   <span className="info-text">

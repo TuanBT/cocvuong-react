@@ -1202,7 +1202,6 @@ textarea {
     position: absolute;
     width: 20%;
     height: 20%;
-    cursor: pointer;
 }
 
 .blueFlag {
@@ -1220,10 +1219,10 @@ textarea {
 }
 
 .flagImageHD {
-    height: 100%;
+    width: 100%;
     display: block;
     float: left;
-    border-bottom-right-radius: 5px 5px;
+    border-radius: 5px 5px;
 }
 
 .blueFlag .flagImage {
@@ -1295,7 +1294,7 @@ textarea {
 
 .information {
     width: 100%;
-    height: 10%;
+    height: 15%;
     /* background-color: burlywood; */
 }
 
@@ -1321,22 +1320,24 @@ textarea {
 
 .match-detail {
     width: 100%;
-    height: 50%;
+    height: 20%;
 }
 
 .match-title {
     width: 100%;
-    height: 40%;
-    font-size: 6vh;
+    height: 100%;
+    font-size: 8vh;
     color: #2980b9;
     position: relative;
 }
 
 .match-fighter {
-    width: 100%;
-    height: 60%;
+    width: 34%;
+    height: 65%;
     text-align: center;
     position: relative;
+    float: right;
+    margin-right: 1%;
 }
 
 .spec-fighter {
@@ -1346,44 +1347,50 @@ textarea {
 }
 
 .fighter-detail {
-    width: 32%;
-    height: 40%;
-    margin: 0 0.5% 0.5% 0.5%;
-    /* float: left; */
-    display: inline-block;
+    width: 100%;
+    height: 14%;
     border-radius: 5px;
     box-sizing: border-box;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
     border: 1px solid #7f8c8d;
     color: #2980b9;
+    float: left;
 }
+
+.style-group-fighter-info{
+    border: none;
+    height: 20%;
+}
+
 
 .style-hd-fighter-name {
     width: 100%;
-    height: 60%;
+    height: 100%;
     font-size: 4vh;
     font-weight: bold;
-    color: #d35400;
+    color: #2980b9;
 }
 
 .style-hd-fighter-code {
-    width: 100%;
-    height: 40%;
-    font-size: 3vh;
-    /* color: #f39c12; */
+    width: 80%;
+    height: 100%;
+    font-size: 8vh;
+    color: #d63030;
+    float: right;
 }
 
 .style-hd-referee-score-area {
-    width: 100%;
-    height: 15%;
+    width: 12%;
+    height: 64%;
     color: #636e72;
-    padding-bottom: 0.5%;
+    float: left;
+    margin-left: 1%;
 }
 
 .referee-sub-area {
-    height: 100%;
-    width: 15%;
+    height: 18%;
+    width: 100%;
     float: left;
     border: 1px solid #bdc3c7;
     border-radius: 5px;
@@ -1391,29 +1398,30 @@ textarea {
 
 .style-hd-referee-title {
     width: 100%;
-    height: 30%;
+    height: 35%;
     font-size: 2.5vh;
     border: none;
 }
 
 .referee-sub-score {
     width: 100%;
-    height: 70%;
+    height: 65%;
     font-size: 7vh;
 }
 
 .spec-score {
-    width: 13.75%;
-    height: 100%;
+    width: 100%;
+    height: 2%;
     float: left;
 }
 
 .main-score {
-    width: 100%;
-    height: 25%;
-    font-size: 16vh;
+    width: 30%;
+    height: 65%;
+    font-size: 30vh;
     color: #d63031;
     font-weight: bold;
+    float: right;
 }
 
 #averageScore {
