@@ -24,9 +24,10 @@ class GiamDinhDoiKhangContainer extends Component {
     this.refereeName = "";
     this.referreIndex = -1;
     this.path = "";
-    this.arenaNoIndex = 0;
+    this.combatArenaNoIndex = 0;
     this.matchNoCurrentIndex;
     this.teamNoCurrentIndex;
+    this.tournamentNoIndex = 0;
   }
 
   componentDidMount() {
@@ -38,7 +39,7 @@ class GiamDinhDoiKhangContainer extends Component {
     var password = $('#txtPassword').val();
 
     if (password != null && password != "") {
-      onValue(ref(this.db, 'setting/passwordGiamDinh'), (snapshot) => {
+      onValue(ref(this.db, 'commonSetting/passwordGiamDinh'), (snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           this.main();
@@ -53,7 +54,7 @@ class GiamDinhDoiKhangContainer extends Component {
   }
 
   main() {
-    get(child(ref(this.db), 'setting')).then((snapshot) => {
+    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       if (this.settingObj.isShowArenaB === true) {
         $(".arenaChooseBox").show();
@@ -89,9 +90,9 @@ class GiamDinhDoiKhangContainer extends Component {
   }
 
   chooseRefereeNo = () => {
-    let arenaNo = $("input:radio[name ='optionsArena']:checked").val();
-    this.arenaNoIndex = arenaNo;
-    get(child(ref(this.db), 'arena/' + this.arenaNoIndex + '/arenaName')).then((snapshot) => {
+    let combatArenaNo = $("input:radio[name ='optionsArena']:checked").val();
+    this.combatArenaNoIndex = combatArenaNo;
+    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/combatArenaName')).then((snapshot) => {
       $('#arena-name').html(snapshot.val());
     })
     let refereeNo = $("input:radio[name ='optionsReferee']:checked").val();
@@ -106,7 +107,7 @@ class GiamDinhDoiKhangContainer extends Component {
       }
       $("#gd-name").html(this.refereeName);
 
-      onValue(ref(this.db, 'arena/' + this.arenaNoIndex + '/lastMatch/no'), (snapshot) => {
+      onValue(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/lastMatch/no'), (snapshot) => {
         //Kiểm tra kết nối internet
         onValue(ref(this.db, '.info/connected'), (snapshot) => {
           if (!snapshot.val() === true) {
@@ -119,7 +120,7 @@ class GiamDinhDoiKhangContainer extends Component {
         let matchCurrentNoIndex = snapshot.val() - 1;
         let matchCurrentNo = matchCurrentNoIndex + 1
         $("#gd-match").html("Trận số " + matchCurrentNo);
-        this.path = "arena/" + this.arenaNoIndex + "/referee/" + this.referreIndex;
+        this.path = "tournament/'+this.tournamentNoIndex+'/combatArena/" + this.combatArenaNoIndex + "/referee/" + this.referreIndex;
       })
     }
   }

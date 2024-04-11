@@ -34,6 +34,9 @@ class GiamDinhThiQuyenContainer extends Component {
     this.refereeMartialScore = "";
     this.matchNoCurrentIndex;
     this.teamNoCurrentIndex;
+    this.combatArenaNoIndex = 0;
+    this.martialArenaNoIndex = 0;
+    this.tournamentNoIndex = 0;
   }
 
   componentDidMount() {
@@ -44,7 +47,7 @@ class GiamDinhThiQuyenContainer extends Component {
     var password = $('#txtPassword').val();
 
     if (password != null && password != "") {
-      onValue(ref(this.db, 'setting/passwordGiamDinh'), (snapshot) => {
+      onValue(ref(this.db, 'commonSetting/passwordGiamDinh'), (snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           document.addEventListener("keydown", this._handleKeyDown);
@@ -60,8 +63,11 @@ class GiamDinhThiQuyenContainer extends Component {
   }
 
   main() {
-    get(child(ref(this.db), 'setting')).then((snapshot) => {
+    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
+      if (this.settingObj.isShowArenaB === true) {
+        $(".arenaChooseBox").show();
+      }
       $('#tournamentName').html(this.settingObj.tournamentName);
       let refereeChoose123 = "<input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee1' value='1' checked><label class='btn btn-outline-secondary' for='optionsReferee1'><i class='fa-solid fa-user'></i><br>Giám định 1</label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee2' value='2'><label class='btn btn-outline-secondary' for='optionsReferee2'><i class='fa-solid fa-user'></i><br>Giám định 2</label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee3' value='3'><label class='btn btn-outline-secondary' for='optionsReferee3'><i class='fa-solid fa-user'></i><br>Giám định 3</label>";
       $(".refereeChoose").append(refereeChoose123);
@@ -126,6 +132,9 @@ class GiamDinhThiQuyenContainer extends Component {
   }
 
   chooseRefereeNo = () => {
+    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/martialArena/' + this.martialArenaNoIndex + '/martialArenaName')).then((snapshot) => {
+      $('#arena-name').html(snapshot.val());
+    })
     let refereeNo = $("input:radio[name ='optionsReferee']:checked").val();
     if (refereeNo != null && refereeNo != "") {
       this.hideChooseRefereeNoModal();
@@ -138,23 +147,23 @@ class GiamDinhThiQuyenContainer extends Component {
       }
       $("#gd-name").html(this.refereeName);
 
-      onValue(ref(this.db, 'lastMatch/no'), (snapshot) => {
-        //Kiểm tra kết nối internet
-        onValue(ref(this.db, '.info/connected'), (snapshot) => {
-          if (!snapshot.val() === true) {
-            $('#internet-status').show();
-          } else {
-            $('#internet-status').hide();
-          }
-        })
+      // onValue(ref(this.db, 'lastMatch/no'), (snapshot) => {
+      //   //Kiểm tra kết nối internet
+      //   onValue(ref(this.db, '.info/connected'), (snapshot) => {
+      //     if (!snapshot.val() === true) {
+      //       $('#internet-status').show();
+      //     } else {
+      //       $('#internet-status').hide();
+      //     }
+      //   })
 
-        let matchCurrentNoIndex = snapshot.val() - 1;
-        let matchCurrentNo = matchCurrentNoIndex + 1
-        $("#gd-match").html("Trận số " + matchCurrentNo);
-        this.path = "referee/" + this.referreIndex;
-      })
+      //   let matchCurrentNoIndex = snapshot.val() - 1;
+      //   let matchCurrentNo = matchCurrentNoIndex + 1
+      //   $("#gd-match").html("Trận số " + matchCurrentNo);
+      //   this.path = "referee/" + this.referreIndex;
+      // })
 
-      onValue(ref(this.db, 'lastMatchMartial'), (snapshot) => {
+      onValue(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/martialArena/' + this.martialArenaNoIndex + '/lastMatchMartial'), (snapshot) => {
         //Kiểm tra kết nối internet
         onValue(ref(this.db, '.info/connected'), (snapshot) => {
           if (!snapshot.val() === true) {
@@ -169,12 +178,12 @@ class GiamDinhThiQuyenContainer extends Component {
         this.matchNoCurrentIndex = lastMatchMartial.matchMartialNo - 1;
         this.teamNoCurrentIndex = lastMatchMartial.teamMartialNo - 1;
 
-        get(ref(this.db, 'tournamentMartial/' + this.matchNoCurrentIndex)).then((snapshot) => {
+        get(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/martial/' + this.matchNoCurrentIndex)).then((snapshot) => {
           $("#match-martial-name").html(snapshot.val().match.name);
           $("#match-martial-no").html(snapshot.val().team[this.teamNoCurrentIndex].no);
         })
 
-        this.pathMartial = "tournamentMartial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex + "/refereeMartial/" + this.referreIndex;
+        this.pathMartial = "tournament/'+this.tournamentNoIndex+'/martial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex + "/refereeMartial/" + this.referreIndex;
       })
     }
   }
@@ -200,7 +209,7 @@ class GiamDinhThiQuyenContainer extends Component {
     }
     update(ref(this.db, this.pathMartial), { "score": parseInt(this.refereeMartialScore) });
 
-    this.pathMartialScore = "tournamentMartial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex;
+    this.pathMartialScore = "tournament/'+this.tournamentNoIndex+'/martial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex;
     get(ref(this.db, this.pathMartialScore)).then((snapshot) => {
       let refereeMartialObj = snapshot.val();
       let finalScore = 0;
@@ -264,6 +273,7 @@ class GiamDinhThiQuyenContainer extends Component {
 
         <div className="body style-gd-hd-body" style={{ height: '100vh' }}>
           <div className="info-header px-3 py-3 pt-md-5 pb-md-4 mx-auto text-center text-belize-hole">
+            <h1 className="" id="arena-name">&nbsp;</h1>
             <h1 className="blog-header-logo text-midnight-blue" id="gd-name"></h1>
             <h2>
               <span id="match-martial-name"></span>
@@ -351,6 +361,16 @@ class GiamDinhThiQuyenContainer extends Component {
                   <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn mã giám định của bạn
                   </h5>
                   <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideChooseRefereeNoModal}></button>
+                </div>
+                <div className="modal-body arenaChooseBox" style={{ display: 'none' }}>
+                  <div className="category-buttons">
+                    <section className="btn-group arenaChoose">
+                      <input type="radio" className="btn-check" name="optionsArena" id="optionsArena0" value="0" defaultChecked />
+                      <label className="btn btn-outline-secondary" htmlFor="optionsArena0"> <i className="fa-solid fa-chess-board"></i> <br />Sân A </label>
+                      <input type="radio" className="btn-check" name="optionsArena" id="optionsArena1" value="1" />
+                      <label className="btn btn-outline-secondary" htmlFor="optionsArena1"> <i className="fa-solid fa-chess-board"></i> <br />Sân B </label>
+                    </section>
+                  </div>
                 </div>
                 <div className="modal-body">
                   <div className="category-buttons">

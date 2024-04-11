@@ -37,7 +37,7 @@ class GiamSatDoiKhangContainer extends Component {
     this.round = me.fistRound;
     this.matchNoCurrent;
     this.matchNoCurrentIndex;
-    this.tournamentObj;
+    this.combatObj;
     this.settingObj;
     this.refereeObj;
     this.lastMatchObj;
@@ -51,9 +51,10 @@ class GiamSatDoiKhangContainer extends Component {
     this.temporaryWin;
     this.countryRed = "red";
     this.countryBlue = "blue";
-    this.arenaNoIndex = 0;
+    this.combatArenaNoIndex = 0;
+    this.tournamentNoIndex = 0;
 
-    this.tournamentConst = { "lastMatch": { "no": 1 }, "referee": [{ "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }], "tournament": [] };
+    this.combatConst = { "lastMatch": { "no": 1 }, "referee": [{ "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }], "combat": [] };
     this.matchObj = { "match": { "no": 1, "type": "", "category": "", "win": "" }, "fighters": { "redFighter": { "name": "Đỏ", "code": "", "score": 0 }, "blueFighter": { "name": "Xanh", "code": "", "score": 0 } } };
   }
 
@@ -66,7 +67,7 @@ class GiamSatDoiKhangContainer extends Component {
     var password = $('#txtPassword').val();
 
     if (password != null && password != "") {
-      onValue(ref(this.db, 'setting/passwordGiamSat'), (snapshot) => {
+      onValue(ref(this.db, 'commonSetting/passwordGiamSat'), (snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           this.main();
@@ -81,7 +82,7 @@ class GiamSatDoiKhangContainer extends Component {
   }
 
   main() {
-    get(child(ref(this.db), 'setting')).then((snapshot) => {
+    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       if (this.settingObj.isShowArenaB === true) {
         this.showChooseArenaNoModal();
@@ -92,11 +93,11 @@ class GiamSatDoiKhangContainer extends Component {
   }
 
   chooseArenaNo = () => {
-    let arenaNo = $("input:radio[name ='optionsArena']:checked").val();
-    if (arenaNo != null && arenaNo != "") {
+    let combatArenaNo = $("input:radio[name ='optionsArena']:checked").val();
+    if (combatArenaNo != null && combatArenaNo != "") {
       this.hideChooseArenaNoModal();
-      this.arenaNoIndex = arenaNo;
-      // get(child(ref(this.db), 'arena/' + this.arenaNoIndex + '/arenaName')).then((snapshot) => {
+      this.combatArenaNoIndex = combatArenaNo;
+      // get(child(ref(this.db), 'tournament/'+this.tournamentNoIndex+'/combatArena/' + this.combatArenaNoIndex + '/combatArenaName')).then((snapshot) => {
       //   $('#arena-name').html(snapshot.val());
       // })
       this.showTournamentInfo();
@@ -104,10 +105,10 @@ class GiamSatDoiKhangContainer extends Component {
   }
 
   showTournamentInfo = () => {
-    get(child(ref(this.db), 'arena/' + this.arenaNoIndex + '/arenaName')).then((snapshot) => {
+    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/combatArenaName')).then((snapshot) => {
       $('#arena-name').html(snapshot.val());
     })
-    get(child(ref(this.db), 'setting')).then((snapshot) => {
+    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       $('#tournamentName').html(this.settingObj.tournamentName);
       this.settingObj = snapshot.val();
@@ -132,29 +133,29 @@ class GiamSatDoiKhangContainer extends Component {
 
       this.startEffectTimer();
 
-      onValue(ref(this.db, 'tournament'), (snapshot) => {
-        this.tournamentObj = snapshot.val();
+      onValue(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat'), (snapshot) => {
+        this.combatObj = snapshot.val();
         if (this.lastMatchObj == null) {
-          this.matchNoCurrent = this.tournamentConst.lastMatch.no;
+          this.matchNoCurrent = this.combatConst.lastMatch.no;
           this.matchNoCurrentIndex = this.matchNoCurrent - 1;
-          this.match = this.tournamentObj[this.matchNoCurrentIndex];
+          this.match = this.combatObj[this.matchNoCurrentIndex];
         }
         if (this.refereeObj == null) {
-          this.refereeObj = this.tournamentConst.referee;
+          this.refereeObj = this.combatConst.referee;
         }
         this.showValue();
       });
 
-      onValue(ref(this.db, 'arena/' + this.arenaNoIndex + '/lastMatch'), (snapshot) => {
+      onValue(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/lastMatch'), (snapshot) => {
         this.lastMatchObj = snapshot.val();
         this.matchNoCurrent = this.lastMatchObj.no;
         this.matchNoCurrentIndex = this.matchNoCurrent - 1;
-        this.match = this.tournamentObj[this.matchNoCurrentIndex];
+        this.match = this.combatObj[this.matchNoCurrentIndex];
 
         this.showValue();
       })
 
-      onValue(ref(this.db, 'arena/' + this.arenaNoIndex + '/referee'), (snapshot) => {
+      onValue(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/referee'), (snapshot) => {
         this.refereeObj = snapshot.val();
         this.showValue();
       })
@@ -280,7 +281,7 @@ class GiamSatDoiKhangContainer extends Component {
     if (this.matchNoCurrent == 1) {
       $(".match-prev").hide();
       $(".match-next").show();
-    } else if (this.matchNoCurrent == this.tournamentObj.length) {
+    } else if (this.matchNoCurrent == this.combatObj.length) {
       $(".match-prev").show();
       $(".match-next").hide();
     } else {
@@ -291,7 +292,7 @@ class GiamSatDoiKhangContainer extends Component {
     //Khung các giám định
     //Hiện điểm các giám định
     for (let i = 1; i <= this.numReferee; i++) {
-      set(ref(this.db, 'tournament/' + this.matchNoCurrentIndex), this.tournamentObj[this.matchNoCurrentIndex])
+      set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex), this.combatObj[this.matchNoCurrentIndex])
       $("#red-score-" + i).html(this.refereeObj[i - 1].redScore);
       $("#blue-score-" + i).html(this.refereeObj[i - 1].blueScore);
       if (this.refereeObj[i - 1].redScore != 0 || this.refereeObj[i - 1].blueScore != 0) {
@@ -318,7 +319,7 @@ class GiamSatDoiKhangContainer extends Component {
 
   saveMatch() {
     console.log("saveMatch() Start");
-    update(ref(this.db, 'tournament/' + this.matchNoCurrentIndex), this.match);
+    update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex), this.match);
     console.log("saveMatch() End");
   }
 
@@ -329,7 +330,7 @@ class GiamSatDoiKhangContainer extends Component {
     let matchChoose = $('#txtMatchChoose').val();
 
     if (matchChoose != null && matchChoose != "") {
-      if (matchChoose < 1 || matchChoose > this.tournamentObj.length) {
+      if (matchChoose < 1 || matchChoose > this.combatObj.length) {
         toast.error("Vui lòng nhập số thứ tự trận đấu lớn hơn 1!");
         return;
       }
@@ -395,13 +396,13 @@ class GiamSatDoiKhangContainer extends Component {
     seconds < "10" ? this.seconds = "0" + seconds : this.seconds = seconds;
     $("#match-time").html(this.minutes + ":" + this.seconds);
     $("#match-round").html(this.round);
-    set(ref(this.db, 'arena/' + this.arenaNoIndex + '/lastMatch/no'), this.matchNoCurrent)
+    set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/lastMatch/no'), this.matchNoCurrent)
     let referees = [];
     for (let i = 0; i < this.numReferee; i++) {
       this.refereeObj[i] = { blueScore: 0, redScore: 0 };
       referees.push(this.refereeObj[i]);
     }
-    set(ref(this.db, 'arena/' + this.arenaNoIndex + '/referee'), referees)
+    set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/referee'), referees)
     console.log("restoreMatch() End");
   }
 
@@ -409,11 +410,11 @@ class GiamSatDoiKhangContainer extends Component {
   redWin = () => {
     console.log("redWin() Start");
     let winMatch = "W." + this.matchNoCurrent;
-    for (let i = this.matchNoCurrent; i < this.tournamentObj.length; i++) {
-      let fightersTemp = this.tournamentObj[i].fighters;
+    for (let i = this.matchNoCurrent; i < this.combatObj.length; i++) {
+      let fightersTemp = this.combatObj[i].fighters;
       if (fightersTemp.redFighter.result === winMatch) {
-        for (let j = i; j < this.tournamentObj.length; j++) {
-          let fightersTemp2 = this.tournamentObj[j].fighters;
+        for (let j = i; j < this.combatObj.length; j++) {
+          let fightersTemp2 = this.combatObj[j].fighters;
           let winMatch2 = "W." + j;
           if (fightersTemp2.redFighter.result === winMatch2)
             if (fightersTemp2.redFighter.name !== winMatch2) {
@@ -442,7 +443,7 @@ class GiamSatDoiKhangContainer extends Component {
         this.replaceFighter("red");
         setTimeout(() => {
           this.match.match.win = "red";
-          set(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/match/win'), "red")
+          set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex + '/match/win'), "red")
           $(".icon-win-red").css({ opacity: 1 });
           $(".icon-win-blue").css("opacity", "");
           $(".red-score").css("background-color", "red");
@@ -459,11 +460,11 @@ class GiamSatDoiKhangContainer extends Component {
   blueWin = () => {
     console.log("blueWin() Start");
     let winMatch = "W." + this.matchNoCurrent;
-    for (let i = this.matchNoCurrent; i < this.tournamentObj.length; i++) {
-      let fightersTemp = this.tournamentObj[i].fighters;
+    for (let i = this.matchNoCurrent; i < this.combatObj.length; i++) {
+      let fightersTemp = this.combatObj[i].fighters;
       if (fightersTemp.redFighter.result === winMatch) {
-        for (let j = i; j < this.tournamentObj.length; j++) {
-          let fightersTemp2 = this.tournamentObj[j].fighters;
+        for (let j = i; j < this.combatObj.length; j++) {
+          let fightersTemp2 = this.combatObj[j].fighters;
           let winMatch2 = "W." + j;
           if (fightersTemp2.redFighter.result === winMatch2)
             if (fightersTemp2.redFighter.name !== winMatch2) {
@@ -492,7 +493,7 @@ class GiamSatDoiKhangContainer extends Component {
         this.replaceFighter("blue");
         setTimeout(() => {
           this.match.match.win = "blue";
-          set(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/match/win'), "blue")
+          set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex + '/match/win'), "blue")
           $(".icon-win-blue").css({ opacity: 1 });
           $(".icon-win-red").css("opacity", "");
           $(".red-score").css("background-color", "red");
@@ -662,13 +663,13 @@ class GiamSatDoiKhangContainer extends Component {
       loseFighter = this.match.fighters.redFighter;
     }
 
-    for (let i = this.matchNoCurrent; i < this.tournamentObj.length; i++) {
-      let fightersTemp = this.tournamentObj[i].fighters;
+    for (let i = this.matchNoCurrent; i < this.combatObj.length; i++) {
+      let fightersTemp = this.combatObj[i].fighters;
       if (fightersTemp.redFighter.result == matchWin) {
         fightersTemp.redFighter = JSON.parse(JSON.stringify(winFighter));
         fightersTemp.redFighter.result = matchWin;
         fightersTemp.redFighter.score = 0;
-        update(ref(this.db, 'tournament/' + i + '/fighters'), fightersTemp);
+        update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters'), fightersTemp);
         break;
       }
 
@@ -676,7 +677,7 @@ class GiamSatDoiKhangContainer extends Component {
         fightersTemp.redFighter = JSON.parse(JSON.stringify(loseFighter));
         fightersTemp.redFighter.result = matchLose;
         fightersTemp.redFighter.score = 0;
-        update(ref(this.db, 'tournament/' + i + '/fighters'), fightersTemp);
+        update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters'), fightersTemp);
         break;
       }
 
@@ -684,7 +685,7 @@ class GiamSatDoiKhangContainer extends Component {
         fightersTemp.blueFighter = JSON.parse(JSON.stringify(winFighter));
         fightersTemp.blueFighter.result = matchWin;
         fightersTemp.blueFighter.score = 0;
-        update(ref(this.db, 'tournament/' + i + '/fighters'), fightersTemp);
+        update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters'), fightersTemp);
         break;
       }
 
@@ -692,7 +693,7 @@ class GiamSatDoiKhangContainer extends Component {
         fightersTemp.blueFighter = JSON.parse(JSON.stringify(loseFighter));
         fightersTemp.blueFighter.result = matchLose;
         fightersTemp.blueFighter.score = 0;
-        update(ref(this.db, 'tournament/' + i + '/fighters'), fightersTemp);
+        update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters'), fightersTemp);
         break;
       }
     }
@@ -729,10 +730,10 @@ class GiamSatDoiKhangContainer extends Component {
           }
           this.match.fighters.redFighter.score += this.getModes(redScoreArray);
           this.match.fighters.blueFighter.score += this.getModes(blueScoreArray);
-          set(ref(this.db, 'tournament/' + this.matchNoCurrentIndex + '/fighters'), this.match.fighters)
+          set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex + '/fighters'), this.match.fighters)
           //Reset Giám định
-          set(ref(this.db, 'arena/' + this.arenaNoIndex + '/referee'), this.tournamentConst.referee)
-          this.refereeObj = this.tournamentConst.referee;
+          set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/referee'), this.combatConst.referee)
+          this.refereeObj = this.combatConst.referee;
           this.scoreTimerCount = this.timeScore;
           this.isFirstRefereeScore = false;
           console.log("makeScoreTimer() End");
@@ -766,7 +767,7 @@ class GiamSatDoiKhangContainer extends Component {
           $(".timer-text").css("background-color", this.redColor);
           if (this.match.fighters.redFighter.score > this.match.fighters.blueFighter.score) {
             this.redWin();
-          }else{
+          } else {
             this.blueWin();
           }
           return;
@@ -790,7 +791,7 @@ class GiamSatDoiKhangContainer extends Component {
         $(".timer-text").css("background-color", this.redColor);
         if (this.match.fighters.redFighter.score > this.match.fighters.blueFighter.score) {
           this.redWin();
-        }else if (this.match.fighters.redFighter.score < this.match.fighters.blueFighter.score){
+        } else if (this.match.fighters.redFighter.score < this.match.fighters.blueFighter.score) {
           this.blueWin();
         }
         return;
@@ -985,7 +986,7 @@ class GiamSatDoiKhangContainer extends Component {
                   </span>
                 </span>
               </div>
-              
+
               <div className="red-fighter">
                 <div className="red-win">
                   <span className="info-text">
@@ -1133,68 +1134,68 @@ class GiamSatDoiKhangContainer extends Component {
               </span>
             </div>
             <div className="referee-score-area">
-                <div className="line-break"></div>
-                <div className="referee">
-                  <div className="referee-title gd1">
+              <div className="line-break"></div>
+              <div className="referee">
+                <div className="referee-title gd1">
+                  <span className="info-text">
+                    Giám định 1
+                  </span>
+                </div>
+                <div className="referee-score">
+                  <div className="red-score-refereeSc">
                     <span className="info-text">
-                      Giám định 1
+                      <span id="red-score-1"></span>
                     </span>
                   </div>
-                  <div className="referee-score">
-                    <div className="red-score-refereeSc">
-                      <span className="info-text">
-                        <span id="red-score-1"></span>
-                      </span>
-                    </div>
-                    <div className="blue-score-refereeSc">
-                      <span className="info-text">
-                        <span id="blue-score-1"></span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="line-break"></div>
-                <div className="referee">
-                  <div className="referee-title gd2">
+                  <div className="blue-score-refereeSc">
                     <span className="info-text">
-                      Giám định 2
+                      <span id="blue-score-1"></span>
                     </span>
                   </div>
-                  <div className="referee-score">
-                    <div className="red-score-refereeSc">
-                      <span className="info-text">
-                        <span id="red-score-2"></span>
-                      </span>
-                    </div>
-                    <div className="blue-score-refereeSc">
-                      <span className="info-text">
-                        <span id="blue-score-2"></span>
-                      </span>
-                    </div>
-                  </div>
                 </div>
-                <div className="line-break"></div>
-                <div className="referee">
-                  <div className="referee-title gd3">
-                    <span className="info-text">
-                      Giám định 3
-                    </span>
-                  </div>
-                  <div className="referee-score">
-                    <div className="red-score-refereeSc">
-                      <span className="info-text">
-                        <span id="red-score-3"></span>
-                      </span>
-                    </div>
-                    <div className="blue-score-refereeSc">
-                      <span className="info-text">
-                        <span id="blue-score-3"></span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="line-break"></div>
               </div>
+              <div className="line-break"></div>
+              <div className="referee">
+                <div className="referee-title gd2">
+                  <span className="info-text">
+                    Giám định 2
+                  </span>
+                </div>
+                <div className="referee-score">
+                  <div className="red-score-refereeSc">
+                    <span className="info-text">
+                      <span id="red-score-2"></span>
+                    </span>
+                  </div>
+                  <div className="blue-score-refereeSc">
+                    <span className="info-text">
+                      <span id="blue-score-2"></span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="line-break"></div>
+              <div className="referee">
+                <div className="referee-title gd3">
+                  <span className="info-text">
+                    Giám định 3
+                  </span>
+                </div>
+                <div className="referee-score">
+                  <div className="red-score-refereeSc">
+                    <span className="info-text">
+                      <span id="red-score-3"></span>
+                    </span>
+                  </div>
+                  <div className="blue-score-refereeSc">
+                    <span className="info-text">
+                      <span id="blue-score-3"></span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="line-break"></div>
+            </div>
             <div className="blue-score">
               <div className="addition" onClick={this.blueAddition}></div>
               <div className="blueFlag countryFlag" style={{ display: 'none' }}><img className="flagImage" src={require('../assets/flag/' + this.countryBlue + '.jpg')} /></div>

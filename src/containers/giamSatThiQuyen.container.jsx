@@ -49,7 +49,7 @@ class GiamSatThiQuyenContainer extends Component {
     this.temporaryWin;
     this.numReferee = 3; //Số lượng giám định chấm điểm
 
-    this.tournamentMartialObj;
+    this.martialObj;
     this.matchMartial;
     this.teamMartial;
     this.matchMartialNoCurrent = 1;
@@ -57,10 +57,12 @@ class GiamSatThiQuyenContainer extends Component {
     this.theFirstTeamOfMatch;
     this.theLastTeamOfMatch;
     this.refereeMartialScore = '';
+    this.martialArenaNoIndex = 0;
+    this.tournamentNoIndex = 0;
 
     this.tournamentConst = { "lastMatch": { "no": 1 }, "referee": [{ "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }], "tournament": [] };
     this.matchObj = { "match": { "no": 1, "type": "", "category": "", "win": "" }, "fighters": { "redFighter": { "name": "Đỏ", "code": "", "score": 0 }, "blueFighter": { "name": "Xanh", "code": "", "score": 0 } } };
-    this.tournamentMartialConst = { "lastMatchMartial": { "matchMartialNo": 1, "teamMartialNo": 1 }, "tournamentMartial": [] };
+    this.martialConst = { "lastMatchMartial": { "matchMartialNo": 1, "teamMartialNo": 1 }, "martial": [] };
     this.matchMartialObj = { "match": { "name": "" }, "team": [] };
     this.fightersMartialObj = { "fighters": [], "no": 0, "score": 0, "refereeMartial": [{ "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }] }
   }
@@ -74,7 +76,7 @@ class GiamSatThiQuyenContainer extends Component {
     var password = $('#txtPassword').val();
 
     if (password != null && password != "") {
-      onValue(ref(this.db, 'setting/passwordGiamSat'), (snapshot) => {
+      onValue(ref(this.db, 'commonSetting/passwordGiamSat'), (snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           this.main();
@@ -89,7 +91,7 @@ class GiamSatThiQuyenContainer extends Component {
   }
 
   main() {
-    get(child(ref(this.db), 'setting')).then((snapshot) => {
+    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       $('#tournamentName').html(this.settingObj.tournamentName);
       if (this.settingObj.isShowFiveReferee === true) {
@@ -100,11 +102,11 @@ class GiamSatThiQuyenContainer extends Component {
       }
     })
 
-    get(ref(this.db, 'lastMatchMartial')).then((snapshot) => {
+    get(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/martialArena/' + this.martialArenaNoIndex + '/lastMatchMartial')).then((snapshot) => {
       let lastMatchMartialObj = snapshot.val();
       this.matchMartialNoCurrent = lastMatchMartialObj.matchMartialNo;
       this.teamMartialNoCurrent = lastMatchMartialObj.teamMartialNo;
-      onValue(ref(this.db, 'tournamentMartial'), (snapshot) => {
+      onValue(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/martial'), (snapshot) => {
         console.log("on value Start");
         this.initVariable(snapshot);
         this.showValue();
@@ -128,9 +130,9 @@ class GiamSatThiQuyenContainer extends Component {
   }
 
   initVariable(snapshot) {
-    this.tournamentMartialObj = snapshot.val();
-    if (this.matchMartialNoCurrent > this.tournamentMartialObj.length) {
-      this.matchMartialNoCurrent = this.tournamentMartialObj.length;
+    this.martialObj = snapshot.val();
+    if (this.matchMartialNoCurrent > this.martialObj.length) {
+      this.matchMartialNoCurrent = this.martialObj.length;
     }
     if (this.matchMartialNoCurrent < 1) {
       this.matchMartialNoCurrent = 1;
@@ -138,11 +140,11 @@ class GiamSatThiQuyenContainer extends Component {
     this.matchNoCurrentIndex = this.matchMartialNoCurrent - 1;
     this.teamNoCurrentIndex = this.teamMartialNoCurrent - 1;
     this.theLastTeamOfMatch = false;
-    if (this.teamMartialNoCurrent > this.tournamentMartialObj[this.matchNoCurrentIndex].team.length) {
-      this.teamMartialNoCurrent = this.tournamentMartialObj[this.matchNoCurrentIndex].team.length;
+    if (this.teamMartialNoCurrent > this.martialObj[this.matchNoCurrentIndex].team.length) {
+      this.teamMartialNoCurrent = this.martialObj[this.matchNoCurrentIndex].team.length;
       this.teamNoCurrentIndex = this.teamMartialNoCurrent - 1;
     }
-    if (this.teamMartialNoCurrent === this.tournamentMartialObj[this.matchNoCurrentIndex].team.length) {
+    if (this.teamMartialNoCurrent === this.martialObj[this.matchNoCurrentIndex].team.length) {
       this.theLastTeamOfMatch = true;
     }
     this.theFirstTeamOfMatch = false;
@@ -153,7 +155,7 @@ class GiamSatThiQuyenContainer extends Component {
     if (this.teamMartialNoCurrent === 1) {
       this.theFirstTeamOfMatch = true;
     }
-    this.teamMartial = this.tournamentMartialObj[this.matchNoCurrentIndex].team[this.teamNoCurrentIndex];
+    this.teamMartial = this.martialObj[this.matchNoCurrentIndex].team[this.teamNoCurrentIndex];
   }
 
   pad(number, size) {
@@ -167,8 +169,8 @@ class GiamSatThiQuyenContainer extends Component {
   showValue() {
     console.log("showValue() Start");
     //Khung thông tin về trận đấu
-    $("#match-martial-name").html(this.tournamentMartialObj[this.matchMartialNoCurrent - 1].match.name);
-    $("#match-martial-no").html(this.tournamentMartialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].no);
+    $("#match-martial-name").html(this.martialObj[this.matchMartialNoCurrent - 1].match.name);
+    $("#match-martial-no").html(this.martialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].no);
     $("#match-martial-team").html("");
     let divFlag = this.settingObj.isShowCountryFlag === true ? "<div class='countryFlagHD'><img class='flagImageHD' src='" + require('../assets/flag/' + this.teamMartial.fighters[0].fighter.country + '.jpg') + "'></div>" : "";
     $("#match-martial-code").html(divFlag + "<div class='style-hd-fighter-code'><span class='info-text'>" + this.teamMartial.fighters[0].fighter.code + "</span></div>");
@@ -177,11 +179,11 @@ class GiamSatThiQuyenContainer extends Component {
     }
 
     for (let i = 1; i <= this.numReferee; i++) {
-      let refereeScore = this.tournamentMartialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].refereeMartial[i - 1].score;
+      let refereeScore = this.martialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].refereeMartial[i - 1].score;
       $("#referee-" + i + "-score").html(this.pad(refereeScore, 2));
     }
 
-    $("#averageScore").html(this.pad(this.tournamentMartialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].score, 3));
+    $("#averageScore").html(this.pad(this.martialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].score, 3));
 
     return;
   }
@@ -189,7 +191,7 @@ class GiamSatThiQuyenContainer extends Component {
   nextMatchMartial = () => {
     console.log("nextMatchMartial() Start");
 
-    if (this.matchMartialNoCurrent === this.tournamentMartialObj.length && this.teamMartialNoCurrent === this.tournamentMartialObj[this.matchMartialNoCurrent - 1].team.length) {
+    if (this.matchMartialNoCurrent === this.martialObj.length && this.teamMartialNoCurrent === this.martialObj[this.matchMartialNoCurrent - 1].team.length) {
       return;
     }
 
@@ -212,7 +214,7 @@ class GiamSatThiQuyenContainer extends Component {
     this.teamMartialNoCurrent--;
     if (this.theFirstTeamOfMatch) {
       this.matchMartialNoCurrent--;
-      this.teamMartialNoCurrent = this.tournamentMartialObj[this.matchMartialNoCurrent - 1].team.length;
+      this.teamMartialNoCurrent = this.martialObj[this.matchMartialNoCurrent - 1].team.length;
     }
     this.restoreMatch();
     console.log("prevMatchMartial() End");
@@ -222,7 +224,7 @@ class GiamSatThiQuyenContainer extends Component {
   restoreMatch() {
     console.log("restoreMatch() Start");
 
-    set(ref(this.db, 'lastMatchMartial'), {
+    set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/martialArena/' + this.martialArenaNoIndex + '/lastMatchMartial'), {
       "matchMartialNo": this.matchMartialNoCurrent,
       "teamMartialNo": this.teamMartialNoCurrent
     });
@@ -232,7 +234,7 @@ class GiamSatThiQuyenContainer extends Component {
     $(".style-hd-timer-text").css("background-color", this.silverColor);
     $("#match-time").html("00:00");
 
-    get(ref(this.db, 'tournamentMartial')).then((snapshot) => {
+    get(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/martial')).then((snapshot) => {
       this.initVariable(snapshot);
       this.showValue();
     })
@@ -268,12 +270,12 @@ class GiamSatThiQuyenContainer extends Component {
     if (parseInt(this.refereeMartialScore) > 999) {
       this.refereeMartialScore = "";
     }
-    this.pathMartial = "tournamentMartial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex;
+    this.pathMartial = "tournament/'+this.tournamentNoIndex+'/martial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex;
     update(ref(this.db, this.pathMartial), { "score": parseInt(this.refereeMartialScore) });
     update(ref(this.db, this.pathMartial), { "refereeMartial": [{ "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }] });
     this.refereeMartialScore = "";
     $("#referee-result-box").html("000");
-    $("#averageScore").html(this.tournamentMartialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].score);
+    $("#averageScore").html(this.martialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].score);
     this.hideTakeMainScoreModal();
     toast.success("Chấm điểm thành công!");
 

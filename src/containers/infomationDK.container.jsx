@@ -11,7 +11,8 @@ class InformationDkContainer extends Component {
     super(props);
     const me = this;
     this.db = Firebase();
-    this.tournamentObj;
+    this.combatObj;
+    this.tournamentNoIndex = 0;
 
     this.brackets = [];
     me.brackets.push("");//0
@@ -42,13 +43,13 @@ class InformationDkContainer extends Component {
 
 
   main() {
-    get(child(ref(this.db), 'setting')).then((snapshot) => {
+    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       $('#tournamentName').html(this.settingObj.tournamentName);
     })
 
-    get(ref(this.db)).then((snapshot) => {
-      this.tournamentObj = snapshot.val();
+    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/combat/')).then((snapshot) => {
+      this.combatObj = snapshot.val();
       this.showListInfo();
 
       $(".btn-check").click(() => {
@@ -58,21 +59,21 @@ class InformationDkContainer extends Component {
       )
     });
 
-    onValue(ref(this.db), (snapshot) => {
-      this.tournamentObj = snapshot.val();
+    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/combat/')).then((snapshot) => {
+      this.combatObj = snapshot.val();
       let value = $('input[name="optionCategory"]:checked').val();
       this.showListMatchs(value);
     });
   }
 
   showListInfo() {
-    if (this.tournamentObj && this.tournamentObj.tournament.length > 0) {
+    if (this.combatObj && this.combatObj.length > 0) {
       let categoryArray = [];
-      for (let i = 0; i < this.tournamentObj.tournament.length; i++) {
-        if (!categoryArray.includes(this.tournamentObj.tournament[i].match.category)) {
-          categoryArray.push(this.tournamentObj.tournament[i].match.category);
+      for (let i = 0; i < this.combatObj.length; i++) {
+        if (!categoryArray.includes(this.combatObj[i].match.category)) {
+          categoryArray.push(this.combatObj[i].match.category);
           $(".category-radio").append(
-            "<input type='radio' class='btn-check' name='optionCategory' id='optionCategory" + i + "' value='" + this.tournamentObj.tournament[i].match.category + "' /><label class='btn btn-outline-warning' for='optionCategory" + i + "'><i class='fa-solid fa-user'></i> " + this.tournamentObj.tournament[i].match.category + "</label>"
+            "<input type='radio' class='btn-check' name='optionCategory' id='optionCategory" + i + "' value='" + this.combatObj[i].match.category + "' /><label class='btn btn-outline-warning' for='optionCategory" + i + "'><i class='fa-solid fa-user'></i> " + this.combatObj[i].match.category + "</label>"
           );
         }
 
@@ -88,15 +89,15 @@ class InformationDkContainer extends Component {
     let matchNum = 0;
     let nameWin = "";
     let fighters = [];
-    for (let i = 0; i < this.tournamentObj.tournament.length; i++) {
-      if (this.tournamentObj.tournament[i].match.category === category || category === "ALL") {
+    for (let i = 0; i < this.combatObj.length; i++) {
+      if (this.combatObj[i].match.category === category || category === "ALL") {
         matchNum++;
-        let tournament = this.tournamentObj.tournament[i];
-        if (!fighters.includes(tournament.fighters.redFighter.name + tournament.fighters.redFighter.code) && !tournament.fighters.redFighter.name.includes("W.") && !tournament.fighters.redFighter.name.includes("L.")) {
-          fighters.push(tournament.fighters.redFighter.name + tournament.fighters.redFighter.code);
+        let combat = this.combatObj[i];
+        if (!fighters.includes(combat.fighters.redFighter.name + combat.fighters.redFighter.code) && !combat.fighters.redFighter.name.includes("W.") && !combat.fighters.redFighter.name.includes("L.")) {
+          fighters.push(combat.fighters.redFighter.name + combat.fighters.redFighter.code);
         }
-        if (!fighters.includes(tournament.fighters.blueFighter.name + tournament.fighters.blueFighter.code) && !tournament.fighters.blueFighter.name.includes("W.") && !tournament.fighters.blueFighter.name.includes("L.")) {
-          fighters.push(tournament.fighters.blueFighter.name + tournament.fighters.blueFighter.code);
+        if (!fighters.includes(combat.fighters.blueFighter.name + combat.fighters.blueFighter.code) && !combat.fighters.blueFighter.name.includes("W.") && !combat.fighters.blueFighter.name.includes("L.")) {
+          fighters.push(combat.fighters.blueFighter.name + combat.fighters.blueFighter.code);
         }
       }
     }
@@ -104,39 +105,39 @@ class InformationDkContainer extends Component {
     $('#schema-bracket').html(this.brackets[fighters.length]);
 
     let matchNo = 0;
-    for (let i = 0; i < this.tournamentObj.tournament.length; i++) {
-      if (this.tournamentObj.tournament[i].match.category === category || category === "ALL") {
-        let tournament = this.tournamentObj.tournament[i];
+    for (let i = 0; i < this.combatObj.length; i++) {
+      if (this.combatObj[i].match.category === category || category === "ALL") {
+        let combat = this.combatObj[i];
 
         nameWin = "";
-        if (tournament.match.win === "red") {
-          nameWin = tournament.fighters.redFighter.name;
-        } else if (tournament.match.win === "blue") {
-          nameWin = tournament.fighters.blueFighter.name
+        if (combat.match.win === "red") {
+          nameWin = combat.fighters.redFighter.name;
+        } else if (combat.match.win === "blue") {
+          nameWin = combat.fighters.blueFighter.name
         } else {
           nameWin = "";
         }
 
         $(".tbl-tournament-info").append(
           "<tr>" +
-          "<td class='text-center'>" + tournament.match.no + "</td>" +
-          "<td>" + tournament.match.type + "</td>" +
-          "<td>" + tournament.match.category + "</td>" +
-          "<td>" + tournament.fighters.redFighter.name + "</td>" +
-          "<td>" + tournament.fighters.redFighter.code + "</td>" +
-          "<td>" + tournament.fighters.redFighter.country + "</td>" +
-          "<td>" + tournament.fighters.blueFighter.name + "</td>" +
-          "<td>" + tournament.fighters.blueFighter.code + "</td>" +
-          "<td>" + tournament.fighters.blueFighter.country + "</td>" +
+          "<td class='text-center'>" + combat.match.no + "</td>" +
+          "<td>" + combat.match.type + "</td>" +
+          "<td>" + combat.match.category + "</td>" +
+          "<td>" + combat.fighters.redFighter.name + "</td>" +
+          "<td>" + combat.fighters.redFighter.code + "</td>" +
+          "<td>" + combat.fighters.redFighter.country + "</td>" +
+          "<td>" + combat.fighters.blueFighter.name + "</td>" +
+          "<td>" + combat.fighters.blueFighter.code + "</td>" +
+          "<td>" + combat.fighters.blueFighter.country + "</td>" +
           "<td>" + nameWin + "</td>" +
           "</tr>"
         )
 
         //Với từng trận thì nhét 2 VDV vào class info.html=1,2,3
         matchNo++;
-        $('#match-' + matchNo + ' .info').html(tournament.match.no);
-        $('#match-' + matchNo + ' .teama').html(tournament.fighters.redFighter.name);
-        $('#match-' + matchNo + ' .teamb').html(tournament.fighters.blueFighter.name);
+        $('#match-' + matchNo + ' .info').html(combat.match.no);
+        $('#match-' + matchNo + ' .teama').html(combat.fighters.redFighter.name);
+        $('#match-' + matchNo + ' .teamb').html(combat.fighters.blueFighter.name);
 
       }
     }

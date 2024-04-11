@@ -18,7 +18,10 @@ class SettingContainer extends Component {
     this.db = Firebase();
     this.settingObj;
 
-    this.settingConst = { "setting": { "timeRound": 90, "timeBreak": 30, "timeExtra": 60, "timeExtraBreak": 15, "tournamentName": "Cóc Vương", "isShowCountryFlag": false, "isShowFiveReferee": false, "isShowCautionBox": false, "isShowArenaB": false, "passwordSetting": 1, "passwordGiamSat": 1, "passwordGiamDinh": 1 } };
+    this.tournamentNoIndex = 0;
+
+    this.settingConst = { "setting": { "timeRound": 90, "timeBreak": 30, "timeExtra": 60, "timeExtraBreak": 15, "tournamentName": "Cóc Vương", "isShowCountryFlag": false, "isShowFiveReferee": false, "isShowCautionBox": false, "isShowArenaB": false } };
+    this.commonSettingConst = { "commonSetting": { "passwordSetting": 1, "passwordGiamSat": 1, "passwordGiamDinh": 1 } };
   }
 
   componentDidMount() {
@@ -30,7 +33,7 @@ class SettingContainer extends Component {
     var password = $('#txtPassword').val();
 
     if (password != null && password != "") {
-      onValue(ref(this.db, 'setting/passwordSetting'), (snapshot) => {
+      onValue(ref(this.db, 'commonSetting/passwordSetting'), (snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           this.main();
@@ -45,23 +48,27 @@ class SettingContainer extends Component {
   }
 
   main() {
-    get(ref(this.db, 'setting')).then((snapshot) => {
+    get(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       $("input[name=timeRound]").val(this.settingObj.timeRound);
       $("input[name=timeBreak]").val(this.settingObj.timeBreak);
       $("input[name=timeExtra]").val(this.settingObj.timeExtra);
       $("input[name=timeExtraBreak]").val(this.settingObj.timeExtraBreak);
       $("input[name=tournamentName]").val(this.settingObj.tournamentName);
-      $("input[name=passwordSetting]").val(this.settingObj.passwordSetting);
-      $("input[name=passwordGiamDinh]").val(this.settingObj.passwordGiamDinh);
-      $("input[name=passwordGiamSat]").val(this.settingObj.passwordGiamSat);
       $("#flexSwitchCountryFlag").prop("checked", this.settingObj.isShowCountryFlag);
       $("#showCautionBox").prop("checked", this.settingObj.isShowCautionBox);
       $("#showArenaB").prop("checked", this.settingObj.isShowArenaB);
       $("#quantityReferee").prop("checked", this.settingObj.isShowFiveReferee);
     })
 
-    get(child(ref(this.db), 'setting')).then((snapshot) => {
+    get(ref(this.db, 'commonSetting')).then((snapshot) => {
+      this.settingObj = snapshot.val();
+      $("input[name=passwordSetting]").val(this.settingObj.passwordSetting);
+      $("input[name=passwordGiamDinh]").val(this.settingObj.passwordGiamDinh);
+      $("input[name=passwordGiamSat]").val(this.settingObj.passwordGiamSat);
+    })
+
+    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       $('#tournamentName').html(this.settingObj.tournamentName);
     })
@@ -77,17 +84,14 @@ class SettingContainer extends Component {
     console.log("resetSetting Start");
     this.settingObj = JSON.parse(JSON.stringify(this.settingConst));
 
-    update(ref(this.db, 'setting'), this.settingObj.setting).then(() => {
-      get(ref(this.db, 'setting')).then((snapshot) => {
+    update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/setting'), this.settingObj.setting).then(() => {
+      get(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
         this.settingObj = snapshot.val();
         $("input[name=timeRound]").val(this.settingObj.timeRound);
         $("input[name=timeBreak]").val(this.settingObj.timeBreak);
         $("input[name=timeExtra]").val(this.settingObj.timeExtra);
         $("input[name=timeExtraBreak]").val(this.settingObj.timeExtraBreak);
         $("input[name=tournamentName]").val(this.settingObj.tournamentName);
-        $("input[name=passwordSetting]").val(this.settingObj.passwordSetting);
-        $("input[name=passwordGiamDinh]").val(this.settingObj.passwordGiamDinh);
-        $("input[name=passwordGiamSat]").val(this.settingObj.passwordGiamSat);
         $("#flexSwitchCountryFlag").prop("checked", this.settingObj.isShowCountryFlag);
         $("#showCautionBox").prop("checked", this.settingObj.isShowCautionBox);
         $("#showArenaB").prop("checked", this.settingObj.isShowArenaB);
@@ -95,6 +99,18 @@ class SettingContainer extends Component {
       })
 
       toast.success("Cài lại thiết đặt thành công!");
+    });
+
+    this.commonSettingObj = JSON.parse(JSON.stringify(this.commonSettingConst));
+    update(ref(this.db, 'commonSetting'), this.commonSettingObj).then(() => {
+      get(ref(this.db, 'commonSetting')).then((snapshot) => {
+        this.commonSettingObj = snapshot.val();
+        $("input[name=passwordSetting]").val(this.commonSettingObj.passwordSetting);
+        $("input[name=passwordGiamDinh]").val(this.commonSettingObj.passwordGiamDinh);
+        $("input[name=passwordGiamSat]").val(this.commonSettingObj.passwordGiamSat);
+      })
+
+      toast.success("Cài lại thiết đặt mật khẩu thành công!");
     });
     console.log("resetSetting End");
   }
@@ -111,12 +127,18 @@ class SettingContainer extends Component {
       "isShowCautionBox": $("#showCautionBox").prop("checked"),
       "isShowArenaB": $("#showArenaB").prop("checked"),
       "isShowFiveReferee": $("#quantityReferee").prop("checked"),
+    }
+    update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/setting'), this.settingObj).then(() => {
+      toast.success("Cập nhập thông tin giải đấu thành công!");
+    });
+
+    this.commonSettingObj = {
       "passwordSetting": parseInt($("input[name=passwordSetting]").val()),
       "passwordGiamDinh": parseInt($("input[name=passwordGiamDinh]").val()),
       "passwordGiamSat": parseInt($("input[name=passwordGiamSat]").val()),
     }
-    update(ref(this.db, 'setting'), this.settingObj).then(() => {
-      toast.success("Cập nhập thông tin giải đấu thành công!");
+    update(ref(this.db, 'commonSetting'), this.commonSettingObj).then(() => {
+      toast.success("Cập nhập thông tin mật khẩu thành công!");
     });
     console.log("updateSetting End");
   }
@@ -176,10 +198,6 @@ class SettingContainer extends Component {
 
                   <div className="row">
                     <div className="col">
-                      <label>Đặt mật khẩu THIẾT ĐẶT</label>
-                      <div className="input-group mb-3">
-                        <input type="number" className="form-control" placeholder="" name="passwordSetting" />
-                      </div>
                       <div className="form-check form-switch">
                         <input className="form-check-input" type="checkbox" id="flexSwitchCountryFlag" />
                         <label className="form-check-label" htmlFor="flexSwitchCountryFlag">Hiển thị cờ quốc gia</label>
@@ -190,16 +208,9 @@ class SettingContainer extends Component {
                       </div>
                     </div>
                     <div className="col">
-                      <label>Đặt mật khẩu GIÁM SÁT</label>
-                      <div className="input-group mb-3">
-                        <input type="number" className="form-control" placeholder="" name="passwordGiamSat" />
-                      </div>
+
                     </div>
                     <div className="col">
-                      <label>Đặt mật khẩu GIÁM ĐỊNH</label>
-                      <div className="input-group mb-3">
-                        <input type="number" className="form-control" placeholder="" name="passwordGiamDinh" />
-                      </div>
                       <div className="form-check form-switch">
                         <input className="form-check-input" type="checkbox" id="quantityReferee" />
                         <label className="form-check-label" htmlFor="quantityReferee">Hiển thị 5 giám định</label>
@@ -237,9 +248,40 @@ class SettingContainer extends Component {
                         <span className="input-group-text">giây</span>
                       </div>
                     </div>
-                    {/* <hr className="mt-4 mb-4" /> */}
+
                   </div>
                   <button type="button" className="btn btn-danger" style={{ marginRight: '5px' }} onClick={this.resetTournament}><i className="fa-solid fa-arrows-rotate"></i> Cài lại trận đấu </button>
+                  <button type="button" className="btn btn-warning" style={{ marginRight: '5px' }} onClick={this.resetSetting}><i className="fa-solid fa-rotate-left"></i> Cài lại thiết đặt </button>
+                  <button type="button" className="btn btn-success" style={{ marginRight: '5px' }} onClick={this.updateSetting}><i className="fa-solid fa-floppy-disk"></i> Cập nhập</button>
+                </form>
+
+                <form className="form-style-7 mb-5 mt-3 setting-form">
+                  <div className="form-title">
+                    <h2><b>Thiết đặt thông tin mật khẩu</b></h2>
+                  </div>
+
+                  <div className="row">
+                    <div className="row">
+                      <div className="col">
+                        <label>Đặt mật khẩu THIẾT ĐẶT</label>
+                        <div className="input-group mb-3">
+                          <input type="number" className="form-control" placeholder="" name="passwordSetting" />
+                        </div>
+                      </div>
+                      <div className="col">
+                        <label>Đặt mật khẩu GIÁM SÁT</label>
+                        <div className="input-group mb-3">
+                          <input type="number" className="form-control" placeholder="" name="passwordGiamSat" />
+                        </div>
+                      </div>
+                      <div className="col">
+                        <label>Đặt mật khẩu GIÁM ĐỊNH</label>
+                        <div className="input-group mb-3">
+                          <input type="number" className="form-control" placeholder="" name="passwordGiamDinh" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                   <button type="button" className="btn btn-warning" style={{ marginRight: '5px' }} onClick={this.resetSetting}><i className="fa-solid fa-rotate-left"></i> Cài lại thiết đặt </button>
                   <button type="button" className="btn btn-success" style={{ marginRight: '5px' }} onClick={this.updateSetting}><i className="fa-solid fa-floppy-disk"></i> Cập nhập</button>
                 </form>

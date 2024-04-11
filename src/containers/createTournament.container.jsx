@@ -23,18 +23,19 @@ class CreateTournamentContainer extends Component {
 
     this.db = Firebase();
     this.settingObj;
-    this.tournamentObj;
-    this.tournamentMartialObj;
-    this.tournamentStandardArray = [];
-    this.tournamentArray = [];
-    this.tournamentMartialArray = [];
-    this.tournamentMartialStandardArray = [];
+    this.combatObj;
+    this.martialObj;
+    this.combatStandardArray = [];
+    this.combatArray = [];
+    this.martialArray = [];
+    this.martialStandardArray = [];
+    this.tournamentNoIndex = 0;
 
     this.settingConst = { "setting": { "timeRound": 90, "timeBreak": 30, "timeExtra": 60, "timeExtraBreak": 15, "tournamentName": "Cóc Vương", "isShowCountryFlag": false, "isShowFiveReferee": false, "isShowCautionBox": false, "isShowArenaB": false, "password": 1 } };
     this.matchObj = { "match": { "no": 1, "type": "", "category": "", "win": "" }, "fighters": { "redFighter": { "result": "", "name": "Đỏ", "code": "", "caution": { "remind": 0, "warning": 0, "medical": 0, "fall": 0, "bound": 0 }, "score": 0 }, "blueFighter": { "result": "", "name": "Xanh", "code": "", "caution": { "remind": 0, "warning": 0, "medical": 0, "fall": 0, "bound": 0 }, "score": 0 } } }
-    this.tournamentConst = { "arena": [{ "arenaName": "Sân A", "lastMatch": { "no": 1 }, "referee": [{ "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }] }, { "arenaName": "Sân B", "lastMatch": { "no": 1 }, "referee": [{ "blueScore": 0, "redScore": 0 }, { "blueScore": 1, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }] }], "tournament": [] };
+    this.combatConst = { "combatArena": [{ "combatArenaName": "Sân A", "lastMatch": { "no": 1 }, "referee": [{ "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }] }, { "combatArenaName": "Sân B", "lastMatch": { "no": 1 }, "referee": [{ "blueScore": 0, "redScore": 0 }, { "blueScore": 1, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }] }], "combat": [] };
     this.matchMartialObj = { "match": { "name": "" }, "team": [] };
-    this.tournamentMartialConst = { "lastMatchMartial": { "matchMartialNo": 1, "teamMartialNo": 1 }, "tournamentMartial": [] };
+    this.martialConst = { "lastMatchMartial": { "matchMartialNo": 1, "teamMartialNo": 1 }, "martial": [] };
     this.fightersMartialObj = { "fighters": [], "no": 0, "score": 0, "refereeMartial": [{ "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }] };
     this.fighterMartialObj = { "fighter": { "code": "", "name": "", "country": "" } }
 
@@ -74,7 +75,7 @@ class CreateTournamentContainer extends Component {
     var password = $('#txtPassword').val();
 
     if (password != null && password != "") {
-      onValue(ref(this.db, 'setting/passwordSetting'), (snapshot) => {
+      onValue(ref(this.db, 'commonSetting/passwordSetting'), (snapshot) => {
         if (password == snapshot.val()) {
           this.hidePasswordModal();
           this.main();
@@ -89,21 +90,25 @@ class CreateTournamentContainer extends Component {
   }
 
   main() {
-    get(ref(this.db, 'setting')).then((snapshot) => {
+    get(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       $("input[name=timeRound]").val(this.settingObj.timeRound);
       $("input[name=timeBreak]").val(this.settingObj.timeBreak);
       $("input[name=timeExtra]").val(this.settingObj.timeExtra);
       $("input[name=timeExtraBreak]").val(this.settingObj.timeExtraBreak);
       $("input[name=tournamentName]").val(this.settingObj.tournamentName);
-      $("input[name=password]").val(this.settingObj.password);
       $("#flexSwitchCountryFlag").prop("checked", this.settingObj.isShowCountryFlag);
       $("#showCautionBox").prop("checked", this.settingObj.isShowCautionBox);
       $("#showArenaB").prop("checked", this.settingObj.isShowArenaB);
       $("#quantityReferee").prop("checked", this.settingObj.isShowFiveReferee);
     })
 
-    get(child(ref(this.db), 'setting')).then((snapshot) => {
+    get(ref(this.db, 'commonSetting')).then((snapshot) => {
+      this.settingObj = snapshot.val();
+      $("input[name=password]").val(this.settingObj.password);
+    })
+
+    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       $('#tournamentName').html(this.settingObj.tournamentName);
     })
@@ -111,7 +116,7 @@ class CreateTournamentContainer extends Component {
 
   handleimportTournamentFile = (event) => {
     console.log("handleimportTournamentFile Start");
-    this.tournamentObj = JSON.parse(JSON.stringify(this.tournamentConst));
+    this.combatObj = JSON.parse(JSON.stringify(this.combatConst));
 
     const file = event.target.files[0];
     const reader = new FileReader();
@@ -121,7 +126,7 @@ class CreateTournamentContainer extends Component {
       // const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets['data'];
       const excelData = utils.sheet_to_json(worksheet, { header: 1 });
-      this.tournamentArray = [];
+      this.combatArray = [];
 
       for (let i = 1; i < excelData.length; i++) {
         let values = excelData[i];
@@ -138,8 +143,8 @@ class CreateTournamentContainer extends Component {
           matchObjTemp.fighters.blueFighter.result = values[6].includes("W.") ? values[6].trim() : '';
           matchObjTemp.fighters.blueFighter.code = values[7] !== undefined ? values[7].trim() : '';
           matchObjTemp.fighters.blueFighter.country = values[8] !== undefined ? values[8].trim() : '';
-          this.tournamentObj.tournament.push(matchObjTemp);
-          this.tournamentArray.push([
+          this.combatObj.combat.push(matchObjTemp);
+          this.combatArray.push([
             values[0] !== undefined ? values[0] : '',
             values[1] !== undefined ? values[1].trim() : '',
             values[2] !== undefined ? values[2].trim() : '',
@@ -153,8 +158,8 @@ class CreateTournamentContainer extends Component {
         }
       }
 
-      this.tournamentImportHeader = [excelData[0][0], excelData[0][1], excelData[0][2], excelData[0][3], excelData[0][4], excelData[0][5], excelData[0][6], excelData[0][7], excelData[0][8]];
-      this.setState({ data: this.tournamentArray });
+      this.combatImportHeader = [excelData[0][0], excelData[0][1], excelData[0][2], excelData[0][3], excelData[0][4], excelData[0][5], excelData[0][6], excelData[0][7], excelData[0][8]];
+      this.setState({ data: this.combatArray });
 
     };
     reader.readAsArrayBuffer(file);
@@ -163,7 +168,7 @@ class CreateTournamentContainer extends Component {
 
   importTournamentStandard = () => {
     console.log("importTournamentStandard Start");
-    update(ref(this.db), this.tournamentObj).then(() => {
+    update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/'), this.combatObj).then(() => {
       toast.success("Cập nhập thông tin giải đấu thành công!");
     });
     console.log("importTournamentStandard End");
@@ -172,7 +177,7 @@ class CreateTournamentContainer extends Component {
   importTournament = () => {
     console.log("importTournament Start");
     this.arrangeTournament();
-    update(ref(this.db), this.tournamentObj).then(() => {
+    update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/'), this.combatObj).then(() => {
       toast.success("Cập nhập thông tin giải đấu thành công!");
     });
     console.log("importTournament End");
@@ -180,21 +185,21 @@ class CreateTournamentContainer extends Component {
 
   downloadTournament = () => {
     console.log("downloadTournament Start");
-    this.tournamentArrangeHeader = ["TRẬN", "HẠNG CÂN", "LOẠI TRẬN", "TÊN GIÁP ĐỎ", "CODE/ĐƠN VỊ GIÁP ĐỎ", "QUỐC GIA ĐỎ", "TÊN GIÁP XANH", "CODE/ĐƠN VỊ GIÁP XANH", "QUỐC GIA XANH"];
-    this.exportExcel(this.tournamentArrangeHeader, this.state.data, "Thong tin DOI KHANG");
+    this.combatArrangeHeader = ["TRẬN", "HẠNG CÂN", "LOẠI TRẬN", "TÊN GIÁP ĐỎ", "CODE/ĐƠN VỊ GIÁP ĐỎ", "QUỐC GIA ĐỎ", "TÊN GIÁP XANH", "CODE/ĐƠN VỊ GIÁP XANH", "QUỐC GIA XANH"];
+    this.exportExcel(this.combatArrangeHeader, this.state.data, "Thong tin DOI KHANG");
     console.log("downloadTournament End");
   }
 
   downloadTournamentOrigin = () => {
     console.log("downloadTournament Start");
-    this.tournamentArrangeHeader = ["STT", "HẠNG CÂN", "TÊN VẬN ĐỘNG VIÊN", "CODE/ĐƠN VỊ", "QUỐC GIA"];
-    this.exportExcel(this.tournamentArrangeHeader, this.state.data, "Thong tin DOI KHANG");
+    this.combatArrangeHeader = ["STT", "HẠNG CÂN", "TÊN VẬN ĐỘNG VIÊN", "CODE/ĐƠN VỊ", "QUỐC GIA"];
+    this.exportExcel(this.combatArrangeHeader, this.state.data, "Thong tin DOI KHANG");
     console.log("downloadTournament End");
   }
 
-  handleimportTournamentMartialFile = (event) => {
-    console.log("handleimportTournamentMartialFile Start");
-    this.tournamentMartialObj = JSON.parse(JSON.stringify(this.tournamentMartialConst));
+  handleimportMartialFile = (event) => {
+    console.log("handleimportMartialFile Start");
+    this.martialObj = JSON.parse(JSON.stringify(this.martialConst));
     let matchMartialObjTemp = JSON.parse(JSON.stringify(this.matchMartialObj));
     let fighterMartialObjTemp = JSON.parse(JSON.stringify(this.fighterMartialObj));
     let fightersMartialObjTemp = JSON.parse(JSON.stringify(this.fightersMartialObj));
@@ -207,7 +212,7 @@ class CreateTournamentContainer extends Component {
       // const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets['data'];
       const excelData = utils.sheet_to_json(worksheet, { header: 1 });
-      this.tournamentMartialArray = [];
+      this.martialArray = [];
 
       for (let i = 0; i < excelData.length; i++) {
         let values = excelData[i];
@@ -215,9 +220,9 @@ class CreateTournamentContainer extends Component {
         if (values.length !== 0) { //Dòng có nội dung
           if (values.length === 1 && values[0] !== " ") { //Dòng chứa tên nội dung
             matchMartialObjTemp = JSON.parse(JSON.stringify(this.matchMartialObj));
-            this.tournamentMartialObj.tournamentMartial.push(matchMartialObjTemp);
+            this.martialObj.martial.push(matchMartialObjTemp);
             matchMartialObjTemp.match.name = values[0].trim();
-            this.tournamentMartialArray.push([values[0].trim(), '', '', '']);
+            this.martialArray.push([values[0].trim(), '', '', '']);
           } else { //Dòng chứa Title hoặc thông tin VDV
             if (!isNaN(parseFloat(values[0]))) { //Dòng chứa nội dung VDV
               fighterMartialObjTemp = JSON.parse(JSON.stringify(this.fighterMartialObj));
@@ -227,37 +232,37 @@ class CreateTournamentContainer extends Component {
               fightersMartialObjTemp = JSON.parse(JSON.stringify(this.fightersMartialObj));
               fightersMartialObjTemp.no = values[0];
               fightersMartialObjTemp.fighters.push(fighterMartialObjTemp);
-              this.tournamentMartialObj.tournamentMartial.slice(-1)[0].team.push(fightersMartialObjTemp);
-              this.tournamentMartialArray.push([values[0], values[1].trim(), values[2].trim(), values[3].trim()]);
+              this.martialObj.martial.slice(-1)[0].team.push(fightersMartialObjTemp);
+              this.martialArray.push([values[0], values[1].trim(), values[2].trim(), values[3].trim()]);
             } else { //Dòng chứa nội dung VDV Đồng đội hoặc Title
               if (values[0] === undefined) { //Dòng VDV đồng đội thứ 2 trở đi
                 fighterMartialObjTemp = JSON.parse(JSON.stringify(this.fighterMartialObj));
                 fighterMartialObjTemp.fighter.name = values[1].trim();
                 fighterMartialObjTemp.fighter.code = values[2].trim();
                 fighterMartialObjTemp.fighter.country = values[3].trim();
-                this.tournamentMartialObj.tournamentMartial.slice(-1)[0].team.slice(-1)[0].fighters.push(fighterMartialObjTemp);
-                this.tournamentMartialArray.push(['', values[1].trim(), values[2].trim(), values[3].trim()]);
+                this.martialObj.martial.slice(-1)[0].team.slice(-1)[0].fighters.push(fighterMartialObjTemp);
+                this.martialArray.push(['', values[1].trim(), values[2].trim(), values[3].trim()]);
               }
             }
           }
         }
       }
 
-      this.tournamentMartialImportHeader = ['STT', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
-      this.setState({ data: this.tournamentMartialArray });
+      this.martialImportHeader = ['STT', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
+      this.setState({ data: this.martialArray });
 
     };
     reader.readAsArrayBuffer(file);
-    console.log("handleimportTournamentMartialFile End");
+    console.log("handleimportMartialFile End");
   }
 
-  importTournamentMartial = () => {
-    console.log("importTournamentMartial Start");
-    this.arrangeTournamentMartial();
-    update(ref(this.db), this.tournamentMartialObj).then(() => {
+  importMartial = () => {
+    console.log("importMartial Start");
+    this.arrangeMartial();
+    update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/martialArena/' + this.martialArenaNoIndex + '/'), this.martialObj).then(() => {
       toast.success("Cập nhập thông tin giải đấu thành công!");
     });
-    console.log("importTournamentMartial End");
+    console.log("importMartial End");
   }
 
   handleimportTournamentRawFile = (event) => {
@@ -270,13 +275,13 @@ class CreateTournamentContainer extends Component {
       // const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets['data'];
       const excelData = utils.sheet_to_json(worksheet, { header: 1 });
-      this.tournamentArrayRaw = [];
+      this.combatArrayRaw = [];
 
       for (let i = 1; i < excelData.length; i++) {
         let values = excelData[i];
 
         if (values.length !== 0) { //Dòng có nội dung
-          this.tournamentArrayRaw.push([
+          this.combatArrayRaw.push([
             values[0] !== undefined ? values[0] : '',
             values[1] !== undefined ? values[1].trim() : '',
             values[2] !== undefined ? values[2].trim() : '',
@@ -286,8 +291,8 @@ class CreateTournamentContainer extends Component {
         }
       }
 
-      this.tournamentArrangeHeader = ['STT', 'HẠNG CÂN', 'TÊN VDV', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
-      this.setState({ data: this.tournamentArrayRaw });
+      this.combatArrangeHeader = ['STT', 'HẠNG CÂN', 'TÊN VDV', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
+      this.setState({ data: this.combatArrayRaw });
 
     };
     reader.readAsArrayBuffer(file);
@@ -297,7 +302,7 @@ class CreateTournamentContainer extends Component {
   //Sửa lại để chỉ xáo trộn trong hạng cân
   shuffle = () => {
     console.log("shuffle Start");
-    let currentIndex = this.tournamentArrayRaw.length;
+    let currentIndex = this.combatArrayRaw.length;
     let temporaryValue, randomIndex;
 
     // While there remain elements to shuffle...
@@ -308,14 +313,14 @@ class CreateTournamentContainer extends Component {
       currentIndex -= 1;
 
       // And swap it with the current element.
-      temporaryValue = this.tournamentArrayRaw[currentIndex];
-      this.tournamentArrayRaw[currentIndex] = this.tournamentArrayRaw[randomIndex];
-      this.tournamentArrayRaw[randomIndex] = temporaryValue;
+      temporaryValue = this.combatArrayRaw[currentIndex];
+      this.combatArrayRaw[currentIndex] = this.combatArrayRaw[randomIndex];
+      this.combatArrayRaw[randomIndex] = temporaryValue;
     }
 
     this.grouping();
 
-    this.setState({ data: this.tournamentArrayRaw });
+    this.setState({ data: this.combatArrayRaw });
     console.log("shuffle End");
   }
 
@@ -324,13 +329,13 @@ class CreateTournamentContainer extends Component {
     // Sắp xếp thứ tự ưu tiên: hạng cân nhiều VDV nhất, nếu bằng nhau thì Nam trước.
     // Count the number of fighters in each weight category
     const weightCount = {};
-    this.tournamentArrayRaw.forEach((fighter) => {
+    this.combatArrayRaw.forEach((fighter) => {
       const weight = fighter[1]; // Extract the weight category from the string
       weightCount[weight] = (weightCount[weight] || 0) + 1;
     });
 
     // Sort the fighters based on weight count and maintain the original order within each weight category
-    this.tournamentArrayRaw.sort((a, b) => {
+    this.combatArrayRaw.sort((a, b) => {
       const weightA = a[1]; // Extract the weight category from the string
       const weightB = b[1]; // Extract the weight category from the string
       const countA = weightCount[weightA];
@@ -353,15 +358,15 @@ class CreateTournamentContainer extends Component {
       }
 
       // If weight count is the same, maintain the original order
-      return this.tournamentArrayRaw.indexOf(a) - this.tournamentArrayRaw.indexOf(b);
+      return this.combatArrayRaw.indexOf(a) - this.combatArrayRaw.indexOf(b);
     });
 
     let countId = 1;
-    for (let i = 0; i < this.tournamentArrayRaw.length; i++) {
-      const weightA = this.tournamentArrayRaw[i][1];
-      const weightB = this.tournamentArrayRaw[i + 1] ? this.tournamentArrayRaw[i + 1][1] : null;
+    for (let i = 0; i < this.combatArrayRaw.length; i++) {
+      const weightA = this.combatArrayRaw[i][1];
+      const weightB = this.combatArrayRaw[i + 1] ? this.combatArrayRaw[i + 1][1] : null;
 
-      this.tournamentArrayRaw[i][0] = countId;
+      this.combatArrayRaw[i][0] = countId;
 
       if (weightA !== weightB) {
         countId = 1;
@@ -370,7 +375,7 @@ class CreateTournamentContainer extends Component {
       }
     }
 
-    this.setState({ data: this.tournamentArrayRaw });
+    this.setState({ data: this.combatArrayRaw });
     console.log("grouping End");
   }
 
@@ -380,13 +385,13 @@ class CreateTournamentContainer extends Component {
     // Sắp xếp thứ tự ưu tiên: hạng cân nhiều VDV nhất, nếu bằng nhau thì Nam trước.
     // Count the number of fighters in each weight category
     const weightCount = {};
-    this.tournamentArrayRaw.forEach((fighter) => {
+    this.combatArrayRaw.forEach((fighter) => {
       const weight = fighter[1]; // Extract the weight category from the string
       weightCount[weight] = (weightCount[weight] || 0) + 1;
     });
 
     // Sort the fighters based on weight count and maintain the original order within each weight category
-    this.tournamentArrayRaw.sort((a, b) => {
+    this.combatArrayRaw.sort((a, b) => {
       const weightA = a[1]; // Extract the weight category from the string
       const weightB = b[1]; // Extract the weight category from the string
       const countA = weightCount[weightA];
@@ -409,12 +414,12 @@ class CreateTournamentContainer extends Component {
       }
 
       // If weight count is the same, maintain the original order
-      return this.tournamentArrayRaw.indexOf(a) - this.tournamentArrayRaw.indexOf(b);
+      return this.combatArrayRaw.indexOf(a) - this.combatArrayRaw.indexOf(b);
     });
 
     // Tạo đối tượng Map để gom nhóm các võ sĩ theo hạng cân
     let groupedData = new Map();
-    this.tournamentArrayRaw.forEach(item => {
+    this.combatArrayRaw.forEach(item => {
       let weight = item[1].trim();
       if (groupedData.has(weight)) {
         groupedData.get(weight).push(item);
@@ -469,9 +474,9 @@ class CreateTournamentContainer extends Component {
     }
 
     //Add to array to show in table and data import
-    this.tournamentObj = JSON.parse(JSON.stringify(this.tournamentConst));
+    this.combatObj = JSON.parse(JSON.stringify(this.combatConst));
     this.matchs.forEach(value => {
-      this.tournamentStandardArray.push([
+      this.combatStandardArray.push([
         value.match, value.weight, value.type, value.redFighter.name, value.redFighter.code, value.redFighter.country, value.blueFighter.name, value.blueFighter.code, value.blueFighter.country
       ]);
       let matchObjTemp = JSON.parse(JSON.stringify(this.matchObj));
@@ -486,12 +491,12 @@ class CreateTournamentContainer extends Component {
       matchObjTemp.fighters.blueFighter.code = value.blueFighter.code;
       matchObjTemp.fighters.blueFighter.country = value.blueFighter.country;
       matchObjTemp.fighters.blueFighter.result = value.blueFighter.result;
-      this.tournamentObj.tournament.push(matchObjTemp);
+      this.combatObj.combat.push(matchObjTemp);
     })
 
-    this.tournamentArrayRaw = [];
-    this.tournamentArrangeHeader = ["TRẬN", "HẠNG CÂN", "LOẠI TRẬN", "TÊN GIÁP ĐỎ", "CODE/ĐƠN VỊ GIÁP ĐỎ", "QUỐC GIA ĐỎ", "TÊN GIÁP XANH", "CODE/ĐƠN VỊ GIÁP XANH", "QUỐC GIA XANH"];
-    this.setState({ data: this.tournamentStandardArray });
+    this.combatArrayRaw = [];
+    this.combatArrangeHeader = ["TRẬN", "HẠNG CÂN", "LOẠI TRẬN", "TÊN GIÁP ĐỎ", "CODE/ĐƠN VỊ GIÁP ĐỎ", "QUỐC GIA ĐỎ", "TÊN GIÁP XANH", "CODE/ĐƠN VỊ GIÁP XANH", "QUỐC GIA XANH"];
+    this.setState({ data: this.combatStandardArray });
 
     console.log("arrangeTournament End");
   }
@@ -555,8 +560,8 @@ class CreateTournamentContainer extends Component {
     FileSaver.saveAs(data, fileName + fileExtension);
   };
 
-  handleimportTournamentMartialRawFile = (event) => {
-    console.log("handleimportTournamentMartialRawFile Start");
+  handleimportMartialRawFile = (event) => {
+    console.log("handleimportMartialRawFile Start");
     const file = event.target.files[0];
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -565,13 +570,13 @@ class CreateTournamentContainer extends Component {
       // const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets['data'];
       const excelData = utils.sheet_to_json(worksheet, { header: 1 });
-      this.tournamentMartialArrayRaw = [];
+      this.martialArrayRaw = [];
 
       for (let i = 1; i < excelData.length; i++) {
         let values = excelData[i];
 
         if (values.length !== 0) { //Dòng có nội dung
-          this.tournamentMartialArrayRaw.push([
+          this.martialArrayRaw.push([
             values[0] !== undefined ? values[0] : '',
             values[1] !== undefined ? values[1].trim() : '',
             values[2] !== undefined ? values[2].trim() : '',
@@ -581,36 +586,36 @@ class CreateTournamentContainer extends Component {
         }
       }
 
-      this.tournamentMartialArrangeHeader = ['STT', 'NỘI DUNG', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
-      this.setState({ data: this.tournamentMartialArrayRaw });
+      this.martialArrangeHeader = ['STT', 'NỘI DUNG', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
+      this.setState({ data: this.martialArrayRaw });
 
     };
     reader.readAsArrayBuffer(file);
-    console.log("handleimportTournamentMartialRawFile End");
+    console.log("handleimportMartialRawFile End");
   }
 
-  shuffleTournamentMartial = () => {
-    console.log("shuffleTournamentMartial Start");
+  shuffleMartial = () => {
+    console.log("shuffleMartial Start");
 
 
-    this.setState({ data: this.tournamentArrayRaw });
-    console.log("shuffleTournamentMartial End");
+    this.setState({ data: this.combatArrayRaw });
+    console.log("shuffleMartial End");
   }
 
-  arrangeTournamentMartial = () => {
-    console.log("arrangeTournamentMartial Start");
+  arrangeMartial = () => {
+    console.log("arrangeMartial Start");
 
-    this.tournamentMartialObj = JSON.parse(JSON.stringify(this.tournamentMartialConst));
+    this.martialObj = JSON.parse(JSON.stringify(this.martialConst));
     let matchMartialObjTemp = JSON.parse(JSON.stringify(this.matchMartialObj));
     let fighterMartialObjTemp = JSON.parse(JSON.stringify(this.fighterMartialObj));
     let fightersMartialObjTemp = JSON.parse(JSON.stringify(this.fightersMartialObj));
-    this.tournamentMartialStandardArray = [];
+    this.martialStandardArray = [];
 
     // Tạo đối tượng Map để gom nhóm các võ sĩ theo hạng cân
     let groupedData = new Map();
     let matchNo;
     let prevMatch;
-    this.tournamentMartialArrayRaw.forEach(item => {
+    this.martialArrayRaw.forEach(item => {
       let matchName = item[1].trim();
       if (groupedData.has(matchName)) {
         groupedData.get(matchName).push(item);
@@ -625,18 +630,18 @@ class CreateTournamentContainer extends Component {
         fightersMartialObjTemp.no = matchNo;
         fightersMartialObjTemp.fighters.push(fighterMartialObjTemp);
         if (prevMatch !== item[0] + item[1].trim()) {
-          this.tournamentMartialObj.tournamentMartial.slice(-1)[0].team.push(fightersMartialObjTemp);
+          this.martialObj.martial.slice(-1)[0].team.push(fightersMartialObjTemp);
         } else { //Dòng VDV đồng đội thứ 2 trở đi
-          this.tournamentMartialObj.tournamentMartial.slice(-1)[0].team.slice(-1)[0].fighters.push(fighterMartialObjTemp);
+          this.martialObj.martial.slice(-1)[0].team.slice(-1)[0].fighters.push(fighterMartialObjTemp);
         }
-        this.tournamentMartialStandardArray.push([matchNo, item[1].trim(), item[2].trim(), item[3].trim(), item[4].trim()]);
+        this.martialStandardArray.push([matchNo, item[1].trim(), item[2].trim(), item[3].trim(), item[4].trim()]);
 
       } else {
         groupedData.set(matchName, [item]);
         matchMartialObjTemp = JSON.parse(JSON.stringify(this.matchMartialObj));
-        this.tournamentMartialObj.tournamentMartial.push(matchMartialObjTemp);
+        this.martialObj.martial.push(matchMartialObjTemp);
         matchMartialObjTemp.match.name = matchName;
-        this.tournamentMartialStandardArray.push([matchName, '', '', '', '']);
+        this.martialStandardArray.push([matchName, '', '', '', '']);
         matchNo = 1;
         fighterMartialObjTemp = JSON.parse(JSON.stringify(this.fighterMartialObj));
         fighterMartialObjTemp.fighter.name = item[2].trim();
@@ -645,24 +650,24 @@ class CreateTournamentContainer extends Component {
         fightersMartialObjTemp = JSON.parse(JSON.stringify(this.fightersMartialObj));
         fightersMartialObjTemp.no = matchNo;
         fightersMartialObjTemp.fighters.push(fighterMartialObjTemp);
-        this.tournamentMartialObj.tournamentMartial.slice(-1)[0].team.push(fightersMartialObjTemp);
-        this.tournamentMartialStandardArray.push([matchNo, item[1].trim(), item[2].trim(), item[3].trim(), item[4].trim()]);
+        this.martialObj.martial.slice(-1)[0].team.push(fightersMartialObjTemp);
+        this.martialStandardArray.push([matchNo, item[1].trim(), item[2].trim(), item[3].trim(), item[4].trim()]);
       }
       prevMatch = item[0] + item[1].trim();
     });
 
-    this.tournamentMartialArrayRaw = [];
-    this.tournamentArrangeHeader = ['STT', 'NỘI DUNG', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
-    this.setState({ data: this.tournamentMartialStandardArray });
+    this.martialArrayRaw = [];
+    this.combatArrangeHeader = ['STT', 'NỘI DUNG', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
+    this.setState({ data: this.martialStandardArray });
 
-    console.log("arrangeTournamentMartial End");
+    console.log("arrangeMartial End");
   }
 
-  downloadTournamentMartial = () => {
-    console.log("downloadTournamentMartial Start");
-    this.tournamentMartialArrangeHeader = ['STT', 'NỘI DUNG', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
-    this.exportExcel(this.tournamentMartialArrangeHeader, this.state.data, "Thong tin THI QUYEN");
-    console.log("downloadTournamentMartial End");
+  downloadMartial = () => {
+    console.log("downloadMartial Start");
+    this.martialArrangeHeader = ['STT', 'NỘI DUNG', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
+    this.exportExcel(this.martialArrangeHeader, this.state.data, "Thong tin THI QUYEN");
+    console.log("downloadMartial End");
   }
 
   inputPw = (value) => {
@@ -723,11 +728,11 @@ class CreateTournamentContainer extends Component {
                   <table>
                     <thead>
                       <tr>
-                        {this.tournamentArrangeHeader && this.tournamentArrangeHeader.map((header) => <th key={header}>{header}</th>)}
+                        {this.combatArrangeHeader && this.combatArrangeHeader.map((header) => <th key={header}>{header}</th>)}
                       </tr>
                     </thead>
                     <tbody>
-                      {this.tournamentStandardArray ? this.tournamentStandardArray.map((row, i) => (
+                      {this.combatStandardArray ? this.combatStandardArray.map((row, i) => (
                         <tr key={i}>
                           {row.map((cell, i) => (
                             <td key={i}>{cell}</td>
@@ -736,7 +741,7 @@ class CreateTournamentContainer extends Component {
                       )) :
                         <tr><td colSpan="5">Không có dữ liệu hiển thị</td></tr>
                       }
-                      {this.tournamentArrayRaw ? this.tournamentArrayRaw.map((row, i) => (
+                      {this.combatArrayRaw ? this.combatArrayRaw.map((row, i) => (
                         <tr key={i}>
                           {row.map((cell, i) => (
                             <td key={i}>{cell}</td>
@@ -766,11 +771,11 @@ class CreateTournamentContainer extends Component {
                   <table>
                     <thead>
                       <tr>
-                        {this.tournamentArrangeHeader && this.tournamentArrangeHeader.map((header) => <th key={header}>{header}</th>)}
+                        {this.combatArrangeHeader && this.combatArrangeHeader.map((header) => <th key={header}>{header}</th>)}
                       </tr>
                     </thead>
                     <tbody>
-                      {this.tournamentStandardArray ? this.tournamentStandardArray.map((row, i) => (
+                      {this.combatStandardArray ? this.combatStandardArray.map((row, i) => (
                         <tr key={i}>
                           {row.map((cell, i) => (
                             <td key={i}>{cell}</td>
@@ -779,7 +784,7 @@ class CreateTournamentContainer extends Component {
                       )) :
                         <tr><td colSpan="5">Không có dữ liệu hiển thị</td></tr>
                       }
-                      {this.tournamentArrayRaw ? this.tournamentArrayRaw.map((row, i) => (
+                      {this.combatArrayRaw ? this.combatArrayRaw.map((row, i) => (
                         <tr key={i}>
                           {row.map((cell, i) => (
                             <td key={i}>{cell}</td>
@@ -800,21 +805,21 @@ class CreateTournamentContainer extends Component {
                   <div className="function-button">
                     <div className="input-group">
                       <a href={mauthothiquyen} download="4-Mau_Tho_Thi_Quyen" target="_blank" rel="noreferrer" className="btn btn-outline-primary" role="button"><i className="fa-solid fa-file-download"></i> Download mẫu 4</a>
-                      <input type="file" className="form-control" onChange={this.handleimportTournamentMartialRawFile} />
-                      {/* <button className="btn btn-info" type="button" onClick={this.shuffleTournamentMartial}><i className="fa-solid fa-shuffle"></i> Xáo trộn danh sách</button> */}
-                      {/* <button className="btn btn-warning" type="button" onClick={this.arrangeTournamentMartial}><i className="fa-solid fa-layer-group"></i> Sắp xếp Thi Quyền</button> */}
-                      <button className="btn btn-danger" type="button" onClick={this.importTournamentMartial}><i className="fa-solid fa-file-import"></i> Khởi tạo Thi Quyền</button>
-                      <button className="btn btn-primary" type="button" onClick={this.downloadTournamentMartial}><i className="fa-solid fa-file-download"></i> Download Danh sách</button>
+                      <input type="file" className="form-control" onChange={this.handleimportMartialRawFile} />
+                      {/* <button className="btn btn-info" type="button" onClick={this.shuffleMartial}><i className="fa-solid fa-shuffle"></i> Xáo trộn danh sách</button> */}
+                      {/* <button className="btn btn-warning" type="button" onClick={this.arrangeMartial}><i className="fa-solid fa-layer-group"></i> Sắp xếp Thi Quyền</button> */}
+                      <button className="btn btn-danger" type="button" onClick={this.importMartial}><i className="fa-solid fa-file-import"></i> Khởi tạo Thi Quyền</button>
+                      <button className="btn btn-primary" type="button" onClick={this.downloadMartial}><i className="fa-solid fa-file-download"></i> Download Danh sách</button>
                     </div>
                   </div>
                   <table>
                     <thead>
                       <tr>
-                        {this.tournamentMartialArrangeHeader && this.tournamentMartialArrangeHeader.map((header) => <th key={header}>{header}</th>)}
+                        {this.martialArrangeHeader && this.martialArrangeHeader.map((header) => <th key={header}>{header}</th>)}
                       </tr>
                     </thead>
                     <tbody>
-                      {this.tournamentMartialStandardArray ? this.tournamentMartialStandardArray.map((row, i) => (
+                      {this.martialStandardArray ? this.martialStandardArray.map((row, i) => (
                         <tr key={i}>
                           {row.map((cell, i) => (
                             <td key={i}>{cell}</td>
@@ -823,7 +828,7 @@ class CreateTournamentContainer extends Component {
                       )) :
                         <tr><td colSpan="5">Không có dữ liệu hiển thị</td></tr>
                       }
-                      {this.tournamentMartialArrayRaw ? this.tournamentMartialArrayRaw.map((row, i) => (
+                      {this.martialArrayRaw ? this.martialArrayRaw.map((row, i) => (
                         <tr key={i}>
                           {row.map((cell, i) => (
                             <td key={i}>{cell}</td>
@@ -851,11 +856,11 @@ class CreateTournamentContainer extends Component {
                   <table>
                     <thead>
                       <tr>
-                        {this.tournamentImportHeader && this.tournamentImportHeader.map((header) => <th key={header}>{header}</th>)}
+                        {this.combatImportHeader && this.combatImportHeader.map((header) => <th key={header}>{header}</th>)}
                       </tr>
                     </thead>
                     <tbody>
-                      {this.tournamentArray ? this.tournamentArray.map((row, i) => (
+                      {this.combatArray ? this.combatArray.map((row, i) => (
                         <tr key={i}>
                           {row.map((cell, i) => (
                             <td key={i}>{cell}</td>
@@ -876,17 +881,17 @@ class CreateTournamentContainer extends Component {
                   <div className="function-button">
                     <div className="input-group">
                       <a href={mauchuanthiquyen} download="2-Mau_Chuan_Thi_Quyen" target="_blank" rel="noreferrer" className="btn btn-outline-primary" role="button"><i className="fa-solid fa-file-download"></i> Download mẫu 2</a>
-                      <input type="file" className="form-control" onChange={this.handleimportTournamentMartialFile} />
-                      <button className="btn btn-danger" type="button" onClick={this.importTournamentMartial}><i className="fa-solid fa-file-import"></i> Khởi tạo Thi Quyền</button>
+                      <input type="file" className="form-control" onChange={this.handleimportMartialFile} />
+                      <button className="btn btn-danger" type="button" onClick={this.importMartial}><i className="fa-solid fa-file-import"></i> Khởi tạo Thi Quyền</button>
                     </div>
                     <table>
                       <thead>
                         <tr>
-                          {this.tournamentMartialImportHeader && this.tournamentMartialImportHeader.map((header) => <th key={header}>{header}</th>)}
+                          {this.martialImportHeader && this.martialImportHeader.map((header) => <th key={header}>{header}</th>)}
                         </tr>
                       </thead>
                       <tbody>
-                        {this.tournamentMartialArray ? this.tournamentMartialArray.map((row, i) => (
+                        {this.martialArray ? this.martialArray.map((row, i) => (
                           <tr key={i}>
                             {row.map((cell, i) => (
                               <td key={i}>{cell}</td>
