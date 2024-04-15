@@ -54,11 +54,18 @@ class GiamDinhDoiKhangContainer extends Component {
   }
 
   main() {
+    get(child(ref(this.db), 'tournament')).then((snapshot) => {
+      this.tournamentObj = snapshot.val();
+      this.tournaments = [];
+      
+      for (let i = 0; i < this.tournamentObj.length; i++) {
+        this.tournaments.push([i, this.tournamentObj[i].setting.tournamentName]);
+      }
+      this.setState({ data: this.tournaments });
+    })
+
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
-      if (this.settingObj.isShowArenaB === true) {
-        $(".arenaChooseBox").show();
-      }
       $('#tournamentName').html(this.settingObj.tournamentName);
       let refereeChoose123 = "<input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee1' value='1' checked><label class='btn btn-outline-secondary' for='optionsReferee1'><i class='fa-solid fa-user'></i><br>Giám định 1</label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee2' value='2'><label class='btn btn-outline-secondary' for='optionsReferee2'><i class='fa-solid fa-user'></i><br>Giám định 2</label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee3' value='3'><label class='btn btn-outline-secondary' for='optionsReferee3'><i class='fa-solid fa-user'></i><br>Giám định 3</label>";
       $(".refereeChoose").append(refereeChoose123);
@@ -69,6 +76,10 @@ class GiamDinhDoiKhangContainer extends Component {
       }
       this.showChooseRefereeNoModal();
     })
+  }
+
+  chooseTournament = (tournamentNoIndex) => {
+    this.tournamentNoIndex = tournamentNoIndex;
   }
 
   _handleKeyDown = (e) => {
@@ -120,7 +131,7 @@ class GiamDinhDoiKhangContainer extends Component {
         let matchCurrentNoIndex = snapshot.val() - 1;
         let matchCurrentNo = matchCurrentNoIndex + 1
         $("#gd-match").html("Trận số " + matchCurrentNo);
-        this.path = "tournament/'+this.tournamentNoIndex+'/combatArena/" + this.combatArenaNoIndex + "/referee/" + this.referreIndex;
+        this.path = "tournament/" + this.tournamentNoIndex + "/combatArena/" + this.combatArenaNoIndex + "/referee/" + this.referreIndex;
       })
     }
   }
@@ -281,24 +292,45 @@ class GiamDinhDoiKhangContainer extends Component {
               <div className="modal-dialog" role="document">
                 <div className="modal-content">
                   <div className="modal-header">
-                    <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn sân và mã giám định của bạn
+                    <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn thông tin
                     </h5>
                     <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideChooseRefereeNoModal}></button>
                   </div>
-                  <div className="modal-body arenaChooseBox" style={{ display: 'none' }}>
-                    <div className="category-buttons">
-                      <section className="btn-group arenaChoose">
-                        <input type="radio" className="btn-check" name="optionsArena" id="optionsArena0" value="0" defaultChecked />
-                        <label className="btn btn-outline-secondary" htmlFor="optionsArena0"> <i className="fa-solid fa-chess-board"></i> <br />Sân A </label>
-                        <input type="radio" className="btn-check" name="optionsArena" id="optionsArena1" value="1" />
-                        <label className="btn btn-outline-secondary" htmlFor="optionsArena1"> <i className="fa-solid fa-chess-board"></i> <br />Sân B </label>
-                      </section>
-                    </div>
-                  </div>
+
                   <div className="modal-body">
-                    <div className="category-buttons">
-                      <section className="btn-group refereeChoose">
-                        {/* <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee1" value="1" defaultChecked />
+                    <form className="form-style-7 mt-3">
+                      <div className="row">
+                        <div className="col mb-3">
+                          {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
+                            <div className="form-check" key={i} onClick={() => this.chooseTournament(i)}>
+                              <input className="form-check-input" type="radio" name="tournamentRadio" id={`tournamentRadio-${tournament[0]}`} defaultChecked={i === 0} />
+                              <label className="form-check-label" htmlFor={`tournamentRadio-${tournament[0]}`}>
+                                {tournament[1]}
+                              </label>
+                            </div>
+                          )) : (
+                            <div></div>
+                          )}
+                        </div>
+                      </div>
+
+                      <hr className="mt-4 mb-4" />
+                      <div className="arenaChooseBox">
+                        <div className="category-buttons">
+                          <section className="btn-group arenaChoose">
+                            <input type="radio" className="btn-check" name="optionsArena" id="optionsArena0" value="0" defaultChecked />
+                            <label className="btn btn-outline-secondary" htmlFor="optionsArena0"> <i className="fa-solid fa-chess-board"></i> <br />Sân A </label>
+                            <input type="radio" className="btn-check" name="optionsArena" id="optionsArena1" value="1" />
+                            <label className="btn btn-outline-secondary" htmlFor="optionsArena1"> <i className="fa-solid fa-chess-board"></i> <br />Sân B </label>
+                          </section>
+                        </div>
+                      </div>
+
+                      <hr className="mt-4 mb-4" />
+                      <div className="refereeChooseBox" >
+                        <div className="category-buttons">
+                          <section className="btn-group refereeChoose">
+                            {/* <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee1" value="1" defaultChecked />
                         <label className="btn btn-outline-secondary" htmlFor="optionsReferee1"> <i className="fa-solid fa-user"></i> <br/>Giám định 1 </label>
                         <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee2" value="2" />
                         <label className="btn btn-outline-secondary" htmlFor="optionsReferee2"> <i className="fa-solid fa-user"></i> <br/>Giám định 2 </label>
@@ -308,9 +340,12 @@ class GiamDinhDoiKhangContainer extends Component {
                         <label className="btn btn-outline-secondary" htmlFor="optionsReferee4"> <i className="fa-solid fa-user"></i> <br/>Giám định 4 </label>
                         <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee5" value="5" />
                         <label className="btn btn-outline-secondary" htmlFor="optionsReferee5"> <i className="fa-solid fa-user"></i> <br/>Giám định 5 </label> */}
-                      </section>
-                    </div>
+                          </section>
+                        </div>
+                      </div>
+                    </form>
                   </div>
+                  
                   <div className="modal-footer">
                     <button type="button" className="btn btn-primary" onClick={this.chooseRefereeNo}>OK</button>
                     <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hideChooseRefereeNoModal}>Cancel</button>

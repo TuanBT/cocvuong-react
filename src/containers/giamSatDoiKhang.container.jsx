@@ -82,6 +82,16 @@ class GiamSatDoiKhangContainer extends Component {
   }
 
   main() {
+    get(child(ref(this.db), 'tournament')).then((snapshot) => {
+      this.tournamentObj = snapshot.val();
+      this.tournaments = [];
+      
+      for (let i = 0; i < this.tournamentObj.length; i++) {
+        this.tournaments.push([i, this.tournamentObj[i].setting.tournamentName]);
+      }
+      this.setState({ data: this.tournaments });
+    })
+
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       if (this.settingObj.isShowArenaB === true) {
@@ -97,9 +107,6 @@ class GiamSatDoiKhangContainer extends Component {
     if (combatArenaNo != null && combatArenaNo != "") {
       this.hideChooseArenaNoModal();
       this.combatArenaNoIndex = combatArenaNo;
-      // get(child(ref(this.db), 'tournament/'+this.tournamentNoIndex+'/combatArena/' + this.combatArenaNoIndex + '/combatArenaName')).then((snapshot) => {
-      //   $('#arena-name').html(snapshot.val());
-      // })
       this.showTournamentInfo();
     }
   }
@@ -169,6 +176,10 @@ class GiamSatDoiKhangContainer extends Component {
         }
       })
     })
+  }
+
+  chooseTournament = (tournamentNoIndex) => {
+    this.tournamentNoIndex = tournamentNoIndex;
   }
 
   _handleKeyDown = (e) => {
@@ -1286,19 +1297,37 @@ class GiamSatDoiKhangContainer extends Component {
             <div className="modal-dialog" role="document">
               <div className="modal-content">
                 <div className="modal-header">
-                  <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn sân thi đấu
+                  <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn giải và sân thi đấu
                   </h5>
                   <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideChooseArenaNoModal}></button>
                 </div>
                 <div className="modal-body">
-                  <div className="category-buttons">
-                    <section className="btn-group arenaChoose">
-                      <input type="radio" className="btn-check" name="optionsArena" id="optionsArena0" value="0" defaultChecked />
-                      <label className="btn btn-outline-secondary" htmlFor="optionsArena0"> <i className="fa-solid fa-chess-board"></i> <br />Sân A </label>
-                      <input type="radio" className="btn-check" name="optionsArena" id="optionsArena1" value="1" />
-                      <label className="btn btn-outline-secondary" htmlFor="optionsArena1"> <i className="fa-solid fa-chess-board"></i> <br />Sân B </label>
-                    </section>
-                  </div>
+
+                  <form className="form-style-7 mt-3">
+                    <div className="row">
+                      <div className="col mb-3">
+                        {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
+                          <div className="form-check" key={i} onClick={() => this.chooseTournament(i)}>
+                            <input className="form-check-input" type="radio" name="tournamentRadio" id={`tournamentRadio-${tournament[0]}`} defaultChecked={i === 0} />
+                            <label className="form-check-label" htmlFor={`tournamentRadio-${tournament[0]}`}>
+                              {tournament[1]}
+                            </label>
+                          </div>
+                        )) : (
+                          <div></div>
+                        )}
+                        <hr className="mt-4 mb-4" />
+                        <div className="category-buttons">
+                          <section className="btn-group arenaChoose">
+                            <input type="radio" className="btn-check" name="optionsArena" id="optionsArena0" value="0" defaultChecked />
+                            <label className="btn btn-outline-secondary" htmlFor="optionsArena0"> <i className="fa-solid fa-chess-board"></i> <br />Sân A </label>
+                            <input type="radio" className="btn-check" name="optionsArena" id="optionsArena1" value="1" />
+                            <label className="btn btn-outline-secondary" htmlFor="optionsArena1"> <i className="fa-solid fa-chess-board"></i> <br />Sân B </label>
+                          </section>
+                        </div>
+                      </div>
+                    </div>
+                  </form>
                 </div>
                 <div className="modal-footer">
                   <button type="button" className="btn btn-primary" onClick={this.chooseArenaNo}>OK</button>

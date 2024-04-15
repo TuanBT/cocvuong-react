@@ -10,6 +10,9 @@ class InformationDkContainer extends Component {
   constructor(props) {
     super(props);
     const me = this;
+    this.state = {
+      data: [],
+    };
     this.db = Firebase();
     this.combatObj;
     this.tournamentNoIndex = 0;
@@ -43,6 +46,16 @@ class InformationDkContainer extends Component {
 
 
   main() {
+    get(child(ref(this.db), 'tournament')).then((snapshot) => {
+      this.tournamentObj = snapshot.val();
+      this.tournaments = [];
+
+      for (let i = 0; i < this.tournamentObj.length; i++) {
+        this.tournaments.push([i, this.tournamentObj[i].setting.tournamentName]);
+      }
+      this.setState({ data: this.tournaments });
+    })
+
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       $('#tournamentName').html(this.settingObj.tournamentName);
@@ -64,6 +77,11 @@ class InformationDkContainer extends Component {
       let value = $('input[name="optionCategory"]:checked').val();
       this.showListMatchs(value);
     });
+  }
+
+  chooseTournament = (tournamentNoIndex) => {
+    this.tournamentNoIndex = tournamentNoIndex;
+    this.main();
   }
 
   showListInfo() {
@@ -144,9 +162,9 @@ class InformationDkContainer extends Component {
 
     //Đến trận final 
     $('.final .teamc').html(nameWin);
+
+    
   }
-
-
 
   render() {
     return (
@@ -160,6 +178,7 @@ class InformationDkContainer extends Component {
                 </div>
                 <div className="col-4 text-center">
                   <h2 className="blog-header-logo text-midnight-blue">Thông tin các trận đấu đối kháng</h2>
+                  
                 </div>
                 <div className="col-4 d-flex justify-content-end align-items-center">
                   <span className="text-muted">
@@ -168,8 +187,28 @@ class InformationDkContainer extends Component {
                 </div>
               </div>
             </header>
+            <hr className="mt-4 mb-4" />
+            <header className="blog-header py-3">
+              <div className="row flex-nowrap justify-content-between align-items-center">
+                
+                <div className="col-12 text-left">
+                {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
+                    <div className="form-check" key={i} onClick={() => this.chooseTournament(i)}>
+                      <input className="form-check-input" type="radio" name="tournamentRadio" id={`tournamentRadio-${tournament[0]}`} defaultChecked={i === 0} />
+                      <label className="form-check-label" htmlFor={`tournamentRadio-${tournament[0]}`}>
+                        {tournament[1]}
+                      </label>
+                    </div>
+                  )) : (
+                    <div></div>
+                  )}
+                  
+                </div>
+                
+              </div>
+            </header>
+            <hr className="mt-4 mb-4" />
           </div>
-
           <div className="category-buttons">
             <section className="btn-group category-radio">
               <input type="radio" className="btn-check" name="optionCategory" id="optionCategory-1" value="ALL" defaultChecked />
@@ -219,6 +258,43 @@ class InformationDkContainer extends Component {
           </div>
 
           <div id="schema-bracket">
+          </div>
+
+          <div className="modal display-none" id="chooseArenaNoModal" tabIndex="-1" role="dialog">
+            <div className="modal-dialog" role="document">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn thông tin
+                  </h5>
+                  <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideChooseArenaNoModal}></button>
+                </div>
+
+                <div className="modal-body">
+                  <form className="form-style-7 mt-3">
+                    <div className="row">
+                      <div className="col mb-3">
+                        {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
+                          <div className="form-check" key={i} onClick={() => this.chooseTournament(i)}>
+                            <input className="form-check-input" type="radio" name="tournamentRadio" id={`tournamentRadio-${tournament[0]}`} defaultChecked={i === 0} />
+                            <label className="form-check-label" htmlFor={`tournamentRadio-${tournament[0]}`}>
+                              {tournament[1]}
+                            </label>
+                          </div>
+                        )) : (
+                          <div></div>
+                        )}
+                      </div>
+                    </div>
+
+                  </form>
+                </div>
+
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-primary" onClick={this.chooseInfoNo}>OK</button>
+                  <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hideChooseArenaNoModal}>Cancel</button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="container">

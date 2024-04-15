@@ -91,8 +91,44 @@ class GiamSatThiQuyenContainer extends Component {
   }
 
   main() {
+    get(child(ref(this.db), 'tournament')).then((snapshot) => {
+      this.tournamentObj = snapshot.val();
+      this.tournaments = [];
+      
+      for (let i = 0; i < this.tournamentObj.length; i++) {
+        this.tournaments.push([i, this.tournamentObj[i].setting.tournamentName]);
+      }
+      this.setState({ data: this.tournaments });
+    })
+
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
+      if (this.settingObj.isShowArenaB === true) {
+        this.showChooseArenaNoModal();
+      } else {
+        this.showMartialInfo();
+      }
+    })
+  }
+
+  chooseArenaNo = () => {
+    let martialArenaNo = $("input:radio[name ='optionsArena']:checked").val();
+    if (martialArenaNo != null && martialArenaNo != "") {
+      this.hideChooseArenaNoModal();
+      this.martialArenaNoIndex = martialArenaNo;
+      this.showMartialInfo();
+    }
+  }
+
+  chooseTournament = (tournamentNoIndex) => {
+    this.tournamentNoIndex = tournamentNoIndex;
+  }
+
+  showMartialInfo = () => {
+    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/martialArena/' + this.martialArenaNoIndex + '/martialArenaName')).then((snapshot) => {
+      $('#hd-arena-name').html(snapshot.val());
+    })
+    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       $('#tournamentName').html(this.settingObj.tournamentName);
       if (this.settingObj.isShowFiveReferee === true) {
         this.numReferee = 5;
@@ -101,7 +137,6 @@ class GiamSatThiQuyenContainer extends Component {
         $(".spec-score").width("4.1%");
       }
     })
-
     get(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/martialArena/' + this.martialArenaNoIndex + '/lastMatchMartial')).then((snapshot) => {
       let lastMatchMartialObj = snapshot.val();
       this.matchMartialNoCurrent = lastMatchMartialObj.matchMartialNo;
@@ -172,7 +207,10 @@ class GiamSatThiQuyenContainer extends Component {
     $("#match-martial-name").html(this.martialObj[this.matchMartialNoCurrent - 1].match.name);
     $("#match-martial-no").html(this.martialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].no);
     $("#match-martial-team").html("");
-    let divFlag = this.settingObj.isShowCountryFlag === true ? "<div class='countryFlagHD'><img class='flagImageHD' src='" + require('../assets/flag/' + this.teamMartial.fighters[0].fighter.country + '.jpg') + "'></div>" : "";
+    let divFlag = "";
+    if (this.teamMartial.fighters[0].fighter.country !== "") {
+      divFlag = this.settingObj.isShowCountryFlag === true ? "<div class='countryFlagHD'><img class='flagImageHD' src='" + require('../assets/flag/' + this.teamMartial.fighters[0].fighter.country + '.jpg') + "'></div>" : "";
+    }
     $("#match-martial-code").html(divFlag + "<div class='style-hd-fighter-code'><span class='info-text'>" + this.teamMartial.fighters[0].fighter.code + "</span></div>");
     for (let i = 0; i < this.teamMartial.fighters.length; i++) {
       $("#match-martial-team").append("<div class='fighter-detail'><div class='style-hd-fighter-name'><span class='info-text'>" + this.teamMartial.fighters[i].fighter.name + "</span></div></div>");
@@ -270,7 +308,7 @@ class GiamSatThiQuyenContainer extends Component {
     if (parseInt(this.refereeMartialScore) > 999) {
       this.refereeMartialScore = "";
     }
-    this.pathMartial = "tournament/'+this.tournamentNoIndex+'/martial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex;
+    this.pathMartial = "tournament/" + this.tournamentNoIndex + "/martial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex;
     update(ref(this.db, this.pathMartial), { "score": parseInt(this.refereeMartialScore) });
     update(ref(this.db, this.pathMartial), { "refereeMartial": [{ "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }] });
     this.refereeMartialScore = "";
@@ -345,6 +383,12 @@ class GiamSatThiQuyenContainer extends Component {
   hidePasswordModal = () => {
     $('#passwordModal').removeClass('modal display-block').addClass('modal display-none');;
   };
+  showChooseArenaNoModal = () => {
+    $('#chooseArenaNoModal').removeClass('modal display-none').addClass('modal display-block');
+  };
+  hideChooseArenaNoModal = () => {
+    $('#chooseArenaNoModal').removeClass('modal display-block').addClass('modal display-none');;
+  };
   showTakeMainScoreModal = () => {
     $('#takeMainScoreModal').removeClass('modal display-none').addClass('modal display-block');
   };
@@ -374,6 +418,11 @@ class GiamSatThiQuyenContainer extends Component {
                 <span className="info-text tournament-quyen-name">
                   <span id="tournamentName">
                   </span>
+                </span>
+              </div>
+              <div className="style-hd-arena">
+                <span className="info-text text-midnight-blue">
+                  <span className="hd-arena-name" id="hd-arena-name"></span>
                 </span>
               </div>
               <div className="style-hd-timer-area">
@@ -489,6 +538,55 @@ class GiamSatThiQuyenContainer extends Component {
                 </div>
               </div>
               <div className="spec-score"></div>
+            </div>
+          </div>
+
+          <div className="modal display-none" id="chooseArenaNoModal" tabIndex="-1" role="dialog">
+            <div className="modal-dialog" role="document">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn thông tin
+                  </h5>
+                  <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideChooseArenaNoModal}></button>
+                </div>
+
+                <div className="modal-body">
+                  <form className="form-style-7 mt-3">
+                    <div className="row">
+                      <div className="col mb-3">
+                        {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
+                          <div className="form-check" key={i} onClick={() => this.chooseTournament(i)}>
+                            <input className="form-check-input" type="radio" name="tournamentRadio" id={`tournamentRadio-${tournament[0]}`} defaultChecked={i === 0} />
+                            <label className="form-check-label" htmlFor={`tournamentRadio-${tournament[0]}`}>
+                              {tournament[1]}
+                            </label>
+                          </div>
+                        )) : (
+                          <div></div>
+                        )}
+                      </div>
+                    </div>
+
+                    <hr className="mt-4 mb-4" />
+                    <div className="modal-body">
+                      <div className="category-buttons">
+                        <section className="btn-group arenaChoose">
+                          <input type="radio" className="btn-check" name="optionsArena" id="optionsArena0" value="0" defaultChecked />
+                          <label className="btn btn-outline-secondary" htmlFor="optionsArena0"> <i className="fa-solid fa-chess-board"></i> <br />Sân A </label>
+                          <input type="radio" className="btn-check" name="optionsArena" id="optionsArena1" value="1" />
+                          <label className="btn btn-outline-secondary" htmlFor="optionsArena1"> <i className="fa-solid fa-chess-board"></i> <br />Sân B </label>
+                        </section>
+                      </div>
+                    </div>
+
+                  </form>
+                </div>
+
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-primary" onClick={this.chooseArenaNo}>OK</button>
+                  <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hideChooseArenaNoModal}>Cancel</button>
+                </div>
+              </div>
             </div>
           </div>
 

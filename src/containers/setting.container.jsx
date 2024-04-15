@@ -12,16 +12,18 @@ class SettingContainer extends Component {
     super(props);
     const me = this;
     this.state = {
-      data: [],
+      data:[]
     };
+    
 
     this.db = Firebase();
     this.settingObj;
+    this.tournamentObj;
 
     this.tournamentNoIndex = 0;
 
-    this.settingConst = { "setting": { "timeRound": 90, "timeBreak": 30, "timeExtra": 60, "timeExtraBreak": 15, "tournamentName": "Cóc Vương", "isShowCountryFlag": false, "isShowFiveReferee": false, "isShowCautionBox": false, "isShowArenaB": false } };
-    this.commonSettingConst = { "commonSetting": { "passwordSetting": 1, "passwordGiamSat": 1, "passwordGiamDinh": 1 } };
+    this.settingConst = { "setting": { "timeRound": 90, "timeBreak": 30, "timeExtra": 60, "timeExtraBreak": 15, "tournamentName": "Cóc Vương", "isShowCountryFlag": false, "isShowFiveReferee": false, "isShowCautionBox": true } };
+    this.commonSettingConst = { "passwordSetting": 1, "passwordGiamSat": 1, "passwordGiamDinh": 1 } ;
   }
 
   componentDidMount() {
@@ -47,7 +49,18 @@ class SettingContainer extends Component {
     }
   }
 
+  
   main() {
+    get(child(ref(this.db), 'tournament')).then((snapshot) => {
+      this.tournamentObj = snapshot.val();
+      this.tournaments = [];
+      
+      for (let i = 0; i < this.tournamentObj.length; i++) {
+        this.tournaments.push([i, this.tournamentObj[i].setting.tournamentName]);
+      }
+      this.setState({ data: this.tournaments });
+    })
+
     get(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       $("input[name=timeRound]").val(this.settingObj.timeRound);
@@ -57,7 +70,6 @@ class SettingContainer extends Component {
       $("input[name=tournamentName]").val(this.settingObj.tournamentName);
       $("#flexSwitchCountryFlag").prop("checked", this.settingObj.isShowCountryFlag);
       $("#showCautionBox").prop("checked", this.settingObj.isShowCautionBox);
-      $("#showArenaB").prop("checked", this.settingObj.isShowArenaB);
       $("#quantityReferee").prop("checked", this.settingObj.isShowFiveReferee);
     })
 
@@ -76,7 +88,51 @@ class SettingContainer extends Component {
 
   resetTournament = () => {
     console.log("resetSetting Start");
-    toast.success("Cài đặt lại trận đấu thành công - Ảo");
+    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/')).then((snapshot) => {
+      this.tournamentObj = snapshot.val();
+      console.log(this.tournamentObj);
+      for (let i = 0; i < this.tournamentObj.combat.length; i++) {
+        this.tournamentObj.combat[i].fighters.redFighter.caution.bound = 0;
+        this.tournamentObj.combat[i].fighters.redFighter.caution.fall = 0;
+        this.tournamentObj.combat[i].fighters.redFighter.caution.medical = 0;
+        this.tournamentObj.combat[i].fighters.redFighter.caution.remind = 0;
+        this.tournamentObj.combat[i].fighters.redFighter.caution.warning = 0;
+        this.tournamentObj.combat[i].fighters.redFighter.result = "";
+        this.tournamentObj.combat[i].fighters.redFighter.score = 0;
+
+        this.tournamentObj.combat[i].fighters.blueFighter.caution.bound = 0;
+        this.tournamentObj.combat[i].fighters.blueFighter.caution.fall = 0;
+        this.tournamentObj.combat[i].fighters.blueFighter.caution.medical = 0;
+        this.tournamentObj.combat[i].fighters.blueFighter.caution.remind = 0;
+        this.tournamentObj.combat[i].fighters.blueFighter.caution.warning = 0;
+        this.tournamentObj.combat[i].fighters.blueFighter.result = "";
+        this.tournamentObj.combat[i].fighters.blueFighter.score = 0;
+
+        this.tournamentObj.combat[i].match.win = "";
+      }
+      for (let i = 0; i < this.tournamentObj.combatArena.length; i++) {
+        this.tournamentObj.combatArena[i].lastMatch.no = 1;
+        for (let j = 0; j < this.tournamentObj.combatArena[i].referee.length; j++) {
+          this.tournamentObj.combatArena[i].referee[j].redScore = 0;
+          this.tournamentObj.combatArena[i].referee[j].blueScore = 0;
+        }
+      }
+      for (let i = 0; i < this.tournamentObj.martial.length; i++) {
+        for (let j = 0; j < this.tournamentObj.martial[i].team.length; j++) {
+          this.tournamentObj.martial[i].team[j].score = 0;
+          for (let k = 0; k < this.tournamentObj.martial[i].team[j].refereeMartial.length; k++) {
+            this.tournamentObj.martial[i].team[j].refereeMartial[k].score = 0;
+          }
+        }
+      }
+      for (let i = 0; i < this.tournamentObj.martialArena.length; i++) {
+        this.tournamentObj.martialArena[i].lastMatchMartial.matchMartialNo = 1;
+        this.tournamentObj.martialArena[i].lastMatchMartial.teamMartialNo = 1;
+      }
+      update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/'), this.tournamentObj).then(() => {
+        toast.success("Cài đặt trận đấu thành công!");
+      })
+    })
     console.log("resetSetting End");
   }
 
@@ -94,13 +150,16 @@ class SettingContainer extends Component {
         $("input[name=tournamentName]").val(this.settingObj.tournamentName);
         $("#flexSwitchCountryFlag").prop("checked", this.settingObj.isShowCountryFlag);
         $("#showCautionBox").prop("checked", this.settingObj.isShowCautionBox);
-        $("#showArenaB").prop("checked", this.settingObj.isShowArenaB);
         $("#quantityReferee").prop("checked", this.settingObj.isShowFiveReferee);
       })
 
       toast.success("Cài lại thiết đặt thành công!");
     });
+    console.log("resetSetting End");
+  }
 
+  resetPassword = () => {
+    console.log("resetPassword Start");
     this.commonSettingObj = JSON.parse(JSON.stringify(this.commonSettingConst));
     update(ref(this.db, 'commonSetting'), this.commonSettingObj).then(() => {
       get(ref(this.db, 'commonSetting')).then((snapshot) => {
@@ -112,7 +171,7 @@ class SettingContainer extends Component {
 
       toast.success("Cài lại thiết đặt mật khẩu thành công!");
     });
-    console.log("resetSetting End");
+    console.log("resetPassword End");
   }
 
   updateSetting = () => {
@@ -125,13 +184,16 @@ class SettingContainer extends Component {
       "tournamentName": $("input[name=tournamentName]").val(),
       "isShowCountryFlag": $("#flexSwitchCountryFlag").prop("checked"),
       "isShowCautionBox": $("#showCautionBox").prop("checked"),
-      "isShowArenaB": $("#showArenaB").prop("checked"),
       "isShowFiveReferee": $("#quantityReferee").prop("checked"),
     }
     update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/setting'), this.settingObj).then(() => {
       toast.success("Cập nhập thông tin giải đấu thành công!");
     });
+    console.log("updateSetting End");
+  }
 
+  updatePassword = () => {
+    console.log("updatePassword Start");
     this.commonSettingObj = {
       "passwordSetting": parseInt($("input[name=passwordSetting]").val()),
       "passwordGiamDinh": parseInt($("input[name=passwordGiamDinh]").val()),
@@ -140,7 +202,38 @@ class SettingContainer extends Component {
     update(ref(this.db, 'commonSetting'), this.commonSettingObj).then(() => {
       toast.success("Cập nhập thông tin mật khẩu thành công!");
     });
-    console.log("updateSetting End");
+    console.log("updatePassword End");
+  }
+
+  chooseTournament = (tournamentNoIndex) => {
+    this.tournamentNoIndex = tournamentNoIndex;
+    this.main();
+  }
+
+  addTournament = () => {
+    get(child(ref(this.db), 'tournament')).then((snapshot) => {
+      this.tournamentObj = snapshot.val();
+      this.tournamentNoIndex = this.tournamentObj.length;
+      this.resetSetting();
+      this.main();
+    })
+  }
+
+  deleteTournament = () => {
+    get(child(ref(this.db), 'tournament')).then((snapshot) => {
+      this.tournamentObj = snapshot.val();
+      this.tournamentNoIndex = this.tournamentObj.length - 1;
+      if (this.tournamentObj.length > 1){
+        remove(ref(this.db, 'tournament/' + this.tournamentNoIndex)).then(() => {
+          this.tournamentNoIndex--;
+          this.main();
+          toast.success("Xoá giải đấu thành công!");
+        })
+      }else{
+        toast.error("Không thể xoá giải đấu duy nhất!");
+      }
+      
+    })
   }
 
   inputPw = (value) => {
@@ -183,10 +276,41 @@ class SettingContainer extends Component {
               </header>
 
               <div className="container">
+              <form className="form-style-7 mb-5 mt-3 setting-form">
+                  <div className="form-title">
+                    <h2><b>Thiết đặt giải đấu</b></h2>
+                  </div>
+
+                  <div className="row">
+                    <div className="col mb-3">
+                      {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
+                        <div className="form-check" key={i} onClick={() => this.chooseTournament(i)}>
+                          <input className="form-check-input" type="radio" name="tournamentRadio" id={`tournamentRadio-${tournament[0]}`} defaultChecked={i === this.tournamentNoIndex}/>
+                          <label className="form-check-label" htmlFor={`tournamentRadio-${tournament[0]}`}>
+                            {tournament[0]} - {tournament[1]}
+                          </label>
+                        </div>
+                      )) : (
+                        <div></div>
+                      )}
+                      {/* <div className="form-check">
+                        <input className="form-check-input" type="radio" name="tournamentRadio10" id="tournamentRadio10"/>
+                          <label className="form-check-label" htmlFor="tournamentRadio10">
+                          Cóc Vương
+                          </label>
+                      </div> */}
+                    </div>
+                  </div>
+
+                  <button className="btn btn-success" style={{ marginRight: '5px' }}  type="button" onClick={this.addTournament}><i className="fas fa-plus"></i> Thêm giải đấu</button>
+                  <button className="btn btn-danger" style={{ marginRight: '5px' }}  type="button" onClick={this.deleteTournament}><i className="fas fa-trash-alt"></i> Xoá giải đấu cuối cùng</button>
+                </form>
+
                 <form className="form-style-7 mb-5 mt-3 setting-form">
                   <div className="form-title">
                     <h2><b>Thiết đặt thông tin giải đấu</b></h2>
                   </div>
+
                   <div className="row">
                     <div className="col">
                       <label>Tên giải đấu</label>
@@ -214,10 +338,6 @@ class SettingContainer extends Component {
                       <div className="form-check form-switch">
                         <input className="form-check-input" type="checkbox" id="quantityReferee" />
                         <label className="form-check-label" htmlFor="quantityReferee">Hiển thị 5 giám định</label>
-                      </div>
-                      <div className="form-check form-switch">
-                        <input className="form-check-input" type="checkbox" id="showArenaB" />
-                        <label className="form-check-label" htmlFor="showArenaB">Hiển thị thêm Sân B</label>
                       </div>
                     </div>
                   </div>
@@ -282,8 +402,8 @@ class SettingContainer extends Component {
                       </div>
                     </div>
                   </div>
-                  <button type="button" className="btn btn-warning" style={{ marginRight: '5px' }} onClick={this.resetSetting}><i className="fa-solid fa-rotate-left"></i> Cài lại thiết đặt </button>
-                  <button type="button" className="btn btn-success" style={{ marginRight: '5px' }} onClick={this.updateSetting}><i className="fa-solid fa-floppy-disk"></i> Cập nhập</button>
+                  <button type="button" className="btn btn-warning" style={{ marginRight: '5px' }} onClick={this.resetPassword}><i className="fa-solid fa-rotate-left"></i> Cài lại mật khẩu </button>
+                  <button type="button" className="btn btn-success" style={{ marginRight: '5px' }} onClick={this.updatePassword}><i className="fa-solid fa-floppy-disk"></i> Cập nhập mật khẩu</button>
                 </form>
 
                 <div className="container">

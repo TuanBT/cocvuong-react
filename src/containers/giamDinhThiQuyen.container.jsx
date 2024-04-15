@@ -63,11 +63,18 @@ class GiamDinhThiQuyenContainer extends Component {
   }
 
   main() {
+    get(child(ref(this.db), 'tournament')).then((snapshot) => {
+      this.tournamentObj = snapshot.val();
+      this.tournaments = [];
+      
+      for (let i = 0; i < this.tournamentObj.length; i++) {
+        this.tournaments.push([i, this.tournamentObj[i].setting.tournamentName]);
+      }
+      this.setState({ data: this.tournaments });
+    })
+
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
-      if (this.settingObj.isShowArenaB === true) {
-        $(".arenaChooseBox").show();
-      }
       $('#tournamentName').html(this.settingObj.tournamentName);
       let refereeChoose123 = "<input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee1' value='1' checked><label class='btn btn-outline-secondary' for='optionsReferee1'><i class='fa-solid fa-user'></i><br>Giám định 1</label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee2' value='2'><label class='btn btn-outline-secondary' for='optionsReferee2'><i class='fa-solid fa-user'></i><br>Giám định 2</label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee3' value='3'><label class='btn btn-outline-secondary' for='optionsReferee3'><i class='fa-solid fa-user'></i><br>Giám định 3</label>";
       $(".refereeChoose").append(refereeChoose123);
@@ -78,6 +85,10 @@ class GiamDinhThiQuyenContainer extends Component {
       }
       this.showChooseRefereeNoModal();
     })
+  }
+
+  chooseTournament = (tournamentNoIndex) => {
+    this.tournamentNoIndex = tournamentNoIndex;
   }
 
   _handleKeyDown = (e) => {
@@ -132,8 +143,10 @@ class GiamDinhThiQuyenContainer extends Component {
   }
 
   chooseRefereeNo = () => {
+    let martialArenaNo = $("input:radio[name ='optionsArena']:checked").val();
+    this.martialArenaNoIndex = martialArenaNo;
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/martialArena/' + this.martialArenaNoIndex + '/martialArenaName')).then((snapshot) => {
-      $('#arena-name').html(snapshot.val());
+      $('#hd-arena-name').html(snapshot.val());
     })
     let refereeNo = $("input:radio[name ='optionsReferee']:checked").val();
     if (refereeNo != null && refereeNo != "") {
@@ -183,7 +196,7 @@ class GiamDinhThiQuyenContainer extends Component {
           $("#match-martial-no").html(snapshot.val().team[this.teamNoCurrentIndex].no);
         })
 
-        this.pathMartial = "tournament/'+this.tournamentNoIndex+'/martial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex + "/refereeMartial/" + this.referreIndex;
+        this.pathMartial = "tournament/" + this.tournamentNoIndex + "/martial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex + "/refereeMartial/" + this.referreIndex;
       })
     }
   }
@@ -209,7 +222,7 @@ class GiamDinhThiQuyenContainer extends Component {
     }
     update(ref(this.db, this.pathMartial), { "score": parseInt(this.refereeMartialScore) });
 
-    this.pathMartialScore = "tournament/'+this.tournamentNoIndex+'/martial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex;
+    this.pathMartialScore = "tournament/" + this.tournamentNoIndex + "/martial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex;
     get(ref(this.db, this.pathMartialScore)).then((snapshot) => {
       let refereeMartialObj = snapshot.val();
       let finalScore = 0;
@@ -272,9 +285,8 @@ class GiamDinhThiQuyenContainer extends Component {
       <div>
 
         <div className="body style-gd-hd-body" style={{ height: '100vh' }}>
-          <div className="info-header px-3 py-3 pt-md-5 pb-md-4 mx-auto text-center text-belize-hole">
-            <h1 className="" id="arena-name">&nbsp;</h1>
-            <h1 className="blog-header-logo text-midnight-blue" id="gd-name"></h1>
+          <div className="info-header p-3 mx-auto text-center text-belize-hole">
+            <h1 className="blog-header-logo text-midnight-blue"><span className="gd-hd-arena-name" id="hd-arena-name"></span>&nbsp;|&nbsp;<span id="gd-name"></span></h1>
             <h2>
               <span id="match-martial-name"></span>
               <span> - </span>
@@ -358,32 +370,56 @@ class GiamDinhThiQuyenContainer extends Component {
             <div className="modal-dialog" role="document">
               <div className="modal-content">
                 <div className="modal-header">
-                  <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn mã giám định của bạn
+                  <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn thông tin
                   </h5>
                   <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideChooseRefereeNoModal}></button>
                 </div>
-                <div className="modal-body arenaChooseBox" style={{ display: 'none' }}>
-                  <div className="category-buttons">
-                    <section className="btn-group arenaChoose">
-                      <input type="radio" className="btn-check" name="optionsArena" id="optionsArena0" value="0" defaultChecked />
-                      <label className="btn btn-outline-secondary" htmlFor="optionsArena0"> <i className="fa-solid fa-chess-board"></i> <br />Sân A </label>
-                      <input type="radio" className="btn-check" name="optionsArena" id="optionsArena1" value="1" />
-                      <label className="btn btn-outline-secondary" htmlFor="optionsArena1"> <i className="fa-solid fa-chess-board"></i> <br />Sân B </label>
-                    </section>
-                  </div>
-                </div>
+
                 <div className="modal-body">
-                  <div className="category-buttons">
-                    <section className="btn-group refereeChoose">
-                      {/* <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee1" value="1" defaultChecked />
+                  <form className="form-style-7 mt-3">
+                    <div className="row">
+                      <div className="col mb-3">
+                        {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
+                          <div className="form-check" key={i} onClick={() => this.chooseTournament(i)}>
+                            <input className="form-check-input" type="radio" name="tournamentRadio" id={`tournamentRadio-${tournament[0]}`} defaultChecked={i === 0} />
+                            <label className="form-check-label" htmlFor={`tournamentRadio-${tournament[0]}`}>
+                              {tournament[1]}
+                            </label>
+                          </div>
+                        )) : (
+                          <div></div>
+                        )}
+                      </div>
+                    </div>
+
+                    <hr className="mt-4 mb-4" />
+                    <div className="arenaChooseBox">
+                      <div className="category-buttons">
+                        <section className="btn-group arenaChoose">
+                          <input type="radio" className="btn-check" name="optionsArena" id="optionsArena0" value="0" defaultChecked />
+                          <label className="btn btn-outline-secondary" htmlFor="optionsArena0"> <i className="fa-solid fa-chess-board"></i> <br />Sân A </label>
+                          <input type="radio" className="btn-check" name="optionsArena" id="optionsArena1" value="1" />
+                          <label className="btn btn-outline-secondary" htmlFor="optionsArena1"> <i className="fa-solid fa-chess-board"></i> <br />Sân B </label>
+                        </section>
+                      </div>
+                    </div>
+
+                    <hr className="mt-4 mb-4" />
+                    <div className="refereeChooseBox" >
+                      <div className="category-buttons">
+                        <section className="btn-group refereeChoose">
+                          {/* <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee1" value="1" defaultChecked />
                       <label className="btn btn-outline-secondary" htmlFor="optionsReferee1"> <i className="fa-solid fa-user"></i> Giám định 1 </label>
                       <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee2" value="2" />
                       <label className="btn btn-outline-secondary" htmlFor="optionsReferee2"> <i className="fa-solid fa-user"></i> Giám định 2 </label>
                       <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee3" value="3" />
                       <label className="btn btn-outline-secondary" htmlFor="optionsReferee3"> <i className="fa-solid fa-user"></i> Giám định 3 </label> */}
-                    </section>
-                  </div>
+                        </section>
+                      </div>
+                    </div>
+                  </form>
                 </div>
+
                 <div className="modal-footer">
                   <button type="button" className="btn btn-primary" onClick={this.chooseRefereeNo}>OK</button>
                   <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hideChooseRefereeNoModal}>Cancel</button>
