@@ -10,8 +10,12 @@ class InformationDkContainer extends Component {
   constructor(props) {
     super(props);
     const me = this;
+    this.state = {
+      data: [],
+    };
     this.db = Firebase();
-    this.tournamentObj;
+    this.combatObj;
+    this.tournamentNoIndex = 0;
 
     this.brackets = [];
     me.brackets.push("");//0
@@ -42,13 +46,23 @@ class InformationDkContainer extends Component {
 
 
   main() {
-    get(child(ref(this.db), 'setting')).then((snapshot) => {
+    get(child(ref(this.db), 'tournament')).then((snapshot) => {
+      this.tournamentObj = snapshot.val();
+      this.tournaments = [];
+
+      for (let i = 0; i < this.tournamentObj.length; i++) {
+        this.tournaments.push([i, this.tournamentObj[i].setting.tournamentName]);
+      }
+      this.setState({ data: this.tournaments });
+    })
+
+    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       $('#tournamentName').html(this.settingObj.tournamentName);
     })
 
-    get(ref(this.db)).then((snapshot) => {
-      this.tournamentObj = snapshot.val();
+    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/combat/')).then((snapshot) => {
+      this.combatObj = snapshot.val();
       this.showListInfo();
 
       $(".btn-check").click(() => {
@@ -58,21 +72,26 @@ class InformationDkContainer extends Component {
       )
     });
 
-    onValue(ref(this.db), (snapshot) => {
-      this.tournamentObj = snapshot.val();
+    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/combat/')).then((snapshot) => {
+      this.combatObj = snapshot.val();
       let value = $('input[name="optionCategory"]:checked').val();
       this.showListMatchs(value);
     });
   }
 
+  chooseTournament = (tournamentNoIndex) => {
+    this.tournamentNoIndex = tournamentNoIndex;
+    this.main();
+  }
+
   showListInfo() {
-    if (this.tournamentObj && this.tournamentObj.tournament.length > 0) {
+    if (this.combatObj && this.combatObj.length > 0) {
       let categoryArray = [];
-      for (let i = 0; i < this.tournamentObj.tournament.length; i++) {
-        if (!categoryArray.includes(this.tournamentObj.tournament[i].match.category)) {
-          categoryArray.push(this.tournamentObj.tournament[i].match.category);
+      for (let i = 0; i < this.combatObj.length; i++) {
+        if (!categoryArray.includes(this.combatObj[i].match.category)) {
+          categoryArray.push(this.combatObj[i].match.category);
           $(".category-radio").append(
-            "<input type='radio' class='btn-check' name='optionCategory' id='optionCategory" + i + "' value='" + this.tournamentObj.tournament[i].match.category + "' /><label class='btn btn-outline-warning' for='optionCategory" + i + "'><i class='fa-solid fa-user'></i> " + this.tournamentObj.tournament[i].match.category + "</label>"
+            "<input type='radio' class='btn-check' name='optionCategory' id='optionCategory" + i + "' value='" + this.combatObj[i].match.category + "' /><label class='btn btn-outline-warning' for='optionCategory" + i + "'><i class='fa-solid fa-user'></i> " + this.combatObj[i].match.category + "</label>"
           );
         }
 
@@ -88,15 +107,15 @@ class InformationDkContainer extends Component {
     let matchNum = 0;
     let nameWin = "";
     let fighters = [];
-    for (let i = 0; i < this.tournamentObj.tournament.length; i++) {
-      if (this.tournamentObj.tournament[i].match.category === category || category === "ALL") {
+    for (let i = 0; i < this.combatObj.length; i++) {
+      if (this.combatObj[i].match.category === category || category === "ALL") {
         matchNum++;
-        let tournament = this.tournamentObj.tournament[i];
-        if (!fighters.includes(tournament.fighters.redFighter.name + tournament.fighters.redFighter.code) && !tournament.fighters.redFighter.name.includes("W.") && !tournament.fighters.redFighter.name.includes("L.")) {
-          fighters.push(tournament.fighters.redFighter.name + tournament.fighters.redFighter.code);
+        let combat = this.combatObj[i];
+        if (!fighters.includes(combat.fighters.redFighter.name + combat.fighters.redFighter.code) && !combat.fighters.redFighter.name.includes("W.") && !combat.fighters.redFighter.name.includes("L.")) {
+          fighters.push(combat.fighters.redFighter.name + combat.fighters.redFighter.code);
         }
-        if (!fighters.includes(tournament.fighters.blueFighter.name + tournament.fighters.blueFighter.code) && !tournament.fighters.blueFighter.name.includes("W.") && !tournament.fighters.blueFighter.name.includes("L.")) {
-          fighters.push(tournament.fighters.blueFighter.name + tournament.fighters.blueFighter.code);
+        if (!fighters.includes(combat.fighters.blueFighter.name + combat.fighters.blueFighter.code) && !combat.fighters.blueFighter.name.includes("W.") && !combat.fighters.blueFighter.name.includes("L.")) {
+          fighters.push(combat.fighters.blueFighter.name + combat.fighters.blueFighter.code);
         }
       }
     }
@@ -104,48 +123,48 @@ class InformationDkContainer extends Component {
     $('#schema-bracket').html(this.brackets[fighters.length]);
 
     let matchNo = 0;
-    for (let i = 0; i < this.tournamentObj.tournament.length; i++) {
-      if (this.tournamentObj.tournament[i].match.category === category || category === "ALL") {
-        let tournament = this.tournamentObj.tournament[i];
+    for (let i = 0; i < this.combatObj.length; i++) {
+      if (this.combatObj[i].match.category === category || category === "ALL") {
+        let combat = this.combatObj[i];
 
         nameWin = "";
-        if (tournament.match.win === "red") {
-          nameWin = tournament.fighters.redFighter.name;
-        } else if (tournament.match.win === "blue") {
-          nameWin = tournament.fighters.blueFighter.name
+        if (combat.match.win === "red") {
+          nameWin = combat.fighters.redFighter.name;
+        } else if (combat.match.win === "blue") {
+          nameWin = combat.fighters.blueFighter.name
         } else {
           nameWin = "";
         }
 
         $(".tbl-tournament-info").append(
           "<tr>" +
-          "<td class='text-center'>" + tournament.match.no + "</td>" +
-          "<td>" + tournament.match.type + "</td>" +
-          "<td>" + tournament.match.category + "</td>" +
-          "<td>" + tournament.fighters.redFighter.name + "</td>" +
-          "<td>" + tournament.fighters.redFighter.code + "</td>" +
-          "<td>" + tournament.fighters.redFighter.country + "</td>" +
-          "<td>" + tournament.fighters.blueFighter.name + "</td>" +
-          "<td>" + tournament.fighters.blueFighter.code + "</td>" +
-          "<td>" + tournament.fighters.blueFighter.country + "</td>" +
+          "<td class='text-center'>" + combat.match.no + "</td>" +
+          "<td>" + combat.match.type + "</td>" +
+          "<td>" + combat.match.category + "</td>" +
+          "<td>" + combat.fighters.redFighter.name + "</td>" +
+          "<td>" + combat.fighters.redFighter.code + "</td>" +
+          "<td>" + combat.fighters.redFighter.country + "</td>" +
+          "<td>" + combat.fighters.blueFighter.name + "</td>" +
+          "<td>" + combat.fighters.blueFighter.code + "</td>" +
+          "<td>" + combat.fighters.blueFighter.country + "</td>" +
           "<td>" + nameWin + "</td>" +
           "</tr>"
         )
 
         //Với từng trận thì nhét 2 VDV vào class info.html=1,2,3
         matchNo++;
-        $('#match-' + matchNo + ' .info').html(tournament.match.no);
-        $('#match-' + matchNo + ' .teama').html(tournament.fighters.redFighter.name);
-        $('#match-' + matchNo + ' .teamb').html(tournament.fighters.blueFighter.name);
+        $('#match-' + matchNo + ' .info').html(combat.match.no);
+        $('#match-' + matchNo + ' .teama').html(combat.fighters.redFighter.name);
+        $('#match-' + matchNo + ' .teamb').html(combat.fighters.blueFighter.name);
 
       }
     }
 
     //Đến trận final 
     $('.final .teamc').html(nameWin);
+
+    
   }
-
-
 
   render() {
     return (
@@ -159,6 +178,7 @@ class InformationDkContainer extends Component {
                 </div>
                 <div className="col-4 text-center">
                   <h2 className="blog-header-logo text-midnight-blue">Thông tin các trận đấu đối kháng</h2>
+                  
                 </div>
                 <div className="col-4 d-flex justify-content-end align-items-center">
                   <span className="text-muted">
@@ -167,8 +187,28 @@ class InformationDkContainer extends Component {
                 </div>
               </div>
             </header>
+            <hr className="mt-4 mb-4" />
+            <header className="blog-header py-3">
+              <div className="row flex-nowrap justify-content-between align-items-center">
+                
+                <div className="col-12 text-left">
+                {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
+                    <div className="form-check" key={i} onClick={() => this.chooseTournament(i)}>
+                      <input className="form-check-input" type="radio" name="tournamentRadio" id={`tournamentRadio-${tournament[0]}`} defaultChecked={i === 0} />
+                      <label className="form-check-label" htmlFor={`tournamentRadio-${tournament[0]}`}>
+                        {tournament[1]}
+                      </label>
+                    </div>
+                  )) : (
+                    <div></div>
+                  )}
+                  
+                </div>
+                
+              </div>
+            </header>
+            <hr className="mt-4 mb-4" />
           </div>
-
           <div className="category-buttons">
             <section className="btn-group category-radio">
               <input type="radio" className="btn-check" name="optionCategory" id="optionCategory-1" value="ALL" defaultChecked />
@@ -218,6 +258,43 @@ class InformationDkContainer extends Component {
           </div>
 
           <div id="schema-bracket">
+          </div>
+
+          <div className="modal display-none" id="chooseArenaNoModal" tabIndex="-1" role="dialog">
+            <div className="modal-dialog" role="document">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn thông tin
+                  </h5>
+                  <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideChooseArenaNoModal}></button>
+                </div>
+
+                <div className="modal-body">
+                  <form className="form-style-7 mt-3">
+                    <div className="row">
+                      <div className="col mb-3">
+                        {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
+                          <div className="form-check" key={i} onClick={() => this.chooseTournament(i)}>
+                            <input className="form-check-input" type="radio" name="tournamentRadio" id={`tournamentRadio-${tournament[0]}`} defaultChecked={i === 0} />
+                            <label className="form-check-label" htmlFor={`tournamentRadio-${tournament[0]}`}>
+                              {tournament[1]}
+                            </label>
+                          </div>
+                        )) : (
+                          <div></div>
+                        )}
+                      </div>
+                    </div>
+
+                  </form>
+                </div>
+
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-primary" onClick={this.chooseInfoNo}>OK</button>
+                  <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hideChooseArenaNoModal}>Cancel</button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="container">

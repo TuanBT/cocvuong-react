@@ -1296,25 +1296,39 @@ textarea {
 .information {
     width: 100%;
     height: 15%;
-    /* background-color: burlywood; */
 }
 
 .style-hd-info {
-    width: 45%;
+    width: 35%;
     height: 100%;
-    /* background-color: olivedrab; */
     float: left;
 }
 
+.style-hd-arena {
+    width: 15%;
+    height: 100%;
+    float: left;
+
+}
+
+.hd-arena-name{
+    font-weight: bold;
+    font-size: 3vw;
+}
+
+.gd-hd-arena-name{
+    font-weight: bold;
+}
+
 .style-hd-timer-area {
-    width: 10%;
+    width: 15%;
     height: 100%;
     float: left;
     padding: 10px 0px 0px 0px;
 }
 
 .logo-area {
-    width: 45%;
+    width: 35%;
     height: 100%;
     float: left;
 }
