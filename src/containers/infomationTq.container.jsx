@@ -176,7 +176,7 @@ class InformationTqContainer extends Component {
       }
       this.setState({ data: this.categoryArray });
       this.showListMatchs("ALL");
-      document.querySelector('input[name="optionCategory"]').checked = true
+      document.querySelector('input[name="optionCategory"]').checked = true;
     }
   }
 
