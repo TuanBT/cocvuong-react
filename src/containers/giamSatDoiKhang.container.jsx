@@ -85,7 +85,7 @@ class GiamSatDoiKhangContainer extends Component {
     get(child(ref(this.db), 'tournament')).then((snapshot) => {
       this.tournamentObj = snapshot.val();
       this.tournaments = [];
-      
+
       for (let i = 0; i < this.tournamentObj.length; i++) {
         this.tournaments.push([i, this.tournamentObj[i].setting.tournamentName]);
       }
@@ -1307,16 +1307,14 @@ class GiamSatDoiKhangContainer extends Component {
                     <div className="row">
                       <div className="col mb-3">
                         {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
-                          <div className="form-check" key={i} onClick={() => this.chooseTournament(i)}>
-                            <input className="form-check-input" type="radio" name="tournamentRadio" id={`tournamentRadio-${tournament[0]}`} defaultChecked={i === 0} />
-                            <label className="form-check-label" htmlFor={`tournamentRadio-${tournament[0]}`}>
-                              {tournament[1]}
-                            </label>
+                          <div className='mb-2' key={i} onClick={() => this.chooseTournament(i)}>
+                            <input type="radio" className="btn-check" name="tournamentRadio" onClick={() => this.chooseTournament(i)} id={`tournamentRadio-${tournament[0]}`} value={tournament[1]} defaultChecked={i === 0} />
+                            <label className="btn btn-outline-secondary" htmlFor={`tournamentRadio-${tournament[0]}`}><i className="fas fa-caret-right"></i> {tournament[1]}</label>
                           </div>
                         )) : (
                           <div></div>
                         )}
-                        <hr className="mt-4 mb-4" />
+                        <hr className="mt-2 mb-2" />
                         <div className="category-buttons">
                           <section className="btn-group arenaChoose">
                             <input type="radio" className="btn-check" name="optionsArena" id="optionsArena0" value="0" defaultChecked />

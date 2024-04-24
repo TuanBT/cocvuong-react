@@ -64,7 +64,7 @@ class GiamSatThiQuyenContainer extends Component {
     this.matchObj = { "match": { "no": 1, "type": "", "category": "", "win": "" }, "fighters": { "redFighter": { "name": "Đỏ", "code": "", "score": 0 }, "blueFighter": { "name": "Xanh", "code": "", "score": 0 } } };
     this.martialConst = { "lastMatchMartial": { "matchMartialNo": 1, "teamMartialNo": 1 }, "martial": [] };
     this.matchMartialObj = { "match": { "name": "" }, "team": [] };
-    this.fightersMartialObj = { "fighters": [], "no": 0, "score": 0, "refereeMartial": [{ "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }] }
+    this.fightersMartialObj = { "fighters": [], "no": 0, "finalScore": 0, "refereeMartial": [{ "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }] }
   }
 
   componentDidMount() {
@@ -94,7 +94,7 @@ class GiamSatThiQuyenContainer extends Component {
     get(child(ref(this.db), 'tournament')).then((snapshot) => {
       this.tournamentObj = snapshot.val();
       this.tournaments = [];
-      
+
       for (let i = 0; i < this.tournamentObj.length; i++) {
         this.tournaments.push([i, this.tournamentObj[i].setting.tournamentName]);
       }
@@ -221,8 +221,7 @@ class GiamSatThiQuyenContainer extends Component {
       $("#referee-" + i + "-score").html(this.pad(refereeScore, 2));
     }
 
-    $("#averageScore").html(this.pad(this.martialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].score, 3));
-
+    $("#averageScore").html(this.pad(this.martialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].finalScore, 3));
     return;
   }
 
@@ -309,11 +308,11 @@ class GiamSatThiQuyenContainer extends Component {
       this.refereeMartialScore = "";
     }
     this.pathMartial = "tournament/" + this.tournamentNoIndex + "/martial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex;
-    update(ref(this.db, this.pathMartial), { "score": parseInt(this.refereeMartialScore) });
+    update(ref(this.db, this.pathMartial), { "finalScore": parseInt(this.refereeMartialScore) });
     update(ref(this.db, this.pathMartial), { "refereeMartial": [{ "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }] });
     this.refereeMartialScore = "";
     $("#referee-result-box").html("000");
-    $("#averageScore").html(this.martialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].score);
+    $("#averageScore").html(this.martialObj[this.matchMartialNoCurrent - 1].team[this.teamMartialNoCurrent - 1].finalScore);
     this.hideTakeMainScoreModal();
     toast.success("Chấm điểm thành công!");
 
@@ -415,7 +414,7 @@ class GiamSatThiQuyenContainer extends Component {
           <div className="style-hd-body" style={{ height: '100vh' }}>
             <div className="information">
               <div className="style-hd-info">
-                <span className="info-text tournament-quyen-name">
+                <span className="info-text text-center tournament-quyen-name">
                   <span id="tournamentName">
                   </span>
                 </span>
@@ -555,11 +554,9 @@ class GiamSatThiQuyenContainer extends Component {
                     <div className="row">
                       <div className="col mb-3">
                         {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
-                          <div className="form-check" key={i} onClick={() => this.chooseTournament(i)}>
-                            <input className="form-check-input" type="radio" name="tournamentRadio" id={`tournamentRadio-${tournament[0]}`} defaultChecked={i === 0} />
-                            <label className="form-check-label" htmlFor={`tournamentRadio-${tournament[0]}`}>
-                              {tournament[1]}
-                            </label>
+                          <div className='mb-2' key={i} onClick={() => this.chooseTournament(i)}>
+                            <input type="radio" className="btn-check" name="tournamentRadio" onClick={() => this.chooseTournament(i)} id={`tournamentRadio-${tournament[0]}`} value={tournament[1]} defaultChecked={i === 0} />
+                            <label className="btn btn-outline-secondary" htmlFor={`tournamentRadio-${tournament[0]}`}><i className="fas fa-caret-right"></i> {tournament[1]}</label>
                           </div>
                         )) : (
                           <div></div>
@@ -567,7 +564,7 @@ class GiamSatThiQuyenContainer extends Component {
                       </div>
                     </div>
 
-                    <hr className="mt-4 mb-4" />
+                    <hr className="mt-2 mb-2" />
                     <div className="modal-body">
                       <div className="category-buttons">
                         <section className="btn-group arenaChoose">

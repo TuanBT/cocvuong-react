@@ -39,7 +39,7 @@ class HomeContainer extends Component {
                     <h4 className="my-0 fw-normal">GIÁM SÁT THI QUYỀN</h4>
                   </div>
                   <div className="card-body">
-                    <span className="d-block text-center pb-3 bigIcon"><NavLink to="giam-sat-thi-quyen"><i className="fa-solid fa-tv"></i></NavLink></span>
+                    <span className="d-block text-center pb-3 bigIcon"><NavLink to="giam-sat-thi-quyen"><i className="fas fa-desktop"></i></NavLink></span>
                   </div>
                 </div>
               </div>
@@ -74,14 +74,22 @@ class HomeContainer extends Component {
                 </div>
               </div>
               <div className="col">
+              <div className="card mb-4 rounded-3 shadow-sm border-primary">
+                  <div className="card-header py-3 text-bg-primary border-primary">
+                    <h4 className="my-0 fw-normal">THÔNG TIN ĐỐI KHÁNG</h4>
+                  </div>
+                  <div className="card-body">
+                    <span className="d-block text-center pb-3 bigIcon"><NavLink to="thong-tin-doi-khang"><i className="fas fa-sitemap"></i></NavLink></span>
+                  </div>
+                </div>
               </div>
               <div className="col">
                 <div className="card mb-4 rounded-3 shadow-sm border-primary">
                   <div className="card-header py-3 text-bg-primary border-primary">
-                    <h4 className="my-0 fw-normal">THÔNG TIN</h4>
+                    <h4 className="my-0 fw-normal">THÔNG TIN THI QUYỀN</h4>
                   </div>
                   <div className="card-body">
-                    <span className="d-block text-center pb-3 bigIcon"><NavLink to="thong-tin-doi-khang"><i className="fa-solid fa-tv"></i></NavLink></span>
+                    <span className="d-block text-center pb-3 bigIcon"><NavLink to="thong-tin-thi-quyen"><i className="fas fa-table"></i></NavLink></span>
                   </div>
                 </div>
               </div>

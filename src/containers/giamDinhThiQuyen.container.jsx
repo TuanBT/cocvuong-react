@@ -66,7 +66,7 @@ class GiamDinhThiQuyenContainer extends Component {
     get(child(ref(this.db), 'tournament')).then((snapshot) => {
       this.tournamentObj = snapshot.val();
       this.tournaments = [];
-      
+
       for (let i = 0; i < this.tournamentObj.length; i++) {
         this.tournaments.push([i, this.tournamentObj[i].setting.tournamentName]);
       }
@@ -240,7 +240,7 @@ class GiamDinhThiQuyenContainer extends Component {
       } else {
         finalScore = refereeScore;
       }
-      update(ref(this.db, this.pathMartialScore), { "score": parseInt(finalScore) });
+      update(ref(this.db, this.pathMartialScore), { "finalScore": parseInt(finalScore) });
     })
 
     this.refereeMartialScore = "";
@@ -380,11 +380,9 @@ class GiamDinhThiQuyenContainer extends Component {
                     <div className="row">
                       <div className="col mb-3">
                         {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
-                          <div className="form-check" key={i} onClick={() => this.chooseTournament(i)}>
-                            <input className="form-check-input" type="radio" name="tournamentRadio" id={`tournamentRadio-${tournament[0]}`} defaultChecked={i === 0} />
-                            <label className="form-check-label" htmlFor={`tournamentRadio-${tournament[0]}`}>
-                              {tournament[1]}
-                            </label>
+                          <div className='mb-2' key={i} onClick={() => this.chooseTournament(i)}>
+                            <input type="radio" className="btn-check" name="tournamentRadio" onClick={() => this.chooseTournament(i)} id={`tournamentRadio-${tournament[0]}`} value={tournament[1]} defaultChecked={i === 0} />
+                            <label className="btn btn-outline-secondary" htmlFor={`tournamentRadio-${tournament[0]}`}><i className="fas fa-caret-right"></i> {tournament[1]}</label>
                           </div>
                         )) : (
                           <div></div>
@@ -392,7 +390,7 @@ class GiamDinhThiQuyenContainer extends Component {
                       </div>
                     </div>
 
-                    <hr className="mt-4 mb-4" />
+                    <hr className="mt-2 mb-2" />
                     <div className="arenaChooseBox">
                       <div className="category-buttons">
                         <section className="btn-group arenaChoose">
@@ -404,7 +402,7 @@ class GiamDinhThiQuyenContainer extends Component {
                       </div>
                     </div>
 
-                    <hr className="mt-4 mb-4" />
+                    <hr className="mt-2 mb-2" />
                     <div className="refereeChooseBox" >
                       <div className="category-buttons">
                         <section className="btn-group refereeChoose">

@@ -36,8 +36,8 @@ class CreateTournamentContainer extends Component {
     this.matchObj = { "match": { "no": 1, "type": "", "category": "", "win": "" }, "fighters": { "redFighter": { "result": "", "name": "Đỏ", "code": "", "caution": { "remind": 0, "warning": 0, "medical": 0, "fall": 0, "bound": 0 }, "score": 0 }, "blueFighter": { "result": "", "name": "Xanh", "code": "", "caution": { "remind": 0, "warning": 0, "medical": 0, "fall": 0, "bound": 0 }, "score": 0 } } }
     this.combatConst = { "combatArena": [{ "combatArenaName": "Sân A", "lastMatch": { "no": 1 }, "referee": [{ "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }] }, { "combatArenaName": "Sân B", "lastMatch": { "no": 1 }, "referee": [{ "blueScore": 0, "redScore": 0 }, { "blueScore": 1, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }] }], "combat": [] };
     this.matchMartialObj = { "match": { "name": "" }, "team": [] };
-    this.martialConst = { "martialArena": [{ "lastMatchMartial": { "matchMartialNo": 1, "teamMartialNo": 1 } }, { "lastMatchMartial": { "matchMartialNo": 1, "teamMartialNo": 1 } }], "martial": [] };
-    this.fightersMartialObj = { "fighters": [], "no": 0, "score": 0, "refereeMartial": [{ "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }] };
+    this.martialConst = { "martialArena": [{ "martialArenaName": "Sân A", "lastMatchMartial": { "matchMartialNo": 1, "teamMartialNo": 1 } }, { "martialArenaName": "Sân B", "lastMatchMartial": { "matchMartialNo": 1, "teamMartialNo": 1 } }], "martial": [] };
+    this.fightersMartialObj = { "fighters": [], "no": 0, "finalScore":0, "refereeMartial": [{ "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }] };
     this.fighterMartialObj = { "fighter": { "code": "", "name": "", "country": "" } }
 
     this.schemaFighters = [];

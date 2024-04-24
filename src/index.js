@@ -7,6 +7,7 @@ import { BrowserRouter, Route, HashRouter } from 'react-router-dom'
 import HomeContainer from './containers/home.container';
 import TestContainer from './containers/test.container';
 import InformationDkContainer from './containers/infomationDK.container';
+import InformationTqContainer from './containers/infomationTq.container';
 import GiamSatDoiKhangContainer from './containers/giamSatDoiKhang.container';
 import GiamSatThiQuyenContainer from './containers/giamSatThiQuyen.container';
 import GiamDinhThiQuyenContainer from './containers/giamDinhThiQuyen.container';
@@ -22,6 +23,7 @@ ReactDOM.render(
       <Route path="/" exact component={HomeContainer} />
       <Route path="/test" component={TestContainer} />
       <Route path="/thong-tin-doi-khang" component={InformationDkContainer} />
+      <Route path="/thong-tin-thi-quyen" component={InformationTqContainer} />
       <Route path="/giam-sat-doi-khang" component={GiamSatDoiKhangContainer} />
       <Route path="/giam-sat-thi-quyen" component={GiamSatThiQuyenContainer} />
       <Route path="/giam-dinh-thi-quyen" component={GiamDinhThiQuyenContainer} />

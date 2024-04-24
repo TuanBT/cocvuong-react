@@ -64,18 +64,6 @@ class InformationDkContainer extends Component {
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/combat/')).then((snapshot) => {
       this.combatObj = snapshot.val();
       this.showListInfo();
-
-      $(".btn-check").click(() => {
-        let value = $('input[name="optionCategory"]:checked').val();
-        this.showListMatchs(value);
-      }
-      )
-    });
-
-    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/combat/')).then((snapshot) => {
-      this.combatObj = snapshot.val();
-      let value = $('input[name="optionCategory"]:checked').val();
-      this.showListMatchs(value);
     });
   }
 
@@ -84,19 +72,22 @@ class InformationDkContainer extends Component {
     this.main();
   }
 
-  showListInfo() {
-    if (this.combatObj && this.combatObj.length > 0) {
-      let categoryArray = [];
-      for (let i = 0; i < this.combatObj.length; i++) {
-        if (!categoryArray.includes(this.combatObj[i].match.category)) {
-          categoryArray.push(this.combatObj[i].match.category);
-          $(".category-radio").append(
-            "<input type='radio' class='btn-check' name='optionCategory' id='optionCategory" + i + "' value='" + this.combatObj[i].match.category + "' /><label class='btn btn-outline-warning' for='optionCategory" + i + "'><i class='fa-solid fa-user'></i> " + this.combatObj[i].match.category + "</label>"
-          );
-        }
+  chooseCategory = (cateoryNoIndex) => {
+    this.showListMatchs(cateoryNoIndex);
+  }
 
+  showListInfo() {
+    $(".tbl-tournament-info").html("");
+    if (this.combatObj && this.combatObj.length > 0) {
+      this.categoryArray = ["ALL"];
+      for (let i = 0; i < this.combatObj.length; i++) {
+        if (!this.categoryArray.includes(this.combatObj[i].match.category)) {
+          this.categoryArray.push(this.combatObj[i].match.category);
+        }
       }
+      this.setState({ data: this.categoryArray });
       this.showListMatchs("ALL");
+      document.querySelector('input[name="optionCategory"]').checked = true;
     }
   }
 
@@ -163,7 +154,7 @@ class InformationDkContainer extends Component {
     //Đến trận final 
     $('.final .teamc').html(nameWin);
 
-    
+
   }
 
   render() {
@@ -178,7 +169,7 @@ class InformationDkContainer extends Component {
                 </div>
                 <div className="col-4 text-center">
                   <h2 className="blog-header-logo text-midnight-blue">Thông tin các trận đấu đối kháng</h2>
-                  
+
                 </div>
                 <div className="col-4 d-flex justify-content-end align-items-center">
                   <span className="text-muted">
@@ -187,32 +178,35 @@ class InformationDkContainer extends Component {
                 </div>
               </div>
             </header>
-            <hr className="mt-4 mb-4" />
-            <header className="blog-header py-3">
+            <hr className="mt-4 mb-2" />
+            <header className="blog-header">
               <div className="row flex-nowrap justify-content-between align-items-center">
-                
-                <div className="col-12 text-left">
-                {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
-                    <div className="form-check" key={i} onClick={() => this.chooseTournament(i)}>
-                      <input className="form-check-input" type="radio" name="tournamentRadio" id={`tournamentRadio-${tournament[0]}`} defaultChecked={i === 0} />
-                      <label className="form-check-label" htmlFor={`tournamentRadio-${tournament[0]}`}>
-                        {tournament[1]}
-                      </label>
-                    </div>
-                  )) : (
-                    <div></div>
-                  )}
-                  
+                <div className="category-buttons">
+                  <section className="btn-group">
+                    {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
+                      <div className='form-check' key={i} onClick={() => this.chooseTournament(i)}>
+                        <input type="radio" className="btn-check" name="tournamentRadio" onClick={() => this.chooseTournament(i)} id={`tournamentRadio-${tournament[0]}`} value={tournament[1]} defaultChecked={i === 0} />
+                        <label className="btn btn-outline-warning" htmlFor={`tournamentRadio-${tournament[0]}`}><i className="fas fa-caret-right"></i> {tournament[1]}</label>
+                      </div>
+                    )) : (
+                      <div></div>
+                    )}
+                  </section>
                 </div>
-                
               </div>
             </header>
-            <hr className="mt-4 mb-4" />
+            <hr className="mt-2 mb-4" />
           </div>
           <div className="category-buttons">
-            <section className="btn-group category-radio">
-              <input type="radio" className="btn-check" name="optionCategory" id="optionCategory-1" value="ALL" defaultChecked />
-              <label className="btn btn-outline-warning" htmlFor="optionCategory-1"><i className="fa-solid fa-user"></i> ALL</label>
+            <section className="btn-group">
+              {this.categoryArray && this.categoryArray.length > 0 ? this.categoryArray.map((category, i) => (
+                <React.Fragment key={i - 1}>
+                  <input type="radio" className="btn-check" name="optionCategory" onClick={() => this.chooseCategory(category)} id={`optionCategory-${i - 1}`} value={category} defaultChecked={i === 0} />
+                  <label className="btn btn-outline-warning" htmlFor={`optionCategory-${i - 1}`}><i className="fa-solid fa-user"></i> {category}</label>
+                </React.Fragment>
+              )) : (
+                <React.Fragment></React.Fragment>
+              )}
             </section>
           </div>
 
@@ -258,43 +252,6 @@ class InformationDkContainer extends Component {
           </div>
 
           <div id="schema-bracket">
-          </div>
-
-          <div className="modal display-none" id="chooseArenaNoModal" tabIndex="-1" role="dialog">
-            <div className="modal-dialog" role="document">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title" id="modalLabel"><i className="fa-solid fa-id-badge"></i> Chọn thông tin
-                  </h5>
-                  <button type="button" className="btn-close" data-bs-dismiss="modal" onClick={this.hideChooseArenaNoModal}></button>
-                </div>
-
-                <div className="modal-body">
-                  <form className="form-style-7 mt-3">
-                    <div className="row">
-                      <div className="col mb-3">
-                        {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
-                          <div className="form-check" key={i} onClick={() => this.chooseTournament(i)}>
-                            <input className="form-check-input" type="radio" name="tournamentRadio" id={`tournamentRadio-${tournament[0]}`} defaultChecked={i === 0} />
-                            <label className="form-check-label" htmlFor={`tournamentRadio-${tournament[0]}`}>
-                              {tournament[1]}
-                            </label>
-                          </div>
-                        )) : (
-                          <div></div>
-                        )}
-                      </div>
-                    </div>
-
-                  </form>
-                </div>
-
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-primary" onClick={this.chooseInfoNo}>OK</button>
-                  <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hideChooseArenaNoModal}>Cancel</button>
-                </div>
-              </div>
-            </div>
           </div>
 
           <div className="container">

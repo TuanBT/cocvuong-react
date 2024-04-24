@@ -57,7 +57,7 @@ class GiamDinhDoiKhangContainer extends Component {
     get(child(ref(this.db), 'tournament')).then((snapshot) => {
       this.tournamentObj = snapshot.val();
       this.tournaments = [];
-      
+
       for (let i = 0; i < this.tournamentObj.length; i++) {
         this.tournaments.push([i, this.tournamentObj[i].setting.tournamentName]);
       }
@@ -300,21 +300,21 @@ class GiamDinhDoiKhangContainer extends Component {
                   <div className="modal-body">
                     <form className="form-style-7 mt-3">
                       <div className="row">
-                        <div className="col mb-3">
-                          {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
-                            <div className="form-check" key={i} onClick={() => this.chooseTournament(i)}>
-                              <input className="form-check-input" type="radio" name="tournamentRadio" id={`tournamentRadio-${tournament[0]}`} defaultChecked={i === 0} />
-                              <label className="form-check-label" htmlFor={`tournamentRadio-${tournament[0]}`}>
-                                {tournament[1]}
-                              </label>
-                            </div>
-                          )) : (
-                            <div></div>
-                          )}
+                        <div className="col mb-2">
+                          <section>
+                            {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
+                              <div className='mb-2' key={i} onClick={() => this.chooseTournament(i)}>
+                                <input type="radio" className="btn-check" name="tournamentRadio" onClick={() => this.chooseTournament(i)} id={`tournamentRadio-${tournament[0]}`} value={tournament[1]} defaultChecked={i === 0} />
+                                <label className="btn btn-outline-secondary" htmlFor={`tournamentRadio-${tournament[0]}`}><i className="fas fa-caret-right"></i> {tournament[1]}</label>
+                              </div>
+                            )) : (
+                              <div></div>
+                            )}
+                          </section>
                         </div>
                       </div>
 
-                      <hr className="mt-4 mb-4" />
+                      <hr className="mt-2 mb-2" />
                       <div className="arenaChooseBox">
                         <div className="category-buttons">
                           <section className="btn-group arenaChoose">
@@ -326,7 +326,7 @@ class GiamDinhDoiKhangContainer extends Component {
                         </div>
                       </div>
 
-                      <hr className="mt-4 mb-4" />
+                      <hr className="mt-2 mb-2" />
                       <div className="refereeChooseBox" >
                         <div className="category-buttons">
                           <section className="btn-group refereeChoose">
@@ -345,7 +345,7 @@ class GiamDinhDoiKhangContainer extends Component {
                       </div>
                     </form>
                   </div>
-                  
+
                   <div className="modal-footer">
                     <button type="button" className="btn btn-primary" onClick={this.chooseRefereeNo}>OK</button>
                     <button type="button" className="btn btn-secondary" data-dismiss="modal" onClick={this.hideChooseRefereeNoModal}>Cancel</button>
