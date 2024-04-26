@@ -5,7 +5,6 @@ import { ref, set, get, update, remove, child, onValue } from "firebase/database
 import logo from '../assets/img/logo.png';
 import '../assets/lib/table/style.css';
 import '../assets/lib/table/basictable.css';
-import { connectStorageEmulator } from 'firebase/storage';
 
 class InformationTqContainer extends Component {
   constructor(props) {
@@ -49,13 +48,9 @@ class InformationTqContainer extends Component {
   }
 
   showListMatchs(category) {
-    $(".tbl-tournament-info").html("");
-    if (this.settingObj.isShowFiveReferee === true) {
-      $(".tbl-tournament-info").append($(".tbl-header-tournament-info-5").html());
-    } else {
-      $(".tbl-tournament-info").append($(".tbl-header-tournament-info-3").html());
-    }
-
+    this.isShowFiveReferee = this.settingObj.isShowFiveReferee;
+    this.setState({ data: this.isShowFiveReferee });
+    this.martialArray = [];
     for (let i = 0; i < this.martialObj.length; i++) {
       if (this.martialObj[i].match.name === category || category === "ALL") {
         // Sắp xếp mảng team theo finalScore giảm dần
@@ -77,63 +72,41 @@ class InformationTqContainer extends Component {
           }
           for (let k = 0; k < this.martialObj[i].team[j].fighters.length; k++) {
             let fighter = this.martialObj[i].team[j].fighters[k];
-            let refereeMartialElement = "";
+            // let refereeMartialElement = "";
 
             if (matchNoRow !== "") {
               if (matchNo === matchNoRow) {
                 matchNoRow = "";
                 matchNameRow = "";
                 matchFinalScoreRow = "";
-                if (this.settingObj.isShowFiveReferee === true) {
-                  refereeMartialElement =
-                    "<td></td>" +
-                    "<td></td>" +
-                    "<td></td>" +
-                    "<td></td>" +
-                    "<td></td>";
-                } else {
-                  refereeMartialElement =
-                    "<td></td>" +
-                    "<td></td>" +
-                    "<td></td>";
-                }
                 rankRow = "";
               }
             } else {
               matchNoRow = matchNo;
               matchNameRow = matchName;
               matchFinalScoreRow = matchFinalScore;
-              if (this.settingObj.isShowFiveReferee === true) {
-                refereeMartialElement =
-                  "<td>" + martial.refereeMartial[0].score + "</td>" +
-                  "<td>" + martial.refereeMartial[1].score + "</td>" +
-                  "<td>" + martial.refereeMartial[2].score + "</td>" +
-                  "<td>" + martial.refereeMartial[3].score + "</td>" +
-                  "<td>" + martial.refereeMartial[4].score + "</td>";
-              } else {
-                refereeMartialElement =
-                  "<td>" + martial.refereeMartial[0].score + "</td>" +
-                  "<td>" + martial.refereeMartial[1].score + "</td>" +
-                  "<td>" + martial.refereeMartial[2].score + "</td>";
-              }
               rankRow = this.getRank(martial.finalScore, arrayScore);
             }
 
-            $(".tbl-tournament-info").append(
-              "<tr>" +
-              "<td class='text-center'>" + matchNoRow + "</td>" +
-              "<td>" + fighter.fighter.name + "</td>" +
-              "<td>" + fighter.fighter.code + "</td>" +
-              "<td>" + matchNameRow + "</td>" +
-              refereeMartialElement +
-              "<td>" + matchFinalScoreRow + "</td>" +
-              "<td>" + rankRow + "</td>" +
-              "</tr>"
-            )
+            this.martialArray.push([
+              matchNoRow,
+              fighter.fighter.name,
+              fighter.fighter.code,
+              matchNameRow,
+              martial.refereeMartial[0].score,
+              martial.refereeMartial[1].score,
+              martial.refereeMartial[2].score,
+              martial.refereeMartial[3].score,
+              martial.refereeMartial[4].score,
+              matchFinalScoreRow,
+              rankRow
+            ]);
           }
         }
       }
     }
+
+    this.setState({ data: this.martialArray });
   }
 
   getRank(score, arrayScore) {
@@ -166,7 +139,6 @@ class InformationTqContainer extends Component {
   }
 
   showListInfo() {
-    $(".tbl-tournament-info").html("");
     if (this.martialObj && this.martialObj.length > 0) {
       this.categoryArray = ["ALL"];
       for (let i = 0; i < this.martialObj.length; i++) {
@@ -236,8 +208,8 @@ class InformationTqContainer extends Component {
           </div>
 
           <div className=" tbl-info">
-            <table className="tbl-header-tournament-info-3" id="table" style={{ display: "none" }}>
-              <tbody>
+            <table className="" id="table">
+              <thead>
                 <tr>
                   <th className="text-center">
                     STT
@@ -260,6 +232,21 @@ class InformationTqContainer extends Component {
                   <th>
                     Giám Định 3
                   </th>
+                  {this.isShowFiveReferee === true ?
+                    (
+                      <React.Fragment>
+                        <th>
+                          Giám Định 4
+                        </th>
+                        <th>
+                          Giám Định 5
+                        </th>
+                      </React.Fragment>
+                    )
+                    :
+                    <React.Fragment></React.Fragment>
+                  }
+
                   <th>
                     Tổng Điểm
                   </th>
@@ -267,48 +254,37 @@ class InformationTqContainer extends Component {
                     Hạng
                   </th>
                 </tr>
-              </tbody>
-            </table>
-            <table className="tbl-header-tournament-info-5" id="table" style={{ display: "none" }}>
+              </thead>
               <tbody>
-                <tr>
-                  <th className="text-center">
-                    STT
-                  </th>
-                  <th>
-                    Họ và Tên
-                  </th>
-                  <th>
-                    MSSV/Đơn vị
-                  </th>
-                  <th>
-                    Nội Dung
-                  </th>
-                  <th>
-                    Giám Định 1
-                  </th>
-                  <th>
-                    Giám Định 2
-                  </th>
-                  <th>
-                    Giám Định 3
-                  </th>
-                  <th>
-                    Giám Định 4
-                  </th>
-                  <th>
-                    Giám Định 5
-                  </th>
-                  <th>
-                    Tổng Điểm
-                  </th>
-                  <th>
-                    Hạng
-                  </th>
-                </tr>
+                {this.martialArray && this.martialArray.length > 0 ? this.martialArray.map((martial, i) => (
+                  <React.Fragment key={i}>
+                    <tr>
+                      <td className='text-center'>{martial[0]}</td>
+
+                      <td>{martial[1]}</td>
+                      <td>{martial[2]}</td>
+                      <td>{martial[3]}</td>
+                      <td>{martial[4]}</td>
+                      <td>{martial[5]}</td>
+                      <td>{martial[6]}</td>
+                      {this.isShowFiveReferee === true ?
+                        (
+                          <React.Fragment>
+                            <td>{martial[7]}</td>
+                            <td>{martial[8]}</td>
+                          </React.Fragment>
+                        )
+                        :
+                        <React.Fragment></React.Fragment>
+                      }
+                      <td>{martial[9]}</td>
+                      <td>{martial[10]}</td>
+                    </tr>
+                  </React.Fragment>
+                )) : (
+                  <React.Fragment></React.Fragment>
+                )}
               </tbody>
-            </table>
-            <table className="tbl-tournament-info">
             </table>
           </div>
 

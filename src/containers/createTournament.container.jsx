@@ -37,7 +37,7 @@ class CreateTournamentContainer extends Component {
     this.combatConst = { "combatArena": [{ "combatArenaName": "Sân A", "lastMatch": { "no": 1 }, "referee": [{ "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }] }, { "combatArenaName": "Sân B", "lastMatch": { "no": 1 }, "referee": [{ "blueScore": 0, "redScore": 0 }, { "blueScore": 1, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }] }], "combat": [] };
     this.matchMartialObj = { "match": { "name": "" }, "team": [] };
     this.martialConst = { "martialArena": [{ "martialArenaName": "Sân A", "lastMatchMartial": { "matchMartialNo": 1, "teamMartialNo": 1 } }, { "martialArenaName": "Sân B", "lastMatchMartial": { "matchMartialNo": 1, "teamMartialNo": 1 } }], "martial": [] };
-    this.fightersMartialObj = { "fighters": [], "no": 0, "finalScore":0, "refereeMartial": [{ "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }] };
+    this.fightersMartialObj = { "fighters": [], "no": 0, "finalScore": 0, "refereeMartial": [{ "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }] };
     this.fighterMartialObj = { "fighter": { "code": "", "name": "", "country": "" } }
 
     this.schemaFighters = [];
@@ -412,8 +412,6 @@ class CreateTournamentContainer extends Component {
       if (!isNaN(parseFloat(match.weight))) {
         match.weight = fighters[match.weight - 1][1];
       }
-      // match.redFighter.result = match.redFighter.name.includes("W.")? fighters[match.redFighter.result - 1][2]:"";
-      // match.blueFighter.result = match.blueFighter.name.includes("W.")? fighters[match.blueFighter.result - 1][2]:"";
 
       if (!isNaN(parseFloat(match.redFighter.name))) {
         let index = match.redFighter.name;
@@ -672,7 +670,6 @@ class CreateTournamentContainer extends Component {
                     <div className="input-group">
                       <a href={mauthodoikhang} download="3-Mau_Tho_Doi_Khang" target="_blank" rel="noreferrer" className="btn btn-outline-primary" role="button"><i className="fa-solid fa-file-download"></i> Download mẫu 3</a>
                       <input type="file" className="form-control" onChange={this.handleimportCombatRawFile} />
-                      {/* <button className="btn btn-warning" type="button" onClick={this.arrangeCombat}><i className="fa-solid fa-layer-group"></i> Sắp xếp Đối Kháng</button> */}
                       <button className="btn btn-danger" type="button" onClick={this.importCombat}><i className="fa-solid fa-file-import"></i> Khởi tạo Đối Kháng</button>
                       <button className="btn btn-primary" type="button" onClick={this.downloadCombat}><i className="fa-solid fa-file-download"></i> Download Danh sách</button>
                     </div>
@@ -715,8 +712,6 @@ class CreateTournamentContainer extends Component {
                     <div className="input-group">
                       <a href={mauthothiquyen} download="4-Mau_Tho_Thi_Quyen" target="_blank" rel="noreferrer" className="btn btn-outline-primary" role="button"><i className="fa-solid fa-file-download"></i> Download mẫu 4</a>
                       <input type="file" className="form-control" onChange={this.handleimportMartialRawFile} />
-                      {/* <button className="btn btn-info" type="button" onClick={this.shuffleMartial}><i className="fa-solid fa-shuffle"></i> Xáo trộn danh sách</button> */}
-                      {/* <button className="btn btn-warning" type="button" onClick={this.arrangeMartial}><i className="fa-solid fa-layer-group"></i> Sắp xếp Thi Quyền</button> */}
                       <button className="btn btn-danger" type="button" onClick={this.importMartial}><i className="fa-solid fa-file-import"></i> Khởi tạo Thi Quyền</button>
                       <button className="btn btn-primary" type="button" onClick={this.downloadMartial}><i className="fa-solid fa-file-download"></i> Download Danh sách</button>
                     </div>
@@ -821,11 +816,9 @@ class CreateTournamentContainer extends Component {
                     <div className="row">
                       <div className="col mb-3">
                         {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
-                          <div className="form-check" key={i} onClick={() => this.chooseTournament(i)}>
-                            <input className="form-check-input" type="radio" name="tournamentRadio" id={`tournamentRadio-${tournament[0]}`} defaultChecked={i === 0} />
-                            <label className="form-check-label" htmlFor={`tournamentRadio-${tournament[0]}`}>
-                              {tournament[1]}
-                            </label>
+                          <div className='mb-2' key={i} onClick={() => this.chooseTournament(i)}>
+                            <input type="radio" className="btn-check" name="tournamentRadio" onClick={() => this.chooseTournament(i)} id={`tournamentRadio-${tournament[0]}`} value={tournament[1]} defaultChecked={i === 0} />
+                            <label className="btn btn-outline-secondary" htmlFor={`tournamentRadio-${tournament[0]}`}><i className="fas fa-caret-right"></i> {tournament[1]}</label>
                           </div>
                         )) : (
                           <div></div>

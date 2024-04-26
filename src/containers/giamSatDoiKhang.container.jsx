@@ -127,16 +127,13 @@ class GiamSatDoiKhangContainer extends Component {
         $(".redFlag").show();
         $(".blueFlag").show();
       }
-      if (this.settingObj.isShowFiveReferee === true) {
-        this.numReferee = 5;
-        let refereeElement45 = "<div class='referee'> <div class='referee-title gd4'> <span class='info-text'> Giám định 4 </span> </div><div class='referee-score'> <div class='red-score-refereeSc'> <span class='info-text'> <span id='red-score-4'></span> </span> </div><div class='blue-score-refereeSc'> <span class='info-text'> <span id='blue-score-4'></span> </span> </div></div></div><div class='line-break'></div><div class='referee'> <div class='referee-title gd5'> <span class='info-text'> Giám định 5 </span> </div><div class='referee-score'> <div class='red-score-refereeSc'> <span class='info-text'> <span id='red-score-5'></span> </span> </div><div class='blue-score-refereeSc'> <span class='info-text'> <span id='blue-score-5'></span> </span> </div></div></div><div class='line-break'></div>";
-        $(".referee-score-area").append(refereeElement45);
-        // $(".referee").width("17%");
-      }
       if (this.settingObj.isShowCautionBox === true) {
         $(".red-caution").show();
         $(".blue-caution").show();
       }
+      this.numReferee = this.settingObj.isShowFiveReferee === true ? 5 : 3;
+      this.isShowFiveReferee = this.settingObj.isShowFiveReferee;
+      this.setState({ data: this.isShowFiveReferee });
 
       this.startEffectTimer();
 
@@ -1206,6 +1203,55 @@ class GiamSatDoiKhangContainer extends Component {
                 </div>
               </div>
               <div className="line-break"></div>
+              {this.isShowFiveReferee === true ?
+                (
+                  <React.Fragment>
+                    <div className="referee">
+                      <div className="referee-title gd4">
+                        <span className="info-text">
+                          Giám định 4
+                        </span>
+                      </div>
+                      <div className="referee-score">
+                        <div className="red-score-refereeSc">
+                          <span className="info-text">
+                            <span id="red-score-4"></span>
+                          </span>
+                        </div>
+                        <div className="blue-score-refereeSc">
+                          <span className="info-text">
+                            <span id="blue-score-4"></span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="line-break"></div>
+                    <div className="referee">
+                      <div className="referee-title gd5">
+                        <span className="info-text">
+                          Giám định 5
+                        </span>
+                      </div>
+                      <div className="referee-score">
+                        <div className="red-score-refereeSc">
+                          <span className="info-text">
+                            <span id="red-score-5"></span>
+                          </span>
+                        </div>
+                        <div className="blue-score-refereeSc">
+                          <span className="info-text">
+                            <span id="blue-score-5"></span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="line-break"></div>
+                  </React.Fragment>
+                )
+                :
+                <React.Fragment></React.Fragment>
+              }
+
             </div>
             <div className="blue-score">
               <div className="addition" onClick={this.blueAddition}></div>

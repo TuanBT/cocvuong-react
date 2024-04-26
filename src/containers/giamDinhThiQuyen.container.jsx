@@ -75,14 +75,8 @@ class GiamDinhThiQuyenContainer extends Component {
 
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
-      $('#tournamentName').html(this.settingObj.tournamentName);
-      let refereeChoose123 = "<input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee1' value='1' checked><label class='btn btn-outline-secondary' for='optionsReferee1'><i class='fa-solid fa-user'></i><br>Giám định 1</label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee2' value='2'><label class='btn btn-outline-secondary' for='optionsReferee2'><i class='fa-solid fa-user'></i><br>Giám định 2</label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee3' value='3'><label class='btn btn-outline-secondary' for='optionsReferee3'><i class='fa-solid fa-user'></i><br>Giám định 3</label>";
-      $(".refereeChoose").append(refereeChoose123);
-      if (this.settingObj.isShowFiveReferee === true) {
-        this.numReferee = 5;
-        let refereeChoose45 = "<input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee4' value='4'/> <label class='btn btn-outline-secondary' for='optionsReferee4'> <i class='fa-solid fa-user'></i> <br/>Giám định 4 </label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee5' value='5'/> <label class='btn btn-outline-secondary' for='optionsReferee5'> <i class='fa-solid fa-user'></i> <br/>Giám định 5 </label>"
-        $(".refereeChoose").append(refereeChoose45);
-      }
+      this.isShowFiveReferee = this.settingObj.isShowFiveReferee;
+      this.setState({ data: this.isShowFiveReferee });
       this.showChooseRefereeNoModal();
     })
   }
@@ -159,22 +153,6 @@ class GiamDinhThiQuyenContainer extends Component {
         }
       }
       $("#gd-name").html(this.refereeName);
-
-      // onValue(ref(this.db, 'lastMatch/no'), (snapshot) => {
-      //   //Kiểm tra kết nối internet
-      //   onValue(ref(this.db, '.info/connected'), (snapshot) => {
-      //     if (!snapshot.val() === true) {
-      //       $('#internet-status').show();
-      //     } else {
-      //       $('#internet-status').hide();
-      //     }
-      //   })
-
-      //   let matchCurrentNoIndex = snapshot.val() - 1;
-      //   let matchCurrentNo = matchCurrentNoIndex + 1
-      //   $("#gd-match").html("Trận số " + matchCurrentNo);
-      //   this.path = "referee/" + this.referreIndex;
-      // })
 
       onValue(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/martialArena/' + this.martialArenaNoIndex + '/lastMatchMartial'), (snapshot) => {
         //Kiểm tra kết nối internet
@@ -406,12 +384,24 @@ class GiamDinhThiQuyenContainer extends Component {
                     <div className="refereeChooseBox" >
                       <div className="category-buttons">
                         <section className="btn-group refereeChoose">
-                          {/* <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee1" value="1" defaultChecked />
-                      <label className="btn btn-outline-secondary" htmlFor="optionsReferee1"> <i className="fa-solid fa-user"></i> Giám định 1 </label>
-                      <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee2" value="2" />
-                      <label className="btn btn-outline-secondary" htmlFor="optionsReferee2"> <i className="fa-solid fa-user"></i> Giám định 2 </label>
-                      <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee3" value="3" />
-                      <label className="btn btn-outline-secondary" htmlFor="optionsReferee3"> <i className="fa-solid fa-user"></i> Giám định 3 </label> */}
+                          <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee1" value="1" defaultChecked />
+                          <label className="btn btn-outline-secondary" for="optionsReferee1"><i className="fa-solid fa-user"></i><br />Giám định 1</label>
+                          <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee2" value="2" />
+                          <label className="btn btn-outline-secondary" for="optionsReferee2"><i className="fa-solid fa-user"></i><br />Giám định 2</label>
+                          <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee3" value="3" />
+                          <label className="btn btn-outline-secondary" for="optionsReferee3"><i className="fa-solid fa-user"></i><br />Giám định 3</label>
+                          {this.isShowFiveReferee === true ?
+                            (
+                              <React.Fragment>
+                                <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee4" value="4" />
+                                <label className="btn btn-outline-secondary" for="optionsReferee4"> <i className="fa-solid fa-user"></i> <br />Giám định 4 </label>
+                                <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee5" value="5" />
+                                <label className="btn btn-outline-secondary" for="optionsReferee5"> <i className="fa-solid fa-user"></i> <br />Giám định 5 </label>
+                              </React.Fragment>
+                            )
+                            :
+                            <React.Fragment></React.Fragment>
+                          }
                         </section>
                       </div>
                     </div>

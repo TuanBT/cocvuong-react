@@ -77,7 +77,6 @@ class InformationDkContainer extends Component {
   }
 
   showListInfo() {
-    $(".tbl-tournament-info").html("");
     if (this.combatObj && this.combatObj.length > 0) {
       this.categoryArray = ["ALL"];
       for (let i = 0; i < this.combatObj.length; i++) {
@@ -92,8 +91,6 @@ class InformationDkContainer extends Component {
   }
 
   showListMatchs(category) {
-    $(".tbl-tournament-info").html("");
-    $(".tbl-tournament-info").append($(".tbl-header-tournament-info").html());
     $('#schema-bracket').html("");
     let matchNum = 0;
     let nameWin = "";
@@ -113,6 +110,7 @@ class InformationDkContainer extends Component {
     //COPY một schema vào id schema-bracket
     $('#schema-bracket').html(this.brackets[fighters.length]);
 
+    this.combatArray = [];
     let matchNo = 0;
     for (let i = 0; i < this.combatObj.length; i++) {
       if (this.combatObj[i].match.category === category || category === "ALL") {
@@ -127,20 +125,18 @@ class InformationDkContainer extends Component {
           nameWin = "";
         }
 
-        $(".tbl-tournament-info").append(
-          "<tr>" +
-          "<td class='text-center'>" + combat.match.no + "</td>" +
-          "<td>" + combat.match.type + "</td>" +
-          "<td>" + combat.match.category + "</td>" +
-          "<td>" + combat.fighters.redFighter.name + "</td>" +
-          "<td>" + combat.fighters.redFighter.code + "</td>" +
-          "<td>" + combat.fighters.redFighter.country + "</td>" +
-          "<td>" + combat.fighters.blueFighter.name + "</td>" +
-          "<td>" + combat.fighters.blueFighter.code + "</td>" +
-          "<td>" + combat.fighters.blueFighter.country + "</td>" +
-          "<td>" + nameWin + "</td>" +
-          "</tr>"
-        )
+        this.combatArray.push([
+          combat.match.no,
+          combat.match.type,
+          combat.match.category,
+          combat.fighters.redFighter.name,
+          combat.fighters.redFighter.code,
+          combat.fighters.redFighter.country,
+          combat.fighters.blueFighter.name,
+          combat.fighters.blueFighter.code,
+          combat.fighters.blueFighter.country,
+          nameWin
+        ]);
 
         //Với từng trận thì nhét 2 VDV vào class info.html=1,2,3
         matchNo++;
@@ -150,6 +146,8 @@ class InformationDkContainer extends Component {
 
       }
     }
+
+    this.setState({ data: this.combatArray });
 
     //Đến trận final 
     $('.final .teamc').html(nameWin);
@@ -211,8 +209,8 @@ class InformationDkContainer extends Component {
           </div>
 
           <div className=" tbl-info">
-            <table className="tbl-header-tournament-info" id="table" style={{ display: "none" }}>
-              <tbody>
+            <table className="tbl-header-tournament-info" id="table">
+              <thead>
                 <tr>
                   <th className="text-center">
                     Mã trận đấu
@@ -245,9 +243,27 @@ class InformationDkContainer extends Component {
                     Người thắng
                   </th>
                 </tr>
+              </thead>
+              <tbody>
+                {this.combatArray && this.combatArray.length > 0 ? this.combatArray.map((combat, i) => (
+                  <React.Fragment key={i}>
+                    <tr>
+                      <td className='text-center'>{combat[0]}</td>
+                      <td>{combat[1]}</td>
+                      <td>{combat[2]}</td>
+                      <td>{combat[3]}</td>
+                      <td>{combat[4]}</td>
+                      <td>{combat[5]}</td>
+                      <td>{combat[6]}</td>
+                      <td>{combat[7]}</td>
+                      <td>{combat[8]}</td>
+                      <td>{combat[9]}</td>
+                    </tr>
+                  </React.Fragment>
+                )) : (
+                  <React.Fragment></React.Fragment>
+                )}
               </tbody>
-            </table>
-            <table className="tbl-tournament-info">
             </table>
           </div>
 

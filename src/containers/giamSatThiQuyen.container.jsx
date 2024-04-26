@@ -130,10 +130,10 @@ class GiamSatThiQuyenContainer extends Component {
     })
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       $('#tournamentName').html(this.settingObj.tournamentName);
+      this.isShowFiveReferee = this.settingObj.isShowFiveReferee;
+      this.setState({ data: this.isShowFiveReferee });
       if (this.settingObj.isShowFiveReferee === true) {
         this.numReferee = 5;
-        let refereeElement45 = "<div class='referee-sub-area'> <div class='style-hd-referee-title'> <span class='info-text'> Giám định 4 </span> </div><div class='referee-sub-score'> <span class='info-text' id='referee-4-score'> 00 </span> </div></div><div class='spec-score'></div><div class='referee-sub-area'> <div class='style-hd-referee-title'> <span class='info-text'> Giám định 5 </span> </div><div class='referee-sub-score'> <span class='info-text' id='referee-5-score'> 00 </span> </div></div><div class='spec-score'></div>";
-        $(".style-hd-referee-score-area").append(refereeElement45);
         $(".spec-score").width("4.1%");
       }
     })
@@ -537,6 +537,40 @@ class GiamSatThiQuyenContainer extends Component {
                 </div>
               </div>
               <div className="spec-score"></div>
+              {this.isShowFiveReferee === true ?
+                (
+                  <React.Fragment>
+                    <div className="referee-sub-area">
+                      <div className="style-hd-referee-title">
+                        <span className="info-text">
+                          Giám định 4
+                        </span>
+                      </div>
+                      <div className="referee-sub-score">
+                        <span className="info-text" id="referee-4-score">
+                          00
+                        </span>
+                      </div>
+                    </div>
+                    <div className="spec-score"></div>
+                    <div className="referee-sub-area">
+                      <div className="style-hd-referee-title">
+                        <span className="info-text">
+                          Giám định 5
+                        </span>
+                      </div>
+                      <div className="referee-sub-score">
+                        <span className="info-text" id="referee-5-score">
+                          00
+                        </span>
+                      </div>
+                    </div>
+                    <div className="spec-score"></div>
+                  </React.Fragment>
+                )
+                :
+                <React.Fragment></React.Fragment>
+              }
             </div>
           </div>
 

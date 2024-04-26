@@ -12,9 +12,9 @@ class SettingContainer extends Component {
     super(props);
     const me = this;
     this.state = {
-      data:[]
+      data: []
     };
-    
+
 
     this.db = Firebase();
     this.settingObj;
@@ -23,7 +23,7 @@ class SettingContainer extends Component {
     this.tournamentNoIndex = 0;
 
     this.settingConst = { "setting": { "timeRound": 90, "timeBreak": 30, "timeExtra": 60, "timeExtraBreak": 15, "tournamentName": "Cóc Vương", "isShowCountryFlag": false, "isShowFiveReferee": false, "isShowCautionBox": true } };
-    this.commonSettingConst = { "passwordSetting": 1, "passwordGiamSat": 1, "passwordGiamDinh": 1 } ;
+    this.commonSettingConst = { "passwordSetting": 1, "passwordGiamSat": 1, "passwordGiamDinh": 1 };
   }
 
   componentDidMount() {
@@ -49,12 +49,12 @@ class SettingContainer extends Component {
     }
   }
 
-  
+
   main() {
     get(child(ref(this.db), 'tournament')).then((snapshot) => {
       this.tournamentObj = snapshot.val();
       this.tournaments = [];
-      
+
       for (let i = 0; i < this.tournamentObj.length; i++) {
         this.tournaments.push([i, this.tournamentObj[i].setting.tournamentName]);
       }
@@ -223,16 +223,16 @@ class SettingContainer extends Component {
     get(child(ref(this.db), 'tournament')).then((snapshot) => {
       this.tournamentObj = snapshot.val();
       this.tournamentNoIndex = this.tournamentObj.length - 1;
-      if (this.tournamentObj.length > 1){
+      if (this.tournamentObj.length > 1) {
         remove(ref(this.db, 'tournament/' + this.tournamentNoIndex)).then(() => {
           this.tournamentNoIndex--;
           this.main();
           toast.success("Xoá giải đấu thành công!");
         })
-      }else{
+      } else {
         toast.error("Không thể xoá giải đấu duy nhất!");
       }
-      
+
     })
   }
 
@@ -276,7 +276,7 @@ class SettingContainer extends Component {
               </header>
 
               <div className="container">
-              <form className="form-style-7 mb-5 mt-3 setting-form">
+                <form className="form-style-7 mb-5 mt-3 setting-form">
                   <div className="form-title">
                     <h2><b>Thiết đặt giải đấu</b></h2>
                   </div>
@@ -285,7 +285,7 @@ class SettingContainer extends Component {
                     <div className="col mb-3">
                       {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
                         <div className="form-check" key={i} onClick={() => this.chooseTournament(i)}>
-                          <input className="form-check-input" type="radio" name="tournamentRadio" id={`tournamentRadio-${tournament[0]}`} defaultChecked={i === this.tournamentNoIndex}/>
+                          <input className="form-check-input" type="radio" name="tournamentRadio" id={`tournamentRadio-${tournament[0]}`} defaultChecked={i === this.tournamentNoIndex} />
                           <label className="form-check-label" htmlFor={`tournamentRadio-${tournament[0]}`}>
                             {tournament[0]} - {tournament[1]}
                           </label>
@@ -302,8 +302,8 @@ class SettingContainer extends Component {
                     </div>
                   </div>
 
-                  <button className="btn btn-success" style={{ marginRight: '5px' }}  type="button" onClick={this.addTournament}><i className="fas fa-plus"></i> Thêm giải đấu</button>
-                  <button className="btn btn-danger" style={{ marginRight: '5px' }}  type="button" onClick={this.deleteTournament}><i className="fas fa-trash-alt"></i> Xoá giải đấu cuối cùng</button>
+                  <button className="btn btn-success" style={{ marginRight: '5px' }} type="button" onClick={this.addTournament}><i className="fas fa-plus"></i> Thêm giải đấu</button>
+                  <button className="btn btn-danger" style={{ marginRight: '5px' }} type="button" onClick={this.deleteTournament}><i className="fas fa-trash-alt"></i> Xoá giải đấu cuối cùng</button>
                 </form>
 
                 <form className="form-style-7 mb-5 mt-3 setting-form">

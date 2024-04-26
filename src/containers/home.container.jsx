@@ -74,7 +74,7 @@ class HomeContainer extends Component {
                 </div>
               </div>
               <div className="col">
-              <div className="card mb-4 rounded-3 shadow-sm border-primary">
+                <div className="card mb-4 rounded-3 shadow-sm border-primary">
                   <div className="card-header py-3 text-bg-primary border-primary">
                     <h4 className="my-0 fw-normal">THÔNG TIN ĐỐI KHÁNG</h4>
                   </div>

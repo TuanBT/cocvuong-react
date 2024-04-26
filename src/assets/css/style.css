@@ -512,7 +512,8 @@ html {
     left: 0;
 }
 
-#blue-score, #red-score{
+#blue-score,
+#red-score {
     font-weight: bolder;
 }
 
@@ -806,7 +807,7 @@ html {
     z-index: 2;
 }
 
-.btn-decrement .info-text{
+.btn-decrement .info-text {
     position: relative;
     z-index: 3;
 }
@@ -1311,12 +1312,12 @@ textarea {
 
 }
 
-.hd-arena-name{
+.hd-arena-name {
     font-weight: bold;
     font-size: 3vw;
 }
 
-.gd-hd-arena-name{
+.gd-hd-arena-name {
     font-weight: bold;
 }
 
@@ -1353,7 +1354,7 @@ textarea {
     position: relative;
 }
 
-#match-martial-code{
+#match-martial-code {
     height: 40%;
     width: 100%;
     padding: 0 2%;
@@ -1361,7 +1362,7 @@ textarea {
     float: left;
 }
 
-#match-martial-team{
+#match-martial-team {
     height: 60%;
     width: 100%;
     float: left;
