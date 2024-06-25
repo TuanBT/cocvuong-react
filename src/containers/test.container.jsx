@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 
 class TestContainer extends Component {
   constructor(props) {
+    document.title = 'Test';
     super(props);
   }
 

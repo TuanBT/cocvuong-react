@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, useEffect } from 'react';
 import $ from 'jquery';
 import Firebase from '../firebase';
 import { ref, set, get, update, remove, child, onValue } from "firebase/database";
@@ -8,6 +8,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 class GiamDinhThiQuyenContainer extends Component {
   constructor(props) {
+    document.title = 'Giám Định Thi Quyền';
     super(props);
     const me = this;
     this.db = Firebase();

@@ -8,6 +8,7 @@ import '../assets/lib/table/basictable.css';
 
 class InformationDkContainer extends Component {
   constructor(props) {
+    document.title = 'Thông Tin Đối Kháng';
     super(props);
     const me = this;
     this.state = {

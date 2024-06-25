@@ -9,6 +9,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 class GiamSatDoiKhangContainer extends Component {
   constructor(props) {
+    document.title = 'Giám Sát Đối Kháng';
     super(props);
     const me = this;
     this.db = Firebase();

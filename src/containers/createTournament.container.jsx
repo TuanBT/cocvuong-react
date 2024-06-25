@@ -15,6 +15,7 @@ import mauthothiquyen from '../assets/template/4-Mau_Tho_Thi_Quyen.xlsx';
 
 class CreateTournamentContainer extends Component {
   constructor(props) {
+    document.title = 'Tạo Giải';
     super(props);
     const me = this;
     this.state = {

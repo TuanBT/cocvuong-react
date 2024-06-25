@@ -9,6 +9,7 @@ import { NavLink } from "react-router-dom";
 
 class SettingContainer extends Component {
   constructor(props) {
+    document.title = 'Thiết Đặt';
     super(props);
     const me = this;
     this.state = {

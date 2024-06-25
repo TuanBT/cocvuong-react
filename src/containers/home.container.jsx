@@ -3,6 +3,7 @@ import { Route, NavLink, HashRouter } from "react-router-dom";
 
 class HomeContainer extends Component {
   constructor(props) {
+    document.title = 'Cóc Vương';
     super(props);
   }
 

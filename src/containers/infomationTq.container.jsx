@@ -8,6 +8,7 @@ import '../assets/lib/table/basictable.css';
 
 class InformationTqContainer extends Component {
   constructor(props) {
+    document.title = 'Thông Tin Thi Quyền';
     super(props);
     const me = this;
     this.state = {
@@ -292,8 +293,8 @@ class InformationTqContainer extends Component {
 
           <div className="container">
             <footer className="py-3 my-4">
-              <ul className="nav justify-content-center border-bottom pb-3 mb-3">
-              </ul>
+              {/* <ul className="nav justify-content-center border-bottom pb-3 mb-3">
+              </ul> */}
               <p className="text-center text-muted">©Tuân 2022</p>
             </footer>
           </div>
