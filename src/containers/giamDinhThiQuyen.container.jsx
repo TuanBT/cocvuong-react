@@ -75,6 +75,9 @@ class GiamDinhThiQuyenContainer extends Component {
 
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
+      if (this.settingObj.isShowFiveReferee === true) {
+        this.numReferee = 5;
+      }
       this.isShowFiveReferee = this.settingObj.isShowFiveReferee;
       this.setState({ data: this.isShowFiveReferee });
       this.showChooseRefereeNoModal();
@@ -385,18 +388,18 @@ class GiamDinhThiQuyenContainer extends Component {
                       <div className="category-buttons">
                         <section className="btn-group refereeChoose">
                           <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee1" value="1" defaultChecked />
-                          <label className="btn btn-outline-secondary" for="optionsReferee1"><i className="fa-solid fa-user"></i><br />Giám định 1</label>
+                          <label className="btn btn-outline-secondary" htmlFor="optionsReferee1"><i className="fa-solid fa-user"></i><br />Giám định 1</label>
                           <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee2" value="2" />
-                          <label className="btn btn-outline-secondary" for="optionsReferee2"><i className="fa-solid fa-user"></i><br />Giám định 2</label>
+                          <label className="btn btn-outline-secondary" htmlFor="optionsReferee2"><i className="fa-solid fa-user"></i><br />Giám định 2</label>
                           <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee3" value="3" />
-                          <label className="btn btn-outline-secondary" for="optionsReferee3"><i className="fa-solid fa-user"></i><br />Giám định 3</label>
+                          <label className="btn btn-outline-secondary" htmlFor="optionsReferee3"><i className="fa-solid fa-user"></i><br />Giám định 3</label>
                           {this.isShowFiveReferee === true ?
                             (
                               <React.Fragment>
                                 <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee4" value="4" />
-                                <label className="btn btn-outline-secondary" for="optionsReferee4"> <i className="fa-solid fa-user"></i> <br />Giám định 4 </label>
+                                <label className="btn btn-outline-secondary" htmlFor="optionsReferee4"> <i className="fa-solid fa-user"></i> <br />Giám định 4 </label>
                                 <input type="radio" className="btn-check" name="optionsReferee" id="optionsReferee5" value="5" />
-                                <label className="btn btn-outline-secondary" for="optionsReferee5"> <i className="fa-solid fa-user"></i> <br />Giám định 5 </label>
+                                <label className="btn btn-outline-secondary" htmlFor="optionsReferee5"> <i className="fa-solid fa-user"></i> <br />Giám định 5 </label>
                               </React.Fragment>
                             )
                             :
