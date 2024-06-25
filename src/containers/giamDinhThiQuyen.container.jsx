@@ -197,7 +197,6 @@ class GiamDinhThiQuyenContainer extends Component {
   }
 
   submitInput = () => {
-    console.log
     if (parseInt(this.refereeMartialScore) > 99) {
       this.refereeMartialScore = "";
     }
@@ -207,19 +206,19 @@ class GiamDinhThiQuyenContainer extends Component {
     get(ref(this.db, this.pathMartialScore)).then((snapshot) => {
       let refereeMartialObj = snapshot.val();
       let finalScore = 0;
-      let refereeScore = 0;
-      let minScore = 0;
-      let maxScore = 0;
-      for (let i = 1; i <= this.numReferee; i++) {
-        let score = refereeMartialObj.refereeMartial[i - 1].score;
-        refereeScore += score;
-        minScore = score < minScore ? score : minScore;
-        maxScore = score > maxScore ? score : maxScore;
+      let totalRefereeScore = 0;
+      let minScore = refereeMartialObj.refereeMartial[0].score;
+      let maxScore = refereeMartialObj.refereeMartial[0].score;
+      for (let i = 0; i < this.numReferee; i++) {
+        let score = refereeMartialObj.refereeMartial[i].score;
+        totalRefereeScore += score;
+        minScore = Math.min(minScore, score);
+        maxScore = Math.max(maxScore, score);
       }
       if (this.numReferee === 5) {
-        finalScore = refereeScore - (minScore + maxScore);
+        finalScore = totalRefereeScore - (minScore + maxScore);
       } else {
-        finalScore = refereeScore;
+        finalScore = totalRefereeScore;
       }
       update(ref(this.db, this.pathMartialScore), { "finalScore": parseInt(finalScore) });
     })
