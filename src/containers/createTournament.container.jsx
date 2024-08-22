@@ -32,6 +32,7 @@ class CreateTournamentContainer extends Component {
     this.martialStandardArray = [];
     this.tournamentNoIndex = 0;
     this.martialArenaNoIndex = 0;
+    this.tournamentObj;
 
     this.settingConst = { "setting": { "timeRound": 90, "timeBreak": 30, "timeExtra": 60, "timeExtraBreak": 15, "tournamentName": "Cóc Vương", "isShowCountryFlag": false, "isShowFiveReferee": false, "isShowCautionBox": false, "isShowArenaB": false, "password": 1 } };
     this.matchObj = { "match": { "no": 1, "type": "", "category": "", "win": "" }, "fighters": { "redFighter": { "result": "", "name": "Đỏ", "code": "", "caution": { "remind": 0, "warning": 0, "medical": 0, "fall": 0, "bound": 0 }, "score": 0 }, "blueFighter": { "result": "", "name": "Xanh", "code": "", "caution": { "remind": 0, "warning": 0, "medical": 0, "fall": 0, "bound": 0 }, "score": 0 } } }
@@ -581,6 +582,132 @@ class CreateTournamentContainer extends Component {
     }
   }
 
+  handleimportMartialStandardFile = (event) => {
+    console.log("handleimportMartialStandardFile Start");
+    this.martialObj = JSON.parse(JSON.stringify(this.martialConst));
+    let matchMartialObjTemp = JSON.parse(JSON.stringify(this.matchMartialObj));
+    let fighterMartialObjTemp = JSON.parse(JSON.stringify(this.fighterMartialObj));
+    let fightersMartialObjTemp = JSON.parse(JSON.stringify(this.fightersMartialObj));
+
+    const file = event.target.files[0];
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const data = new Uint8Array(event.target.result);
+      const workbook = read(data, { type: 'array' });
+      // const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets['data'];
+      const excelData = utils.sheet_to_json(worksheet, { header: 1 });
+      this.martialStandardArray = [];
+
+      for (let i = 0; i < excelData.length; i++) {
+        let values = excelData[i];
+
+        if (values.length !== 0) { //Dòng có nội dung
+          if (values.length === 1 && values[0] !== " ") { //Dòng chứa tên nội dung
+            matchMartialObjTemp = JSON.parse(JSON.stringify(this.matchMartialObj));
+            this.martialObj.martial.push(matchMartialObjTemp);
+            matchMartialObjTemp.match.name = values[0].trim();
+            this.martialStandardArray.push([values[0].trim(), '', '', '']);
+          } else { //Dòng chứa Title hoặc thông tin VDV
+            if (!isNaN(parseFloat(values[0]))) { //Dòng chứa nội dung VDV
+              fighterMartialObjTemp = JSON.parse(JSON.stringify(this.fighterMartialObj));
+              fighterMartialObjTemp.fighter.name = values[1].trim();
+              fighterMartialObjTemp.fighter.code = values[2].trim();
+              fighterMartialObjTemp.fighter.country = values[3].trim();
+              fightersMartialObjTemp = JSON.parse(JSON.stringify(this.fightersMartialObj));
+              fightersMartialObjTemp.no = values[0];
+              fightersMartialObjTemp.fighters.push(fighterMartialObjTemp);
+              this.martialObj.martial.slice(-1)[0].team.push(fightersMartialObjTemp);
+              this.martialStandardArray.push([values[0], values[1].trim(), values[2].trim(), values[3].trim()]);
+            } else { //Dòng chứa nội dung VDV Đồng đội hoặc Title
+              if (values[0] === undefined) { //Dòng VDV đồng đội thứ 2 trở đi
+                fighterMartialObjTemp = JSON.parse(JSON.stringify(this.fighterMartialObj));
+                fighterMartialObjTemp.fighter.name = values[1].trim();
+                fighterMartialObjTemp.fighter.code = values[2].trim();
+                fighterMartialObjTemp.fighter.country = values[3].trim();
+                this.martialObj.martial.slice(-1)[0].team.slice(-1)[0].fighters.push(fighterMartialObjTemp);
+                this.martialStandardArray.push(['', values[1].trim(), values[2].trim(), values[3].trim()]);
+              }
+            }
+          }
+        }
+      }
+
+      this.combatArrangeHeader = ['STT', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
+      this.setState({ data: this.martialStandardArray });
+
+    };
+    reader.readAsArrayBuffer(file);
+    console.log("handleimportMartialStandardFile End");
+  }
+
+  handleimportCombatStandFile = (event) => {
+    console.log("handleimportCombatStandFile Start");
+    this.combatObj = JSON.parse(JSON.stringify(this.combatConst));
+
+    const file = event.target.files[0];
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const data = new Uint8Array(event.target.result);
+      const workbook = read(data, { type: 'array' });
+      const worksheet = workbook.Sheets['data'];
+      const excelData = utils.sheet_to_json(worksheet, { header: 1 });
+      this.combatStandardArray = [];
+
+      for (let i = 1; i < excelData.length; i++) {
+        let values = excelData[i];
+        if (values.length >= 2) { //Dòng có nội dung
+          let matchObjTemp = JSON.parse(JSON.stringify(this.matchObj));
+          matchObjTemp.match.no = values[0] !== undefined ? values[0] : '';
+          matchObjTemp.match.category = values[1] !== undefined ? values[1].trim() : '';
+          matchObjTemp.match.type = values[2] !== undefined ? values[2].trim() : '';
+          matchObjTemp.fighters.redFighter.name = values[3] !== undefined ? values[3].trim() : '';
+          matchObjTemp.fighters.redFighter.result = values[3].includes("W.") ? values[3].trim() : '';
+          matchObjTemp.fighters.redFighter.code = values[4] !== undefined ? values[4].trim() : '';
+          matchObjTemp.fighters.redFighter.country = values[5] !== undefined ? values[5].trim() : '';
+          matchObjTemp.fighters.blueFighter.name = values[6] !== undefined ? values[6].trim() : '';
+          matchObjTemp.fighters.blueFighter.result = values[6].includes("W.") ? values[6].trim() : '';
+          matchObjTemp.fighters.blueFighter.code = values[7] !== undefined ? values[7].trim() : '';
+          matchObjTemp.fighters.blueFighter.country = values[8] !== undefined ? values[8].trim() : '';
+          this.combatObj.combat.push(matchObjTemp);
+          this.combatStandardArray.push([
+            values[0] !== undefined ? values[0] : '',
+            values[1] !== undefined ? values[1].trim() : '',
+            values[2] !== undefined ? values[2].trim() : '',
+            values[3] !== undefined ? values[3].trim() : '',
+            values[4] !== undefined ? values[4].trim() : '',
+            values[5] !== undefined ? values[5].trim() : '',
+            values[6] !== undefined ? values[6].trim() : '',
+            values[7] !== undefined ? values[7].trim() : '',
+            values[8] !== undefined ? values[8].trim() : '',
+          ]);
+        }
+      }
+
+      this.combatArrangeHeader = ["TRẬN", "HẠNG CÂN", "LOẠI TRẬN", "TÊN GIÁP ĐỎ", "CODE/ĐƠN VỊ GIÁP ĐỎ", "QUỐC GIA ĐỎ", "TÊN GIÁP XANH", "CODE/ĐƠN VỊ GIÁP XANH", "QUỐC GIA XANH"];
+      this.setState({ data: this.combatStandardArray });
+
+    };
+    reader.readAsArrayBuffer(file);
+    console.log("handleimportCombatStandFile End");
+  };
+
+  importCombatStandard = () => {
+    console.log("importCombatStandard Start");
+    update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/'), this.combatObj).then(() => {
+      toast.success("Cập nhập thông tin giải đấu thành công!");
+    });
+    console.log("importCombatStandard End");
+  }
+
+  importMartialStandard = () => {
+    console.log("importMartialStandard Start");
+    update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/'), this.martialObj).then(() => {
+      toast.success("Cập nhập thông tin giải đấu thành công!");
+    });
+    console.log("importMartialStandard End");
+  }
+
   showPasswordModal = () => {
     $('#passwordModal').removeClass('modal display-none').addClass('modal display-block');
   };
@@ -744,6 +871,70 @@ class CreateTournamentContainer extends Component {
                       }
                     </tbody>
                   </table>
+                </div>
+
+                <div className="tournament-text mb-5 mt-3">
+                  <div className="form-title">
+                    <h2><b>Nhập thông tin Đối Kháng CHUẨN</b></h2>
+                    <p className="text-muted"><i>Chức năng cho phép tạo một giải đấu đối kháng với thông tin đầu vào đã được sắp xếp và chuẩn hoá theo từng cặp đấu cố định.</i></p>
+                  </div>
+                  <div className="function-button">
+                    <div className="input-group">
+                      <a href={mauchuandoikhang} download="1-Mau_Chuan_Doi_Khang" target="_blank" rel="noreferrer" className="btn btn-outline-primary" role="button"><i className="fa-solid fa-file-download"></i> Download mẫu 1</a>
+                      <input type="file" className="form-control" onChange={this.handleimportCombatStandFile} />
+                      <button className="btn btn-danger" type="button" onClick={this.importCombatStandard}><i className="fa-solid fa-file-import"></i> Khởi tạo Đối Kháng</button>
+                    </div>
+                  </div>
+                  <table>
+                    <thead>
+                      <tr>
+                        {this.tournamentImportHeader && this.tournamentImportHeader.map((header) => <th key={header}>{header}</th>)}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {this.combatStandardArray ? this.combatStandardArray.map((row, i) => (
+                        <tr key={i}>
+                          {row.map((cell, i) => (
+                            <td key={i}>{cell}</td>
+                          ))}
+                        </tr>
+                      )) :
+                        <tr><td colSpan="2">Không có dữ liệu hiển thị</td></tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="tournament-text mb-5 mt-3">
+                  <div className="form-title">
+                    <h2><b>Nhập thông tin Thi Quyền CHUẨN</b></h2>
+                    <p className="text-muted"><i>Chức năng cho phép tạo một giải đấu thi quyền với thông tin đầu vào đã được sắp xếp và chuẩn hoá theo từng trận đấu cố định.</i></p>
+                  </div>
+                  <div className="function-button">
+                    <div className="input-group">
+                      <a href={mauchuanthiquyen} download="2-Mau_Chuan_Thi_Quyen" target="_blank" rel="noreferrer" className="btn btn-outline-primary" role="button"><i className="fa-solid fa-file-download"></i> Download mẫu 2</a>
+                      <input type="file" className="form-control" onChange={this.handleimportMartialStandardFile} />
+                      <button className="btn btn-danger" type="button" onClick={this.importMartialStandard}><i className="fa-solid fa-file-import"></i> Khởi tạo Thi Quyền</button>
+                    </div>
+                    <table>
+                      <thead>
+                        <tr>
+                          {this.combatArrangeHeader && this.combatArrangeHeader.map((header) => <th key={header}>{header}</th>)}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {this.martialStandardArray ? this.martialStandardArray.map((row, i) => (
+                          <tr key={i}>
+                            {row.map((cell, i) => (
+                              <td key={i}>{cell}</td>
+                            ))}
+                          </tr>
+                        )) :
+                          <tr><td colSpan="2">Không có dữ liệu hiển thị</td></tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
 
                 <div className="container">
