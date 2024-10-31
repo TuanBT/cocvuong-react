@@ -95,7 +95,7 @@ class GiamSatDoiKhangContainer extends Component {
 
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
-      if (this.settingObj.isShowArenaB === true) {
+      if (this.settingObj.combat.isShowArenaB === true) {
         this.showChooseArenaNoModal();
       } else {
         this.showTournamentInfo();
@@ -120,20 +120,20 @@ class GiamSatDoiKhangContainer extends Component {
       this.settingObj = snapshot.val();
       $('#tournamentName').html(this.settingObj.tournamentName);
       this.settingObj = snapshot.val();
-      this.timerCoundown = this.settingObj.timeRound;
-      this.timeBreak = this.settingObj.timeBreak;
-      this.timeExtra = this.settingObj.timeExtra;
-      this.timeExtraBreak = this.settingObj.timeExtraBreak;
-      if (this.settingObj.isShowCountryFlag === true) {
+      this.timerCoundown = this.settingObj.combat.timeRound;
+      this.timeBreak = this.settingObj.combat.timeBreak;
+      this.timeExtra = this.settingObj.combat.timeExtra;
+      this.timeExtraBreak = this.settingObj.combat.timeExtraBreak;
+      if (this.settingObj.combat.isShowCountryFlag === true) {
         $(".redFlag").show();
         $(".blueFlag").show();
       }
-      if (this.settingObj.isShowCautionBox === true) {
+      if (this.settingObj.combat.isShowCautionBox === true) {
         $(".red-caution").show();
         $(".blue-caution").show();
       }
-      this.numReferee = this.settingObj.isShowFiveReferee === true ? 5 : 3;
-      this.isShowFiveReferee = this.settingObj.isShowFiveReferee;
+      this.numReferee = this.settingObj.combat.isShowFiveReferee === true ? 5 : 3;
+      this.isShowFiveReferee = this.settingObj.combat.isShowFiveReferee;
       this.setState({ data: this.isShowFiveReferee });
 
       this.startEffectTimer();
@@ -249,7 +249,7 @@ class GiamSatDoiKhangContainer extends Component {
       } else if (this.isTimerRunning == false) {
         //Đổi màu trạng thái running cho đồng hồ đang chạy
         if (this.round == this.fistRound || this.round == this.secondRound || this.round == this.extraRound) {
-          if (this.round == this.fistRound && this.timerCoundown == this.settingObj.timeRound) {
+          if (this.round == this.fistRound && this.timerCoundown == this.settingObj.combat.timeRound) {
             $(".timer-text").css("background-color", this.silverColor);
           } else {
             $(".timer-text").css("background-color", this.yellowColor);
@@ -396,7 +396,7 @@ class GiamSatDoiKhangContainer extends Component {
     $(".blue-score").css("color", this.whiteColor);
     this.stopTimer();
     this.round = this.fistRound;
-    this.timerCoundown = this.settingObj.timeRound;
+    this.timerCoundown = this.settingObj.combat.timeRound;
     this.isTimerRunning = false;
     $(".timer-text").css("background-color", this.silverColor);
     let minutes = Math.floor(this.timerCoundown / 60);
@@ -764,7 +764,7 @@ class GiamSatDoiKhangContainer extends Component {
       //Nghỉ giữa hiệp kết thúc
       else if (this.round == this.breakRound) {
         this.round = this.secondRound;
-        this.timerCoundown = this.settingObj.timeRound;
+        this.timerCoundown = this.settingObj.combat.timeRound;
         this.stopTimer();
         $(".timer-text").css("background-color", this.yellowColor);
       }

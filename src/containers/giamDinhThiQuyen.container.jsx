@@ -76,10 +76,10 @@ class GiamDinhThiQuyenContainer extends Component {
 
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
-      if (this.settingObj.isShowFiveReferee === true) {
+      if (this.settingObj.martial.isShowFiveReferee === true) {
         this.numReferee = 5;
       }
-      this.isShowFiveReferee = this.settingObj.isShowFiveReferee;
+      this.isShowFiveReferee = this.settingObj.martial.isShowFiveReferee;
       this.setState({ data: this.isShowFiveReferee });
       this.showChooseRefereeNoModal();
     })

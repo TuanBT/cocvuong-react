@@ -49,7 +49,7 @@ class InformationTqContainer extends Component {
   }
 
   showListMatchs(category) {
-    this.isShowFiveReferee = this.settingObj.isShowFiveReferee;
+    this.isShowFiveReferee = this.settingObj.martial.isShowFiveReferee;
     this.setState({ data: this.isShowFiveReferee });
     this.martialArray = [];
     for (let i = 0; i < this.martialObj.length; i++) {

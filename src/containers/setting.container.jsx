@@ -23,7 +23,7 @@ class SettingContainer extends Component {
 
     this.tournamentNoIndex = 0;
 
-    this.settingConst = { "setting": { "timeRound": 90, "timeBreak": 30, "timeExtra": 60, "timeExtraBreak": 15, "tournamentName": "Cóc Vương", "isShowCountryFlag": false, "isShowFiveReferee": false, "isShowCautionBox": true } };
+    this.settingConst = { "setting": { "combat": { "isShowArenaB": true, "isShowCautionBox": true, "isShowCountryFlag": true, "isShowFiveReferee": false, "timeBreak": 60, "timeExtra": 120, "timeExtraBreak": 60, "timeRound": 120 }, "isShowArenaB": true, "isShowCautionBox": true, "isShowCountryFlag": false, "isShowFiveReferee": false, "martial": { "isShowArenaB": true, "isShowCountryFlag": true, "isShowFiveReferee": false }, "timeBreak": 60, "timeExtra": 120, "timeExtraBreak": 60, "timeRound": 120, "tournamentName": "Cóc Vương" } };
     this.commonSettingConst = { "passwordSetting": 1, "passwordGiamSat": 1, "passwordGiamDinh": 1 };
   }
 
@@ -64,14 +64,16 @@ class SettingContainer extends Component {
 
     get(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
-      $("input[name=timeRound]").val(this.settingObj.timeRound);
-      $("input[name=timeBreak]").val(this.settingObj.timeBreak);
-      $("input[name=timeExtra]").val(this.settingObj.timeExtra);
-      $("input[name=timeExtraBreak]").val(this.settingObj.timeExtraBreak);
+      $("input[name=timeRound]").val(this.settingObj.combat.timeRound);
+      $("input[name=timeBreak]").val(this.settingObj.combat.timeBreak);
+      $("input[name=timeExtra]").val(this.settingObj.combat.timeExtra);
+      $("input[name=timeExtraBreak]").val(this.settingObj.combat.timeExtraBreak);
       $("input[name=tournamentName]").val(this.settingObj.tournamentName);
-      $("#flexSwitchCountryFlag").prop("checked", this.settingObj.isShowCountryFlag);
-      $("#showCautionBox").prop("checked", this.settingObj.isShowCautionBox);
-      $("#quantityReferee").prop("checked", this.settingObj.isShowFiveReferee);
+      $("#flexSwitchCountryFlagCombat").prop("checked", this.settingObj.combat.isShowCountryFlag);
+      $("#showCautionBoxCombat").prop("checked", this.settingObj.combat.isShowCautionBox);
+      $("#quantityRefereeCombat").prop("checked", this.settingObj.combat.isShowFiveReferee);
+      $("#flexSwitchCountryFlagMartial").prop("checked", this.settingObj.martial.isShowCountryFlag);
+      $("#quantityRefereeMartial").prop("checked", this.settingObj.martial.isShowFiveReferee);
     })
 
     get(ref(this.db, 'commonSetting')).then((snapshot) => {
@@ -144,14 +146,15 @@ class SettingContainer extends Component {
     update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/setting'), this.settingObj.setting).then(() => {
       get(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
         this.settingObj = snapshot.val();
-        $("input[name=timeRound]").val(this.settingObj.timeRound);
-        $("input[name=timeBreak]").val(this.settingObj.timeBreak);
-        $("input[name=timeExtra]").val(this.settingObj.timeExtra);
-        $("input[name=timeExtraBreak]").val(this.settingObj.timeExtraBreak);
-        $("input[name=tournamentName]").val(this.settingObj.tournamentName);
-        $("#flexSwitchCountryFlag").prop("checked", this.settingObj.isShowCountryFlag);
-        $("#showCautionBox").prop("checked", this.settingObj.isShowCautionBox);
-        $("#quantityReferee").prop("checked", this.settingObj.isShowFiveReferee);
+        $("input[name=timeRound]").val(this.settingObj.combat.timeRound);
+        $("input[name=timeBreak]").val(this.settingObj.combat.timeBreak);
+        $("input[name=timeExtra]").val(this.settingObj.combat.timeExtra);
+        $("input[name=timeExtraBreak]").val(this.settingObj.combat.timeExtraBreak);
+        $("#flexSwitchCountryFlagCombat").prop("checked", this.settingObj.combat.isShowCountryFlag);
+        $("#showCautionBoxCombat").prop("checked", this.settingObj.combat.isShowCautionBox);
+        $("#quantityRefereeCombat").prop("checked", this.settingObj.combat.isShowFiveReferee);
+        $("#flexSwitchCountryFlagMartial").prop("checked", this.settingObj.martial.isShowCountryFlag);
+        $("#quantityRefereeMartial").prop("checked", this.settingObj.martial.isShowFiveReferee);
       })
 
       toast.success("Cài lại thiết đặt thành công!");
@@ -183,9 +186,11 @@ class SettingContainer extends Component {
       "timeExtra": parseInt($("input[name=timeExtra]").val()),
       "timeExtraBreak": parseInt($("input[name=timeExtraBreak]").val()),
       "tournamentName": $("input[name=tournamentName]").val(),
-      "isShowCountryFlag": $("#flexSwitchCountryFlag").prop("checked"),
-      "isShowCautionBox": $("#showCautionBox").prop("checked"),
-      "isShowFiveReferee": $("#quantityReferee").prop("checked"),
+      "combat/isShowCountryFlag": $("#flexSwitchCountryFlagCombat").prop("checked"),
+      "combat/isShowCautionBox": $("#showCautionBoxCombat").prop("checked"),
+      "combat/isShowFiveReferee": $("#quantityRefereeCombat").prop("checked"),
+      "martial/isShowCountryFlag": $("#flexSwitchCountryFlagMartial").prop("checked"),
+      "martial/isShowFiveReferee": $("#quantityRefereeMartial").prop("checked"),
     }
     update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/setting'), this.settingObj).then(() => {
       toast.success("Cập nhập thông tin giải đấu thành công!");
@@ -321,15 +326,17 @@ class SettingContainer extends Component {
                     </div>
                   </div>
 
-                  <div className="row">
+                  <hr className="mt-4 mb-4" />
+                  <div className="row mb-4">
+                    <label className="fw-bold mb-1">Thiết đặt đối kháng</label>
                     <div className="col">
                       <div className="form-check form-switch">
-                        <input className="form-check-input" type="checkbox" id="flexSwitchCountryFlag" />
-                        <label className="form-check-label" htmlFor="flexSwitchCountryFlag">Hiển thị cờ quốc gia</label>
+                        <input className="form-check-input" type="checkbox" id="flexSwitchCountryFlagCombat" />
+                        <label className="form-check-label" htmlFor="flexSwitchCountryFlagCombat">Hiển thị cờ quốc gia</label>
                       </div>
                       <div className="form-check form-switch">
-                        <input className="form-check-input" type="checkbox" id="showCautionBox" />
-                        <label className="form-check-label" htmlFor="showCautionBox">Hiển thị bảng nhắc nhở</label>
+                        <input className="form-check-input" type="checkbox" id="showCautionBoxCombat" />
+                        <label className="form-check-label" htmlFor="showCautionBoxCombat">Hiển thị bảng nhắc nhở</label>
                       </div>
                     </div>
                     <div className="col">
@@ -337,13 +344,11 @@ class SettingContainer extends Component {
                     </div>
                     <div className="col">
                       <div className="form-check form-switch">
-                        <input className="form-check-input" type="checkbox" id="quantityReferee" />
-                        <label className="form-check-label" htmlFor="quantityReferee">Hiển thị 5 giám định</label>
+                        <input className="form-check-input" type="checkbox" id="quantityRefereeCombat" />
+                        <label className="form-check-label" htmlFor="quantityRefereeCombat">Hiển thị 5 giám định</label>
                       </div>
                     </div>
                   </div>
-
-                  <hr className="mt-4 mb-4" />
                   <div className="row">
                     <div className="col">
                       <label>Thời gian hiệp đấu</label>
@@ -371,6 +376,27 @@ class SettingContainer extends Component {
                     </div>
 
                   </div>
+
+                  <hr className="mt-4 mb-4" />
+                  <div className="row mb-4">
+                    <label className="fw-bold mb-1">Thiết đặt thi quyền</label>
+                    <div className="col">
+                      <div className="form-check form-switch">
+                        <input className="form-check-input" type="checkbox" id="flexSwitchCountryFlagMartial" />
+                        <label className="form-check-label" htmlFor="flexSwitchCountryFlagMartial">Hiển thị cờ quốc gia</label>
+                      </div>
+                    </div>
+                    <div className="col">
+
+                    </div>
+                    <div className="col">
+                      <div className="form-check form-switch">
+                        <input className="form-check-input" type="checkbox" id="quantityRefereeMartial" />
+                        <label className="form-check-label" htmlFor="quantityRefereeMartial">Hiển thị 5 giám định</label>
+                      </div>
+                    </div>
+                  </div>
+
                   <button type="button" className="btn btn-danger" style={{ marginRight: '5px' }} onClick={this.resetTournament}><i className="fa-solid fa-arrows-rotate"></i> Cài lại trận đấu </button>
                   <button type="button" className="btn btn-warning" style={{ marginRight: '5px' }} onClick={this.resetSetting}><i className="fa-solid fa-rotate-left"></i> Cài lại thiết đặt </button>
                   <button type="button" className="btn btn-success" style={{ marginRight: '5px' }} onClick={this.updateSetting}><i className="fa-solid fa-floppy-disk"></i> Cập nhập</button>

@@ -104,7 +104,7 @@ class GiamSatThiQuyenContainer extends Component {
 
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
-      if (this.settingObj.isShowArenaB === true) {
+      if (this.settingObj.martial.isShowArenaB === true) {
         this.showChooseArenaNoModal();
       } else {
         this.showMartialInfo();
@@ -131,9 +131,9 @@ class GiamSatThiQuyenContainer extends Component {
     })
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       $('#tournamentName').html(this.settingObj.tournamentName);
-      this.isShowFiveReferee = this.settingObj.isShowFiveReferee;
+      this.isShowFiveReferee = this.settingObj.martial.isShowFiveReferee;
       this.setState({ data: this.isShowFiveReferee });
-      if (this.settingObj.isShowFiveReferee === true) {
+      if (this.settingObj.martial.isShowFiveReferee === true) {
         this.numReferee = 5;
         $(".spec-score").width("4.1%");
       }
@@ -210,7 +210,7 @@ class GiamSatThiQuyenContainer extends Component {
     $("#match-martial-team").html("");
     let divFlag = "";
     if (this.teamMartial.fighters[0].fighter.country !== "") {
-      divFlag = this.settingObj.isShowCountryFlag === true ? "<div class='countryFlagHD'><img class='flagImageHD' src='" + require('../assets/flag/' + this.teamMartial.fighters[0].fighter.country + '.jpg') + "'></div>" : "";
+      divFlag = this.settingObj.martial.isShowCountryFlag === true ? "<div class='countryFlagHD'><img class='flagImageHD' src='" + require('../assets/flag/' + this.teamMartial.fighters[0].fighter.country + '.jpg') + "'></div>" : "";
     }
     $("#match-martial-code").html(divFlag + "<div class='style-hd-fighter-code'><span class='info-text'>" + this.teamMartial.fighters[0].fighter.code + "</span></div>");
     for (let i = 0; i < this.teamMartial.fighters.length; i++) {

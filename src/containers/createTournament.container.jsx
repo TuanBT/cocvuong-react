@@ -34,7 +34,7 @@ class CreateTournamentContainer extends Component {
     this.martialArenaNoIndex = 0;
     this.tournamentObj;
 
-    this.settingConst = { "setting": { "timeRound": 90, "timeBreak": 30, "timeExtra": 60, "timeExtraBreak": 15, "tournamentName": "Cóc Vương", "isShowCountryFlag": false, "isShowFiveReferee": false, "isShowCautionBox": false, "isShowArenaB": false, "password": 1 } };
+    // this.settingConst = { "setting": { "timeRound": 90, "timeBreak": 30, "timeExtra": 60, "timeExtraBreak": 15, "tournamentName": "Cóc Vương", "isShowCountryFlag": false, "isShowFiveReferee": false, "isShowCautionBox": false, "isShowArenaB": false, "password": 1 } };
     this.matchObj = { "match": { "no": 1, "type": "", "category": "", "win": "" }, "fighters": { "redFighter": { "result": "", "name": "Đỏ", "code": "", "caution": { "remind": 0, "warning": 0, "medical": 0, "fall": 0, "bound": 0 }, "score": 0 }, "blueFighter": { "result": "", "name": "Xanh", "code": "", "caution": { "remind": 0, "warning": 0, "medical": 0, "fall": 0, "bound": 0 }, "score": 0 } } }
     this.combatConst = { "combatArena": [{ "combatArenaName": "Sân A", "lastMatch": { "no": 1 }, "referee": [{ "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }] }, { "combatArenaName": "Sân B", "lastMatch": { "no": 1 }, "referee": [{ "blueScore": 0, "redScore": 0 }, { "blueScore": 1, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }, { "blueScore": 0, "redScore": 0 }] }], "combat": [] };
     this.matchMartialObj = { "match": { "name": "" }, "team": [] };
@@ -104,18 +104,18 @@ class CreateTournamentContainer extends Component {
       this.setState({ data: this.tournaments });
     })
 
-    get(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
-      this.settingObj = snapshot.val();
-      $("input[name=timeRound]").val(this.settingObj.timeRound);
-      $("input[name=timeBreak]").val(this.settingObj.timeBreak);
-      $("input[name=timeExtra]").val(this.settingObj.timeExtra);
-      $("input[name=timeExtraBreak]").val(this.settingObj.timeExtraBreak);
-      $("input[name=tournamentName]").val(this.settingObj.tournamentName);
-      $("#flexSwitchCountryFlag").prop("checked", this.settingObj.isShowCountryFlag);
-      $("#showCautionBox").prop("checked", this.settingObj.isShowCautionBox);
-      $("#showArenaB").prop("checked", this.settingObj.isShowArenaB);
-      $("#quantityReferee").prop("checked", this.settingObj.isShowFiveReferee);
-    })
+    // get(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
+    //   this.settingObj = snapshot.val();
+    //   $("input[name=timeRound]").val(this.settingObj.timeRound);
+    //   $("input[name=timeBreak]").val(this.settingObj.timeBreak);
+    //   $("input[name=timeExtra]").val(this.settingObj.timeExtra);
+    //   $("input[name=timeExtraBreak]").val(this.settingObj.timeExtraBreak);
+    //   $("input[name=tournamentName]").val(this.settingObj.tournamentName);
+    //   $("#flexSwitchCountryFlag").prop("checked", this.settingObj.isShowCountryFlag);
+    //   $("#showCautionBox").prop("checked", this.settingObj.isShowCautionBox);
+    //   $("#showArenaB").prop("checked", this.settingObj.isShowArenaB);
+    //   $("#quantityReferee").prop("checked", this.settingObj.isShowFiveReferee);
+    // })
 
     get(ref(this.db, 'commonSetting')).then((snapshot) => {
       this.settingObj = snapshot.val();
