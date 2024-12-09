@@ -23,7 +23,7 @@ class SettingContainer extends Component {
 
     this.tournamentNoIndex = 0;
 
-    this.settingConst = { "setting": { "combat": { "isShowArenaB": true, "isShowCautionBox": true, "isShowCountryFlag": true, "isShowFiveReferee": false, "timeBreak": 60, "timeExtra": 120, "timeExtraBreak": 60, "timeRound": 120 }, "isShowArenaB": true, "isShowCautionBox": true, "isShowCountryFlag": false, "isShowFiveReferee": false, "martial": { "isShowArenaB": true, "isShowCountryFlag": true, "isShowFiveReferee": false }, "timeBreak": 60, "timeExtra": 120, "timeExtraBreak": 60, "timeRound": 120, "tournamentName": "Cóc Vương" } };
+    this.settingConst = { "setting": { "combat": { "isShowArenaB": true, "isShowCautionBox": true, "isShowCountryFlag": true, "isShowFiveReferee": false, "timeBreak": 60, "timeExtra": 120, "timeExtraBreak": 60, "timeRound": 120 }, "martial": { "isShowArenaB": true, "isShowCountryFlag": true, "isShowFiveReferee": false }, "tournamentName": "Cóc Vương" } };
     this.commonSettingConst = { "passwordSetting": 1, "passwordGiamSat": 1, "passwordGiamDinh": 1 };
   }
 
@@ -181,10 +181,10 @@ class SettingContainer extends Component {
   updateSetting = () => {
     console.log("updateSetting Start");
     this.settingObj = {
-      "timeRound": parseInt($("input[name=timeRound]").val()),
-      "timeBreak": parseInt($("input[name=timeBreak]").val()),
-      "timeExtra": parseInt($("input[name=timeExtra]").val()),
-      "timeExtraBreak": parseInt($("input[name=timeExtraBreak]").val()),
+      "combat/timeRound": parseInt($("input[name=timeRound]").val()),
+      "combat/timeBreak": parseInt($("input[name=timeBreak]").val()),
+      "combat/timeExtra": parseInt($("input[name=timeExtra]").val()),
+      "combat/timeExtraBreak": parseInt($("input[name=timeExtraBreak]").val()),
       "tournamentName": $("input[name=tournamentName]").val(),
       "combat/isShowCountryFlag": $("#flexSwitchCountryFlagCombat").prop("checked"),
       "combat/isShowCautionBox": $("#showCautionBoxCombat").prop("checked"),
