@@ -807,9 +807,14 @@ html {
     z-index: 2;
 }
 
-.btn-decrement .info-text {
+.btn-decrement:hover::after {
+    opacity: 1;
+    content: '-';
     position: relative;
-    z-index: 3;
+    float: left;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .btn-decrement-red {
@@ -854,6 +859,16 @@ html {
     border-left: 0px;
     position: relative;
     z-index: 2;
+}
+
+.btn-increment:hover::after {
+    opacity: 1;
+    content: '+';
+    position: relative;
+    float: left;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .btn-increment-red {
