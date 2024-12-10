@@ -462,10 +462,10 @@ html {
 .addition {
     position: absolute;
     width: 100%;
-    height: 100%;
+    height: 80%;
     top: 0;
     cursor: pointer;
-    z-index: 2;
+    z-index: 1;
     -webkit-transition: all 0.1s ease-in-out;
     -moz-transition: all 0.1s ease-in-out;
     -o-transition: all 0.1s ease-in-out;
@@ -484,10 +484,10 @@ html {
 .subtraction {
     position: absolute;
     width: 100%;
-    height: 20%;
+    height: 9%;
     top: 80%;
     cursor: pointer;
-    z-index: 2;
+    z-index: 1;
     -webkit-transition: all 0.1s ease-in-out;
     -moz-transition: all 0.1s ease-in-out;
     -o-transition: all 0.1s ease-in-out;
@@ -790,20 +790,20 @@ html {
 }
 
 .btn-decrement {
-    width: 50%;
-    height: 50%;
+    width: 15%;
+    height: 100%;
     font-size: 1vw;
     float: left;
     cursor: pointer;
-    border-radius: 0px 0px 0px 5px;
+    border-radius: 0px 0px 0px 0px;
     box-sizing: border-box;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
     border: 1px solid rgb(255, 255, 255);
+    border-left: 0px;
     border-right: 0px;
+    position: relative;
     z-index: 2;
-    position: absolute;
-    top: 50%;
 }
 
 .btn-decrement .info-text {
@@ -814,96 +814,87 @@ html {
 .btn-decrement-red {
     border-color: white;
     color: white;
-    /* background: red; */
-    left: 0;
+    background: red;
 }
 
 .btn-decrement-red:hover {
-    background: rgba(0, 0, 0, 0.1);
+    background-color: #bb2d3b;
 }
 
 .btn-decrement-red:active {
-    background: rgba(0, 0, 0, 0.3);
+    background-color: #b02a37;
 }
 
 .btn-decrement-blue {
     border-color: white;
     color: white;
-    /* background: blue; */
-    left: 0;
+    background: blue;
 }
 
 .btn-decrement-blue:hover {
-    background: rgba(0, 0, 0, 0.1);
+    background-color: #0b5ed7;
 }
 
 .btn-decrement-blue:active {
-    background: rgba(0, 0, 0, 0.3);
+    background-color: #0a58ca;
 }
 
 .btn-increment {
-    width: 50%;
+    width: 15%;
     font-size: 1vw;
     float: left;
-    height: 50%;
+    height: 100%;
     cursor: pointer;
-    border-radius: 0px 0px 5px 0px;
+    border-radius: 0px 5px 5px 0px;
     box-sizing: border-box;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
     border: 1px solid rgb(255, 255, 255);
     border-left: 0px;
+    position: relative;
     z-index: 2;
-    position: absolute;
-    top: 50%;
 }
 
 .btn-increment-red {
     border-color: white;
     color: white;
-    /* background: red; */
-    right: 0;
+    background: red;
 }
 
 .btn-increment-red:hover {
-    background: rgba(0, 0, 0, 0.1)
+    background-color: #bb2d3b;
 }
 
 .btn-increment-red:active {
-    background: rgba(0, 0, 0, 0.3)
+    background-color: #b02a37;
 }
 
 .btn-increment-blue {
     border-color: white;
     color: white;
-    /* background: blue; */
-    right: 0;
+    background: blue;
 }
 
 .btn-increment-blue:hover {
-    background: rgba(0, 0, 0, 0.1)
+    background-color: #0b5ed7;
 }
 
 .btn-increment-blue:active {
-    background: rgba(0, 0, 0, 0.3)
+    background-color: #0a58ca;
 }
 
 .text-cautions-number {
-    width: 100%;
-    height: 50%;
-    font-size: 1.5vw;
+    width: 20%;
+    height: 100%;
+    font-size: 1vw;
     font-weight: bold;
     float: left;
-    border-radius: 0px 0px 5px 5px;
+    border-radius: 0px 0px 0px 0px;
     box-sizing: border-box;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
     border-top: 1px solid rgb(255, 255, 255);
     border-bottom: 1px solid rgb(255, 255, 255);
-    position: absolute;
-    top: 50%;
-    z-index: 1;
-    /* left: 47%; */
 }
 
 .text-cautions-number-red {
@@ -1261,45 +1252,35 @@ textarea {
     text-align: left;
 }
 
-.red-caution.cautions-information{
-    right: 1%;
-    float: right;
-}
-
-.blue-caution.cautions-information{
-    left: 1%;
-    float: left;
-}
-
 .cautions-information {
     position: absolute;
-    height: 100%;
-    width: 15%;
+    height: 10%;
+    width: 100%;
+    bottom: 1%;
 }
 
 .cautions-information .cautions-box {
-    position: relative;
-    width: 100%;
-    height: 20%;
+    width: 22.5%;
+    height: 100%;
+    float: left;
 }
 
 .cautions-information .line-break-caution {
-    position: relative;
-    height: 4%;
-    width: 100%;
+    float: left;
+    height: 100%;
+    width: 2%;
 }
 
 .cautions-label {
-    width: 100%;
-    height: 50%;
-    font-size: 1vw;
+    width: 50%;
+    height: 100%;
+    font-size: 0.8vw;
     float: left;
-    border-radius: 5px 5px 0 0px;
+    border-radius: 5px 0px 0 5px;
     box-sizing: border-box;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
     border: 1px solid rgb(255, 255, 255);
-    border-bottom: 0px;
 }
 
 .cautions-label-red {
