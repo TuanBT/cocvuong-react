@@ -557,6 +557,7 @@ html {
     font-size: 3vh;
     line-height: normal;
     text-align: center;
+    font-weight: bold;
 }
 
 .referee-score-area {
@@ -790,7 +791,7 @@ html {
 }
 
 .btn-decrement {
-    width: 15%;
+    width: 25%;
     height: 100%;
     font-size: 1vw;
     float: left;
@@ -814,33 +815,33 @@ html {
 .btn-decrement-red {
     border-color: white;
     color: white;
-    background: red;
+    /* background: red; */
 }
 
 .btn-decrement-red:hover {
-    background-color: #bb2d3b;
+    background: rgba(0, 0, 0, 0.1);
 }
 
 .btn-decrement-red:active {
-    background-color: #b02a37;
+    background: rgba(0, 0, 0, 0.3);
 }
 
 .btn-decrement-blue {
     border-color: white;
     color: white;
-    background: blue;
+    /* background: blue; */
 }
 
 .btn-decrement-blue:hover {
-    background-color: #0b5ed7;
+    background: rgba(0, 0, 0, 0.1);
 }
 
 .btn-decrement-blue:active {
-    background-color: #0a58ca;
+    background: rgba(0, 0, 0, 0.3);
 }
 
 .btn-increment {
-    width: 15%;
+    width: 25%;
     font-size: 1vw;
     float: left;
     height: 100%;
@@ -858,43 +859,46 @@ html {
 .btn-increment-red {
     border-color: white;
     color: white;
-    background: red;
+    /* background: red; */
 }
 
 .btn-increment-red:hover {
-    background-color: #bb2d3b;
+    background: rgba(0, 0, 0, 0.1);
 }
 
 .btn-increment-red:active {
-    background-color: #b02a37;
+    background: rgba(0, 0, 0, 0.3);
 }
 
 .btn-increment-blue {
     border-color: white;
     color: white;
-    background: blue;
+    /* background: blue; */
 }
 
 .btn-increment-blue:hover {
-    background-color: #0b5ed7;
+    background: rgba(0, 0, 0, 0.1);
 }
 
 .btn-increment-blue:active {
-    background-color: #0a58ca;
+    background: rgba(0, 0, 0, 0.3);
 }
 
 .text-cautions-number {
-    width: 20%;
+    width: 50%;
     height: 100%;
-    font-size: 1vw;
+    font-size: 1.3vw;
     font-weight: bold;
     float: left;
-    border-radius: 0px 0px 0px 0px;
+    border-radius: 0px 5px 5px 0px;
     box-sizing: border-box;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
     border-top: 1px solid rgb(255, 255, 255);
     border-bottom: 1px solid rgb(255, 255, 255);
+    position: absolute;
+    z-index: 1;
+    left: 50%;
 }
 
 .text-cautions-number-red {
@@ -1263,6 +1267,8 @@ textarea {
     width: 22.5%;
     height: 100%;
     float: left;
+    position: relative;
+    border-radius: 0px 5px 5px 0px;
 }
 
 .cautions-information .line-break-caution {
@@ -1274,13 +1280,14 @@ textarea {
 .cautions-label {
     width: 50%;
     height: 100%;
-    font-size: 0.8vw;
+    font-size: 1vw;
     float: left;
     border-radius: 5px 0px 0 5px;
     box-sizing: border-box;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
     border: 1px solid rgb(255, 255, 255);
+    border-right: 0px;
 }
 
 .cautions-label-red {

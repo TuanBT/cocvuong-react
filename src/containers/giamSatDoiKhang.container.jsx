@@ -953,15 +953,15 @@ class GiamSatDoiKhangContainer extends Component {
     const parentDiv = document.getElementsByClassName('referee-score-area-top')[0];
     const span = document.getElementById('tournamentName');
     let fontSize = 10; // Start with a small font size in px
-  
+
     span.style.fontSize = fontSize + 'px';
-  
+
     // Increase the font size until the span fits within the parent div
     while (span.offsetHeight < parentDiv.offsetHeight && fontSize < 100) { // Set a reasonable maximum font size
       fontSize++;
       span.style.fontSize = fontSize + 'px';
     }
-  
+
     // Reduce the font size if it overflows
     while (span.offsetHeight > parentDiv.offsetHeight && fontSize > 0) {
       fontSize--;
@@ -1124,38 +1124,58 @@ class GiamSatDoiKhangContainer extends Component {
               <div className="red-caution cautions-information" style={{ display: 'none' }}>
                 <div className="line-break-caution"></div>
                 <div className="cautions-box">
-                  <div className="cautions-label cautions-label-red"><span className="info-text">&nbsp;<i className="fas fa-exclamation-circle"></i>&nbsp;Nhắc nhở&nbsp;</span></div>
-                  <div className="btn-decrement btn-decrement-red" onClick={this.remindRedDecrease}><span className="info-text"><span>-</span></span></div>
+                  <div className="cautions-label cautions-label-red"><span className="info-text">Nhắc nhở</span></div>
+                  <div className="btn-decrement btn-decrement-red" onClick={this.remindRedDecrease}>
+                    {/* <span className="info-text"><span>-</span></span> */}
+                  </div>
                   <div className="text-cautions-number text-cautions-number-red"><span className="info-text"><span id="remind-red">0</span></span></div>
-                  <div className="btn-increment btn-increment-red" onClick={this.remindRedIncrease}><span className="info-text"><span>+</span></span></div>
+                  <div className="btn-increment btn-increment-red" onClick={this.remindRedIncrease}>
+                    {/* <span className="info-text"><span>+</span></span> */}
+                  </div>
                 </div>
                 <div className="line-break-caution"></div>
                 <div className="cautions-box">
-                  <div className="cautions-label cautions-label-red"><span className="info-text">&nbsp;<i className="fas fa-exclamation-triangle"></i>&nbsp;Cảnh cáo&nbsp;</span></div>
-                  <div className="btn-decrement btn-decrement-red" onClick={this.warningRedDecrease}><span className="info-text"><span>-</span></span></div>
+                  <div className="cautions-label cautions-label-red"><span className="info-text">Cảnh cáo</span></div>
+                  <div className="btn-decrement btn-decrement-red" onClick={this.warningRedDecrease}>
+                    {/* <span className="info-text"><span>-</span></span> */}
+                  </div>
                   <div className="text-cautions-number text-cautions-number-red"><span className="info-text"><span id="warning-red">0</span></span></div>
-                  <div className="btn-increment btn-increment-red" onClick={this.warningRedIncrease}><span className="info-text"><span>+</span></span></div>
+                  <div className="btn-increment btn-increment-red" onClick={this.warningRedIncrease}>
+                    {/* <span className="info-text"><span>+</span></span> */}
+                  </div>
                 </div>
                 <div className="line-break-caution hidden"></div>
                 <div className="cautions-box hidden">
-                  <div className="cautions-label cautions-label-red"><span className="info-text">&nbsp;<i className="fas fa-briefcase-medical"></i>&nbsp;Y Tế&nbsp;</span></div>
-                  <div className="btn-decrement btn-decrement-red" onClick={this.medicalRedDecrease}><span className="info-text"><span>-</span></span></div>
+                  <div className="cautions-label cautions-label-red"><span className="info-text">Y Tế</span></div>
+                  <div className="btn-decrement btn-decrement-red" onClick={this.medicalRedDecrease}>
+                    {/* <span className="info-text"><span>-</span></span> */}
+                  </div>
                   <div className="text-cautions-number text-cautions-number-red"><span className="info-text"><span id="medical-red">0</span></span></div>
-                  <div className="btn-increment btn-increment-red" onClick={this.medicalRedIncrease}><span className="info-text"><span>+</span></span></div>
+                  <div className="btn-increment btn-increment-red" onClick={this.medicalRedIncrease}>
+                    {/* <span className="info-text"><span>+</span></span> */}
+                  </div>
                 </div>
                 <div className="line-break-caution"></div>
                 <div className="cautions-box">
-                  <div className="cautions-label cautions-label-red"><span className="info-text">&nbsp;<i className="fas fa-slash"></i>&nbsp;Ngã&nbsp;</span></div>
-                  <div className="btn-decrement btn-decrement-red" onClick={this.fallRedDecrease}><span className="info-text"><span>-</span></span></div>
+                  <div className="cautions-label cautions-label-red"><span className="info-text">Ngã</span></div>
+                  <div className="btn-decrement btn-decrement-red" onClick={this.fallRedDecrease}>
+                    {/* <span className="info-text"><span>-</span></span> */}
+                  </div>
                   <div className="text-cautions-number text-cautions-number-red"><span className="info-text"><span id="fall-red">0</span></span></div>
-                  <div className="btn-increment btn-increment-red" onClick={this.fallRedIncrease}><span className="info-text"><span>+</span></span></div>
+                  <div className="btn-increment btn-increment-red" onClick={this.fallRedIncrease}>
+                    {/* <span className="info-text"><span>+</span></span> */}
+                  </div>
                 </div>
                 <div className="line-break-caution"></div>
                 <div className="cautions-box">
-                  <div className="cautions-label cautions-label-red"><span className="info-text">&nbsp;<i className="fas fa-grip-lines-vertical"></i>&nbsp;Biên&nbsp;</span></div>
-                  <div className="btn-decrement btn-decrement-red" onClick={this.boundRedDecrease}><span className="info-text"><span>-</span></span></div>
+                  <div className="cautions-label cautions-label-red"><span className="info-text">Biên</span></div>
+                  <div className="btn-decrement btn-decrement-red" onClick={this.boundRedDecrease}>
+                    {/* <span className="info-text"><span>-</span></span> */}
+                  </div>
                   <div className="text-cautions-number text-cautions-number-red"><span className="info-text"><span id="bound-red">0</span></span></div>
-                  <div className="btn-increment btn-increment-red" onClick={this.boundRedIncrease}><span className="info-text"><span>+</span></span></div>
+                  <div className="btn-increment btn-increment-red" onClick={this.boundRedIncrease}>
+                    {/* <span className="info-text"><span>+</span></span> */}
+                  </div>
                 </div>
                 <div className="line-break-caution"></div>
               </div>
@@ -1282,38 +1302,58 @@ class GiamSatDoiKhangContainer extends Component {
               <div className="blue-caution cautions-information" style={{ display: 'none' }}>
                 <div className="line-break-caution"></div>
                 <div className="cautions-box">
-                  <div className="cautions-label cautions-label-blue"><span className="info-text">&nbsp;<i className="fas fa-exclamation-circle"></i>&nbsp;Nhắc nhở&nbsp;</span></div>
-                  <div className="btn-decrement btn-decrement-blue" onClick={this.remindBlueDecrease}><span className="info-text"><span>-</span></span></div>
+                  <div className="cautions-label cautions-label-blue"><span className="info-text">Nhắc nhở</span></div>
+                  <div className="btn-decrement btn-decrement-blue" onClick={this.remindBlueDecrease}>
+                    {/* <span className="info-text"><span>-</span></span> */}
+                  </div>
                   <div className="text-cautions-number text-cautions-number-blue"><span className="info-text"><span id="remind-blue">0</span></span></div>
-                  <div className="btn-increment btn-increment-blue" onClick={this.remindBlueIncrease}><span className="info-text"><span>+</span></span></div>
+                  <div className="btn-increment btn-increment-blue" onClick={this.remindBlueIncrease}>
+                    {/* <span className="info-text"><span>+</span></span> */}
+                  </div>
                 </div>
                 <div className="line-break-caution"></div>
                 <div className="cautions-box">
-                  <div className="cautions-label cautions-label-blue"><span className="info-text">&nbsp;<i className="fas fa-exclamation-triangle"></i>&nbsp;Cảnh cáo&nbsp;</span></div>
-                  <div className="btn-decrement btn-decrement-blue" onClick={this.warningBlueDecrease}><span className="info-text"><span>-</span></span></div>
+                  <div className="cautions-label cautions-label-blue"><span className="info-text">Cảnh cáo</span></div>
+                  <div className="btn-decrement btn-decrement-blue" onClick={this.warningBlueDecrease}>
+                    {/* <span className="info-text"><span>-</span></span> */}
+                  </div>
                   <div className="text-cautions-number text-cautions-number-blue"><span className="info-text"><span id="warning-blue">0</span></span></div>
-                  <div className="btn-increment btn-increment-blue" onClick={this.warningBlueIncrease}><span className="info-text"><span>+</span></span></div>
+                  <div className="btn-increment btn-increment-blue" onClick={this.warningBlueIncrease}>
+                    {/* <span className="info-text"><span>+</span></span> */}
+                  </div>
                 </div>
                 <div className="line-break-caution hidden"></div>
                 <div className="cautions-box hidden">
-                  <div className="cautions-label cautions-label-blue"><span className="info-text">&nbsp;<i className="fas fa-briefcase-medical"></i>&nbsp;Y Tế&nbsp;</span></div>
-                  <div className="btn-decrement btn-decrement-blue" onClick={this.medicalBlueDecrease}><span className="info-text"><span>-</span></span></div>
+                  <div className="cautions-label cautions-label-blue"><span className="info-text">Y Tế</span></div>
+                  <div className="btn-decrement btn-decrement-blue" onClick={this.medicalBlueDecrease}>
+                    {/* <span className="info-text"><span>-</span></span> */}
+                  </div>
                   <div className="text-cautions-number text-cautions-number-blue"><span className="info-text"><span id="medical-blue">0</span></span></div>
-                  <div className="btn-increment btn-increment-blue" onClick={this.medicalBlueIncrease}><span className="info-text"><span>+</span></span></div>
+                  <div className="btn-increment btn-increment-blue" onClick={this.medicalBlueIncrease}>
+                    {/* <span className="info-text"><span>+</span></span> */}
+                  </div>
                 </div>
                 <div className="line-break-caution"></div>
                 <div className="cautions-box">
-                  <div className="cautions-label cautions-label-blue"><span className="info-text">&nbsp;<i className="fas fa-slash"></i>&nbsp;Ngã&nbsp;</span></div>
-                  <div className="btn-decrement btn-decrement-blue" onClick={this.fallBlueDecrease}><span className="info-text"><span>-</span></span></div>
+                  <div className="cautions-label cautions-label-blue"><span className="info-text">Ngã</span></div>
+                  <div className="btn-decrement btn-decrement-blue" onClick={this.fallBlueDecrease}>
+                    {/* <span className="info-text"><span>-</span></span> */}
+                  </div>
                   <div className="text-cautions-number text-cautions-number-blue"><span className="info-text"><span id="fall-blue">0</span></span></div>
-                  <div className="btn-increment btn-increment-blue" onClick={this.fallBlueIncrease}><span className="info-text"><span>+</span></span></div>
+                  <div className="btn-increment btn-increment-blue" onClick={this.fallBlueIncrease}>
+                    {/* <span className="info-text"><span>+</span></span> */}
+                  </div>
                 </div>
                 <div className="line-break-caution"></div>
                 <div className="cautions-box">
-                  <div className="cautions-label cautions-label-blue"><span className="info-text">&nbsp;<i className="fas fa-grip-lines-vertical"></i>&nbsp;Biên&nbsp;</span></div>
-                  <div className="btn-decrement btn-decrement-blue" onClick={this.boundBlueDecrease}><span className="info-text"><span>-</span></span></div>
+                  <div className="cautions-label cautions-label-blue"><span className="info-text">Biên</span></div>
+                  <div className="btn-decrement btn-decrement-blue" onClick={this.boundBlueDecrease}>
+                    {/* <span className="info-text"><span>-</span></span> */}
+                  </div>
                   <div className="text-cautions-number text-cautions-number-blue"><span className="info-text"><span id="bound-blue">0</span></span></div>
-                  <div className="btn-increment btn-increment-blue" onClick={this.boundBlueIncrease}><span className="info-text"><span>+</span></span></div>
+                  <div className="btn-increment btn-increment-blue" onClick={this.boundBlueIncrease}>
+                    {/* <span className="info-text"><span>+</span></span> */}
+                  </div>
                 </div>
                 <div className="line-break-caution"></div>
               </div>
