@@ -71,6 +71,7 @@ class GiamSatThiQuyenContainer extends Component {
   componentDidMount() {
     document.addEventListener("keydown", this._handleKeyDown);
     this.showPasswordModal();
+    window.onresize = this.resizeTextToFit;
   }
 
   verifyPassword = () => {
@@ -131,6 +132,7 @@ class GiamSatThiQuyenContainer extends Component {
     })
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       $('#tournamentName').html(this.settingObj.tournamentName);
+      this.resizeTextToFit();
       this.isShowFiveReferee = this.settingObj.martial.isShowFiveReferee;
       this.setState({ data: this.isShowFiveReferee });
       if (this.settingObj.martial.isShowFiveReferee === true) {
@@ -374,6 +376,26 @@ class GiamSatThiQuyenContainer extends Component {
     } else {
       let oldValue = $("#txtPassword").val();
       $("#txtPassword").val(oldValue + value);
+    }
+  }
+
+  resizeTextToFit = () => {
+    const parentDiv = document.getElementsByClassName('style-hd-info')[0];
+    const span = document.getElementById('tournamentName');
+    let fontSize = 10; // Start with a small font size in px
+
+    span.style.fontSize = fontSize + 'px';
+
+    // Increase the font size until the span fits within the parent div
+    while (span.offsetHeight < parentDiv.offsetHeight && fontSize < 100) { // Set a reasonable maximum font size
+      fontSize++;
+      span.style.fontSize = fontSize + 'px';
+    }
+
+    // Reduce the font size if it overflows
+    while (span.offsetHeight > parentDiv.offsetHeight && fontSize > 0) {
+      fontSize--;
+      span.style.fontSize = fontSize + 'px';
     }
   }
 

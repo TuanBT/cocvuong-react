@@ -62,6 +62,7 @@ class GiamSatDoiKhangContainer extends Component {
   componentDidMount() {
     document.addEventListener("keydown", this._handleKeyDown);
     this.showPasswordModal();
+    window.onresize = this.resizeTextToFit;
   }
 
   verifyPassword = () => {
@@ -119,6 +120,7 @@ class GiamSatDoiKhangContainer extends Component {
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       $('#tournamentName').html(this.settingObj.tournamentName);
+      this.resizeTextToFit();
       this.settingObj = snapshot.val();
       this.timerCoundown = this.settingObj.combat.timeRound;
       this.timeBreak = this.settingObj.combat.timeBreak;
@@ -947,6 +949,26 @@ class GiamSatDoiKhangContainer extends Component {
     }
   }
 
+  resizeTextToFit = () => {
+    const parentDiv = document.getElementsByClassName('referee-score-area-top')[0];
+    const span = document.getElementById('tournamentName');
+    let fontSize = 10; // Start with a small font size in px
+  
+    span.style.fontSize = fontSize + 'px';
+  
+    // Increase the font size until the span fits within the parent div
+    while (span.offsetHeight < parentDiv.offsetHeight && fontSize < 100) { // Set a reasonable maximum font size
+      fontSize++;
+      span.style.fontSize = fontSize + 'px';
+    }
+  
+    // Reduce the font size if it overflows
+    while (span.offsetHeight > parentDiv.offsetHeight && fontSize > 0) {
+      fontSize--;
+      span.style.fontSize = fontSize + 'px';
+    }
+  }
+
   showPasswordModal = () => {
     $('#passwordModal').removeClass('modal display-none').addClass('modal display-block');
   };
@@ -988,7 +1010,6 @@ class GiamSatDoiKhangContainer extends Component {
               <div className="referee-score-area-top">
                 <span className="info-text">
                   <span id="tournamentName">
-                    Cóc Vương
                   </span>
                   <span id="internet-status">
                     - Mất kết nối Internet...
@@ -1013,7 +1034,7 @@ class GiamSatDoiKhangContainer extends Component {
                 </div>
                 <div className="fighter-code red">
                   <span className="info-text-fighter-code-red">
-                    <span id="red-code"></span>
+                    <span className='info-text' id="red-code"></span>
                   </span>
                 </div>
               </div>
@@ -1089,7 +1110,7 @@ class GiamSatDoiKhangContainer extends Component {
                 </div>
                 <div className="fighter-code blue">
                   <span className="info-text-fighter-code-blue">
-                    <span id="blue-code"></span>
+                    <span className='info-text' id="blue-code"></span>
                   </span>
                 </div>
               </div>
@@ -1115,8 +1136,8 @@ class GiamSatDoiKhangContainer extends Component {
                   <div className="text-cautions-number text-cautions-number-red"><span className="info-text"><span id="warning-red">0</span></span></div>
                   <div className="btn-increment btn-increment-red" onClick={this.warningRedIncrease}><span className="info-text"><span>+</span></span></div>
                 </div>
-                <div className="line-break-caution"></div>
-                <div className="cautions-box">
+                <div className="line-break-caution hidden"></div>
+                <div className="cautions-box hidden">
                   <div className="cautions-label cautions-label-red"><span className="info-text">&nbsp;<i className="fas fa-briefcase-medical"></i>&nbsp;Y Tế&nbsp;</span></div>
                   <div className="btn-decrement btn-decrement-red" onClick={this.medicalRedDecrease}><span className="info-text"><span>-</span></span></div>
                   <div className="text-cautions-number text-cautions-number-red"><span className="info-text"><span id="medical-red">0</span></span></div>
@@ -1273,8 +1294,8 @@ class GiamSatDoiKhangContainer extends Component {
                   <div className="text-cautions-number text-cautions-number-blue"><span className="info-text"><span id="warning-blue">0</span></span></div>
                   <div className="btn-increment btn-increment-blue" onClick={this.warningBlueIncrease}><span className="info-text"><span>+</span></span></div>
                 </div>
-                <div className="line-break-caution"></div>
-                <div className="cautions-box">
+                <div className="line-break-caution hidden"></div>
+                <div className="cautions-box hidden">
                   <div className="cautions-label cautions-label-blue"><span className="info-text">&nbsp;<i className="fas fa-briefcase-medical"></i>&nbsp;Y Tế&nbsp;</span></div>
                   <div className="btn-decrement btn-decrement-blue" onClick={this.medicalBlueDecrease}><span className="info-text"><span>-</span></span></div>
                   <div className="text-cautions-number text-cautions-number-blue"><span className="info-text"><span id="medical-blue">0</span></span></div>

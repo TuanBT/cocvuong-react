@@ -3,18 +3,18 @@ import { getDatabase } from "firebase/database";
 
 function Firebase() {
   //Dev
-  // const firebaseConfig = {
-  //   apiKey: "AIzaSyDN_BFuEJOqHqNzQN1w1v-6hWRDIeNgf9I",
-  //   authDomain: "fvc-score.firebaseapp.com",
-  //   databaseURL: "https://fvc-score.firebaseio.com",
-  //   projectId: "fvc-score",
-  //   storageBucket: "fvc-score.appspot.com",
-  //   messagingSenderId: "1052570611922",
-  //   appId: "1:1052570611922:web:d80a668f5fe7e251d5bd0b"
-  // };
+  const firebaseConfigDev = {
+    apiKey: "AIzaSyDN_BFuEJOqHqNzQN1w1v-6hWRDIeNgf9I",
+    authDomain: "fvc-score.firebaseapp.com",
+    databaseURL: "https://fvc-score.firebaseio.com",
+    projectId: "fvc-score",
+    storageBucket: "fvc-score.appspot.com",
+    messagingSenderId: "1052570611922",
+    appId: "1:1052570611922:web:d80a668f5fe7e251d5bd0b"
+  };
 
   //Prod
-  const firebaseConfig = {
+  const firebaseConfigProd = {
     apiKey: "AIzaSyAYhgRYFeTWBjYZhQ0qlFsx16XAq4xae24-6hWRDIeNgf9I",
     authDomain: "cocvuong-se60824.firebaseapp.com",
     databaseURL: "https://cocvuong-se60824-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -25,7 +25,8 @@ function Firebase() {
   };
 
   // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
+  // const app = initializeApp(firebaseConfigDev);
+  const app = initializeApp(firebaseConfigProd);
   // Initialize Realtime Database and get a reference to the service
   return getDatabase(app);
 }
