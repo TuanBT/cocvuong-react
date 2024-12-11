@@ -462,10 +462,10 @@ html {
 .addition {
     position: absolute;
     width: 100%;
-    height: 100%;
+    height: 80%;
     top: 0;
     cursor: pointer;
-    z-index: 2;
+    z-index: 1;
     -webkit-transition: all 0.1s ease-in-out;
     -moz-transition: all 0.1s ease-in-out;
     -o-transition: all 0.1s ease-in-out;
@@ -484,10 +484,10 @@ html {
 .subtraction {
     position: absolute;
     width: 100%;
-    height: 20%;
+    height: 9%;
     top: 80%;
     cursor: pointer;
-    z-index: 2;
+    z-index: 1;
     -webkit-transition: all 0.1s ease-in-out;
     -moz-transition: all 0.1s ease-in-out;
     -o-transition: all 0.1s ease-in-out;
@@ -557,6 +557,7 @@ html {
     font-size: 3vh;
     line-height: normal;
     text-align: center;
+    font-weight: bold;
 }
 
 .referee-score-area {
@@ -791,31 +792,36 @@ html {
 
 .btn-decrement {
     width: 50%;
-    height: 50%;
+    height: 100%;
     font-size: 1vw;
     float: left;
     cursor: pointer;
-    border-radius: 0px 0px 0px 5px;
+    border-radius: 5px 0px 0px 5px;
     box-sizing: border-box;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
     border: 1px solid rgb(255, 255, 255);
+    border-left: 0px;
     border-right: 0px;
-    z-index: 2;
     position: absolute;
-    top: 50%;
+    z-index: 2;
+    left: 0;
 }
 
-.btn-decrement .info-text {
+.btn-decrement:hover::after {
+    opacity: 1;
+    /* content: '-'; */
     position: relative;
-    z-index: 3;
+    float: left;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .btn-decrement-red {
     border-color: white;
     color: white;
     /* background: red; */
-    left: 0;
 }
 
 .btn-decrement-red:hover {
@@ -830,7 +836,6 @@ html {
     border-color: white;
     color: white;
     /* background: blue; */
-    left: 0;
 }
 
 .btn-decrement-blue:hover {
@@ -845,65 +850,74 @@ html {
     width: 50%;
     font-size: 1vw;
     float: left;
-    height: 50%;
+    height: 100%;
     cursor: pointer;
-    border-radius: 0px 0px 5px 0px;
+    border-radius: 0px 5px 5px 0px;
     box-sizing: border-box;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
     border: 1px solid rgb(255, 255, 255);
     border-left: 0px;
-    z-index: 2;
     position: absolute;
+    z-index: 2;
+    right: 0;
+}
+
+.btn-increment:hover::after {
+    opacity: 1;
+    /* content: '+'; */
+    position: relative;
+    float: left;
     top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .btn-increment-red {
     border-color: white;
     color: white;
     /* background: red; */
-    right: 0;
 }
 
 .btn-increment-red:hover {
-    background: rgba(0, 0, 0, 0.1)
+    background: rgba(0, 0, 0, 0.1);
 }
 
 .btn-increment-red:active {
-    background: rgba(0, 0, 0, 0.3)
+    /* background: rgba(0, 0, 0, 0.3); */
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .btn-increment-blue {
     border-color: white;
     color: white;
     /* background: blue; */
-    right: 0;
 }
 
 .btn-increment-blue:hover {
-    background: rgba(0, 0, 0, 0.1)
+    background: rgba(0, 0, 0, 0.1);
 }
 
 .btn-increment-blue:active {
-    background: rgba(0, 0, 0, 0.3)
+    /* background: rgba(0, 0, 0, 0.3); */
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .text-cautions-number {
-    width: 100%;
-    height: 50%;
+    width: 30%;
+    height: 100%;
     font-size: 1.5vw;
     font-weight: bold;
     float: left;
-    border-radius: 0px 0px 5px 5px;
+    border-radius: 0px 5px 5px 0px;
     box-sizing: border-box;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
     border-top: 1px solid rgb(255, 255, 255);
     border-bottom: 1px solid rgb(255, 255, 255);
     position: absolute;
-    top: 50%;
     z-index: 1;
-    /* left: 47%; */
+    left: 70%;
 }
 
 .text-cautions-number-red {
@@ -1261,45 +1275,38 @@ textarea {
     text-align: left;
 }
 
-.red-caution.cautions-information{
-    right: 1%;
-    float: right;
-}
-
-.blue-caution.cautions-information{
-    left: 1%;
-    float: left;
-}
-
 .cautions-information {
     position: absolute;
-    height: 100%;
-    width: 15%;
+    height: 10%;
+    width: 100%;
+    bottom: 1%;
 }
 
 .cautions-information .cautions-box {
+    width: 22.5%;
+    height: 100%;
+    float: left;
     position: relative;
-    width: 100%;
-    height: 20%;
+    border-radius: 0px 5px 5px 0px;
 }
 
 .cautions-information .line-break-caution {
-    position: relative;
-    height: 4%;
-    width: 100%;
+    float: left;
+    height: 100%;
+    width: 2%;
 }
 
 .cautions-label {
-    width: 100%;
-    height: 50%;
-    font-size: 1vw;
+    width: 70%;
+    height: 100%;
+    font-size: 1.5vw;
     float: left;
-    border-radius: 5px 5px 0 0px;
+    border-radius: 5px 0px 0 5px;
     box-sizing: border-box;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
     border: 1px solid rgb(255, 255, 255);
-    border-bottom: 0px;
+    border-right: 0px;
 }
 
 .cautions-label-red {
