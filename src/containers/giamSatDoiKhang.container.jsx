@@ -306,10 +306,24 @@ class GiamSatDoiKhangContainer extends Component {
       set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex), this.combatObj[this.matchNoCurrentIndex])
       $("#red-score-" + i).html(this.refereeObj[i - 1].redScore);
       $("#blue-score-" + i).html(this.refereeObj[i - 1].blueScore);
-      if (this.refereeObj[i - 1].redScore != 0 || this.refereeObj[i - 1].blueScore != 0) {
-        $(".referee-title.gd" + i).css("background-color", this.greenColor);
+      // if (this.refereeObj[i - 1].redScore != 0 || this.refereeObj[i - 1].blueScore != 0) {
+      //   $(".referee-title.gd" + i).css("background-color", this.greenColor);
+      // } else {
+      //   $(".referee-title.gd" + i).css("background-color", "");
+      // }
+      if (this.refereeObj[i - 1].redScore != 0) {
+        $(".red-score-referee-giamsat.gd" + i).css("background-color", "red");
+        $(".red-score-referee-giamsat.gd" + i).css("color", "white");
       } else {
-        $(".referee-title.gd" + i).css("background-color", "");
+        $(".red-score-referee-giamsat.gd" + i).css("background-color", "");
+        $(".red-score-referee-giamsat.gd" + i).css("color", "red");
+      }
+      if (this.refereeObj[i - 1].blueScore != 0) {
+        $(".blue-score-referee-giamsat.gd" + i).css("background-color", "blue");
+        $(".blue-score-referee-giamsat.gd" + i).css("color", "white");
+      } else {
+        $(".blue-score-referee-giamsat.gd" + i).css("background-color", "");
+        $(".blue-score-referee-giamsat.gd" + i).css("color", "blue");
       }
     }
 
@@ -1192,12 +1206,12 @@ class GiamSatDoiKhangContainer extends Component {
                   </span>
                 </div>
                 <div className="referee-score">
-                  <div className="red-score-refereeSc">
+                  <div className="red-score-referee-giamsat gd1">
                     <span className="info-text">
                       <span id="red-score-1"></span>
                     </span>
                   </div>
-                  <div className="blue-score-refereeSc">
+                  <div className="blue-score-referee-giamsat gd1">
                     <span className="info-text">
                       <span id="blue-score-1"></span>
                     </span>
@@ -1212,12 +1226,12 @@ class GiamSatDoiKhangContainer extends Component {
                   </span>
                 </div>
                 <div className="referee-score">
-                  <div className="red-score-refereeSc">
+                  <div className="red-score-referee-giamsat gd2">
                     <span className="info-text">
                       <span id="red-score-2"></span>
                     </span>
                   </div>
-                  <div className="blue-score-refereeSc">
+                  <div className="blue-score-referee-giamsat gd2">
                     <span className="info-text">
                       <span id="blue-score-2"></span>
                     </span>
@@ -1232,12 +1246,12 @@ class GiamSatDoiKhangContainer extends Component {
                   </span>
                 </div>
                 <div className="referee-score">
-                  <div className="red-score-refereeSc">
+                  <div className="red-score-referee-giamsat gd3">
                     <span className="info-text">
                       <span id="red-score-3"></span>
                     </span>
                   </div>
-                  <div className="blue-score-refereeSc">
+                  <div className="blue-score-referee-giamsat gd3">
                     <span className="info-text">
                       <span id="blue-score-3"></span>
                     </span>
@@ -1255,12 +1269,12 @@ class GiamSatDoiKhangContainer extends Component {
                         </span>
                       </div>
                       <div className="referee-score">
-                        <div className="red-score-refereeSc">
+                        <div className="red-score-referee-giamsat gd4">
                           <span className="info-text">
                             <span id="red-score-4"></span>
                           </span>
                         </div>
-                        <div className="blue-score-refereeSc">
+                        <div className="blue-score-referee-giamsat gd4">
                           <span className="info-text">
                             <span id="blue-score-4"></span>
                           </span>
@@ -1275,12 +1289,12 @@ class GiamSatDoiKhangContainer extends Component {
                         </span>
                       </div>
                       <div className="referee-score">
-                        <div className="red-score-refereeSc">
+                        <div className="red-score-referee-giamsat gd5">
                           <span className="info-text">
                             <span id="red-score-5"></span>
                           </span>
                         </div>
-                        <div className="blue-score-refereeSc">
+                        <div className="blue-score-referee-giamsat gd5">
                           <span className="info-text">
                             <span id="blue-score-5"></span>
                           </span>
