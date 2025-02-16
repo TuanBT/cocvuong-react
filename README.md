@@ -58,6 +58,13 @@ Thứ tự ưu tiên:
 + Hiển thị được Schema với tên VDV bị trùng
 + Thêm khung để ghi nhận NN, CC, YT
 + Làm thêm chức năng chấm lại, tuy nhiên chỉ chấm lại khi chưa sử dụng kết quả trận chấm lại ở trận sau
+----------------------
+- Các tính năng update tiếp theo:
++ Tăng tiếng đầu cuối mỗi hiệp > Done
++ bỏ chuông pause dừng trận => Done
++ Làm schema nhỏ lại dễ xem
++ Hình đòn chân gắn vào
++ Export schema theo template
 
 -Các tính năng chưa làm:
 + Chưa thể export theo template có sẵn kết quả thi đấu

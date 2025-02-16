@@ -1297,6 +1297,47 @@ textarea {
     border-bottom-right-radius: 30px 30px;
 }
 
+.red-leg-strike-image {
+    height: 100%;
+    position: absolute;
+    right: 0;
+    padding-top: 10%;
+}
+
+.blue-leg-strike-image {
+    height: 100%;
+    position: absolute;
+    left: 0;
+    padding-top: 10%;
+}
+
+.leg-strike{
+    position: absolute;
+    width: 6%;
+    height: 10%;
+    /*top: 1%;*/
+    z-index: 2;
+    cursor: pointer;
+}
+
+.red-leg-strike-image:hover{
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 10% 30% 10% 10%;
+}
+
+.blue-leg-strike-image:hover{
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 30% 10% 10% 10%;
+}
+
+.red-score .leg-strike{
+    right: 0;
+}
+
+.blue-score .leg-strike{
+    left: 0;
+}
+
 .style-hd-body {
     font-family: "Roboto", sans-serif;
     background-attachment: fixed;

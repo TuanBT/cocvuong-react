@@ -3,7 +3,7 @@ import $ from 'jquery';
 import Firebase from '../firebase';
 import { ref, set, get, update, remove, child, onValue } from "firebase/database";
 import logo from '../assets/img/logo.png';
-import sound from '../assets/sound/bell-school.wav';
+import sound from '../assets/sound/Reg.mp3';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 

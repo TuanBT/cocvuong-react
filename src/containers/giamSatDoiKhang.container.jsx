@@ -3,7 +3,7 @@ import $ from 'jquery';
 import Firebase from '../firebase';
 import { ref, set, get, update, remove, child, onValue } from "firebase/database";
 import logo from '../assets/img/logo.png';
-import sound from '../assets/sound/bell-school.wav';
+import sound from '../assets/sound/Reg.mp3';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -54,6 +54,7 @@ class GiamSatDoiKhangContainer extends Component {
     this.countryBlue = "blue";
     this.combatArenaNoIndex = 0;
     this.tournamentNoIndex = 0;
+    this.isHumanPauseTimer = false; // Cờ để ghi lại việc thao tác tạm dừng trận đấu
 
     this.combatConst = { "lastMatch": { "no": 1 }, "referee": [{ "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }], "combat": [] };
     this.matchObj = { "match": { "no": 1, "type": "", "category": "", "win": "" }, "fighters": { "redFighter": { "name": "Đỏ", "code": "", "score": 0 }, "blueFighter": { "name": "Xanh", "code": "", "score": 0 } } };
@@ -855,8 +856,14 @@ class GiamSatDoiKhangContainer extends Component {
     if (this.timer) {
       this.stopTimer();
       $(".timer-text").css("background-color", this.yellowColor);
+      this.isHumanPauseTimer = true; //Trận đấu đang được dừng bằng tay
     } else {
-      this.playSound();
+      // Nếu trận đấu đang dừng bằng tay thì không phát tiếng
+      if(this.isHumanPauseTimer){
+        this.isHumanPauseTimer = false;
+      }else{
+        this.playSound();
+      }
       setTimeout(() => {
         this.timer = setInterval(() => { this.makeTimer(); }, 1000);
         this.isTimerRunning = true;
@@ -1134,6 +1141,7 @@ class GiamSatDoiKhangContainer extends Component {
             <div className="red-score">
               <div className="addition" onClick={this.redAddition}></div>
               <div className="redFlag countryFlag" style={{ display: 'none' }}><img className="flagImage" src={require('../assets/flag/' + this.countryRed + '.jpg')} /></div>
+              <div className="leg-strike" style={{ display: 'block' }}><img className="red-leg-strike-image" src={require('../assets/img/donchan_color.png')} /></div>
               <div className="subtraction subtraction-red" onClick={this.redSubtraction}></div>
               <div className="red-caution cautions-information" style={{ display: 'none' }}>
                 <div className="line-break-caution"></div>
@@ -1312,6 +1320,7 @@ class GiamSatDoiKhangContainer extends Component {
             <div className="blue-score">
               <div className="addition" onClick={this.blueAddition}></div>
               <div className="blueFlag countryFlag" style={{ display: 'none' }}><img className="flagImage" src={require('../assets/flag/' + this.countryBlue + '.jpg')} /></div>
+              <div className="leg-strike" style={{ display: 'block' }}><img className="blue-leg-strike-image" src={require('../assets/img/donchan_gray.png')} /></div>
               <div className="subtraction subtraction-blue" onClick={this.blueSubtraction}></div>
               <div className="blue-caution cautions-information" style={{ display: 'none' }}>
                 <div className="line-break-caution"></div>
