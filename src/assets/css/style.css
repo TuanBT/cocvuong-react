@@ -1024,19 +1024,19 @@ html {
 }
 
 .brackets div.bracketbox>span.teama {
-    top: -12px;
+    top: -13px;
     color: white;
     background: #ff0000;
     padding: 0px 0.5em;
-    border-radius: 20px;
+    border-radius: 5px 5px 0px 0px;
 }
 
 .brackets div.bracketbox>span.teamb {
-    bottom: -12px;
+    bottom: -13px;
     color: white;
     background: blue;
     padding: 0px 0.5em;
-    border-radius: 20px;
+    border-radius: 0px 0px 5px 5px;
 }
 
 .brackets div.bracketbox>span.teamc {
@@ -1044,7 +1044,7 @@ html {
 }
 
 .brackets>.group2 {
-    height: 109.6875px;
+    height: 99.814px;
 }
 
 .brackets>.group2>div {
@@ -1052,7 +1052,7 @@ html {
 }
 
 .brackets>.group3 {
-    height: 135px;
+    height: 122.85px;
 }
 
 .brackets>.group3>div {
@@ -1068,7 +1068,7 @@ html {
 }
 
 .brackets>.group6 {
-    height: 843.75px;
+    height: 767.8125px;
 }
 
 .brackets>.group6>div {
@@ -1076,35 +1076,35 @@ html {
 }
 
 .brackets>div>div>div {
-    margin: 18.984375px 0 48.515625px 0;
+    margin: 17.29px 0 44.148px 0;
 }
 
 .brackets>div>.r1>div {
-    height: 23.203125px;
+    height: 21.112px;
 }
 
 .brackets>div>.r2>div {
-    margin: 29.953125px 0 70.453125px 0;
-    height: 72.984375px;
+    margin: 27.261px 0 64.116px 0;
+    height: 66.417px;
 }
 
 .brackets>div>.r3>div {
-    margin: 67.5px 0 143.4375px 0;
-    height: 144.28125px;
+    margin: 61.425px 0 130.52px 0;
+    height: 131.3px;
 }
 
 .brackets>div>.r4>div {
-    margin: 135px 0 289.40625px 0;
-    height: 291.09375px;
+    margin: 122.85px 0 263.354px 0;
+    height: 264.888px;
 }
 
 .brackets>div>.r5>div {
-    margin: 279.28125px 0 0 0;
-    height: 580.078125px;
+    margin: 254.15px 0 0 0;
+    height: 528px;
 }
 
 .brackets>div>.r6>div {
-    margin: 569.53125px 0 0 0
+    margin: 517.4px 0 0 0;
 }
 
 .brackets div.final>div.bracketbox {
@@ -1115,12 +1115,12 @@ html {
 }
 
 .brackets>div>.r4>div.drop {
-    height: 180px;
+    height: 234px;
     margin-bottom: 0px;
 }
 
 .brackets>div>.r5>div.final.drop {
-    margin-top: 345px;
+    margin-top: 448.5px;
     margin-bottom: 0px;
     height: 1px;
 }
