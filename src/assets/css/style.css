@@ -994,43 +994,49 @@ html {
     /* height: 100%; */
 }
 
-.brackets>div>div>div {
-    margin: 45px 0 115px 0;
-}
-
 .brackets div.bracketbox {
     position: relative;
     width: 100%;
     height: 100%;
-    border-top: 3px solid red;
+    border-top: 2px solid red;
     border-right: 1px solid black;
-    border-bottom: 3px solid blue;
+    border-bottom: 2px solid blue;
 }
 
 .brackets div.bracketbox>span.info {
-    font-size: 3em;
+    font-size: 1.5em;
     color: #BBB;
     position: relative;
     float: left;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    font-weight: bold;
+    background: rgb(0 0 0 / 5%);
+    border-radius: 20px;
+    padding: 0px 0.5em;
 }
 
 .brackets div.bracketbox>span {
     position: absolute;
     left: 5px;
-    font-size: 1.5em;
+    font-size: 0.875em;
 }
 
 .brackets div.bracketbox>span.teama {
-    top: -42px;
-    color: red;
+    top: -12px;
+    color: white;
+    background: #ff0000;
+    padding: 0px 0.5em;
+    border-radius: 20px;
 }
 
 .brackets div.bracketbox>span.teamb {
-    bottom: -42px;
-    color: blue;
+    bottom: -12px;
+    color: white;
+    background: blue;
+    padding: 0px 0.5em;
+    border-radius: 20px;
 }
 
 .brackets div.bracketbox>span.teamc {
@@ -1038,7 +1044,7 @@ html {
 }
 
 .brackets>.group2 {
-    height: 260px;
+    height: 109.6875px;
 }
 
 .brackets>.group2>div {
@@ -1046,7 +1052,7 @@ html {
 }
 
 .brackets>.group3 {
-    height: 320px;
+    height: 135px;
 }
 
 .brackets>.group3>div {
@@ -1062,39 +1068,43 @@ html {
 }
 
 .brackets>.group6 {
-    height: 2000px;
+    height: 843.75px;
 }
 
 .brackets>.group6>div {
     width: 16.3%;
 }
 
+.brackets>div>div>div {
+    margin: 18.984375px 0 48.515625px 0;
+}
+
 .brackets>div>.r1>div {
-    height: 55px;
+    height: 23.203125px;
 }
 
 .brackets>div>.r2>div {
-    margin: 71px 0 167px 0;
-    height: 173px;
+    margin: 29.953125px 0 70.453125px 0;
+    height: 72.984375px;
 }
 
 .brackets>div>.r3>div {
-    margin: 160px 0 340px 0;
-    height: 342px;
+    margin: 67.5px 0 143.4375px 0;
+    height: 144.28125px;
 }
 
 .brackets>div>.r4>div {
-    margin: 320px 0 686px 0;
-    height: 690px;
+    margin: 135px 0 289.40625px 0;
+    height: 291.09375px;
 }
 
 .brackets>div>.r5>div {
-    margin: 662px 0 0 0;
-    height: 1375px;
+    margin: 279.28125px 0 0 0;
+    height: 580.078125px;
 }
 
 .brackets>div>.r6>div {
-    margin: 1350px 0 0 0;
+    margin: 569.53125px 0 0 0
 }
 
 .brackets div.final>div.bracketbox {

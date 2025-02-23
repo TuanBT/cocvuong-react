@@ -75,8 +75,7 @@ class GiamSatDoiKhangContainer extends Component {
 
     componentDidMount() {
         document.addEventListener("keydown", this._handleKeyDown);
-        // this.showPasswordModal(); //TODO Uncomment this line
-        this.main(); //TODO: Remove this line
+        this.showPasswordModal();
         window.onresize = this.resizeTextToFit;
     }
 

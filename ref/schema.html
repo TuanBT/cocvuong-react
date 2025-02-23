@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <title>Schema template</title>
     <style>
+
+        body{
+            font-family: "Roboto", sans-serif;
+        }
+
         /* --------Schema----------------- */
 
         #schema-bracket {
@@ -30,43 +35,49 @@
             /* height: 100%; */
         }
 
-        .brackets>div>div>div {
-            margin: 45px 0 115px 0;
-        }
-
         .brackets div.bracketbox {
             position: relative;
             width: 100%;
             height: 100%;
-            border-top: 3px solid red;
+            border-top: 2px solid red;
             border-right: 1px solid black;
-            border-bottom: 3px solid blue;
+            border-bottom: 2px solid blue;
         }
 
         .brackets div.bracketbox>span.info {
-            font-size: 3em;
+            font-size: 1.5em;
             color: #BBB;
             position: relative;
             float: left;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+            font-weight: bold;
+            background: rgb(0 0 0 / 5%);
+            border-radius: 20px;
+            padding: 0px 0.5em;
         }
 
         .brackets div.bracketbox>span {
             position: absolute;
             left: 5px;
-            font-size: 1.5em;
+            font-size: 0.875em;
         }
 
         .brackets div.bracketbox>span.teama {
-            top: -42px;
-            color: red;
+            top: -12px;
+            color: white;
+            background: #ff0000;
+            padding: 0px 0.5em;
+            border-radius: 20px;
         }
 
         .brackets div.bracketbox>span.teamb {
-            bottom: -42px;
-            color: blue;
+            bottom: -12px;
+            color: white;
+            background: blue;
+            padding: 0px 0.5em;
+            border-radius: 20px;
         }
 
         .brackets div.bracketbox>span.teamc {
@@ -74,63 +85,47 @@
         }
 
         .brackets>.group2 {
-            height: 260px;
-        }
-
-        .brackets>.group2>div {
-            width: 49%;
+            height: 76.78px; /* 70% của 109.6875px */
         }
 
         .brackets>.group3 {
-            height: 320px;
-        }
-
-        .brackets>.group3>div {
-            width: 32.7%;
-        }
-
-        .brackets>.group4>div {
-            width: 24.5%;
-        }
-
-        .brackets>.group5>div {
-            width: 19.6%;
+            height: 94.5px; /* 70% của 135px */
         }
 
         .brackets>.group6 {
-            height: 2000px;
+            height: 590.625px; /* 70% của 843.75px */
         }
 
-        .brackets>.group6>div {
-            width: 16.3%;
+        .brackets>div>div>div {
+            margin: 13.3px 0 33.96px 0; /* Giảm từ 18.98px - 48.51px */
         }
 
         .brackets>div>.r1>div {
-            height: 55px;
+            height: 16.24px; /* Giảm từ 23.2px */
         }
 
         .brackets>div>.r2>div {
-            margin: 71px 0 167px 0;
-            height: 173px;
+            margin: 20.97px 0 49.32px 0;
+            height: 51.09px;
         }
 
         .brackets>div>.r3>div {
-            margin: 160px 0 340px 0;
-            height: 342px;
+            margin: 47.25px 0 100.4px 0;
+            height: 101px;
         }
 
         .brackets>div>.r4>div {
-            margin: 320px 0 686px 0;
-            height: 690px;
+            margin: 94.5px 0 202.58px 0;
+            height: 203.76px;
         }
 
         .brackets>div>.r5>div {
-            margin: 662px 0 0 0;
-            height: 1375px;
+            margin: 195.5px 0 0 0;
+            height: 406px;
         }
 
         .brackets>div>.r6>div {
-            margin: 1350px 0 0 0;
+            margin: 398px 0 0 0;
         }
 
         .brackets div.final>div.bracketbox {
