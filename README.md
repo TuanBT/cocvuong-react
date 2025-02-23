@@ -62,7 +62,7 @@ Thứ tự ưu tiên:
 - Các tính năng update tiếp theo:
 + Tăng tiếng đầu cuối mỗi hiệp > Done
 + bỏ chuông pause dừng trận => Done
-+ Làm schema nhỏ lại dễ xem
++ Làm schema nhỏ lại dễ xem => Done
 + Hình đòn chân gắn vào => Done
 + Export schema theo template
 

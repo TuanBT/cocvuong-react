@@ -122,7 +122,7 @@ class SettingContainer extends Component {
       }
       for (let i = 0; i < this.tournamentObj.martial.length; i++) {
         for (let j = 0; j < this.tournamentObj.martial[i].team.length; j++) {
-          this.tournamentObj.martial[i].team[j].score = 0;
+          this.tournamentObj.martial[i].team[j].finalScore = 0;
           for (let k = 0; k < this.tournamentObj.martial[i].team[j].refereeMartial.length; k++) {
             this.tournamentObj.martial[i].team[j].refereeMartial[k].score = 0;
           }
