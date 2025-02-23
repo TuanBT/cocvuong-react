@@ -63,7 +63,7 @@ Thứ tự ưu tiên:
 + Tăng tiếng đầu cuối mỗi hiệp > Done
 + bỏ chuông pause dừng trận => Done
 + Làm schema nhỏ lại dễ xem
-+ Hình đòn chân gắn vào
++ Hình đòn chân gắn vào => Done
 + Export schema theo template
 
 -Các tính năng chưa làm:

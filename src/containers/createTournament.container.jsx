@@ -42,6 +42,7 @@ class CreateTournamentContainer extends Component {
                     "name": "Đỏ",
                     "code": "",
                     "caution": {"remind": 0, "warning": 0, "medical": 0, "fall": 0, "bound": 0},
+                    "legStrike": false,
                     "score": 0
                 },
                 "blueFighter": {
@@ -49,6 +50,7 @@ class CreateTournamentContainer extends Component {
                     "name": "Xanh",
                     "code": "",
                     "caution": {"remind": 0, "warning": 0, "medical": 0, "fall": 0, "bound": 0},
+                    "legStrike": false,
                     "score": 0
                 }
             }
