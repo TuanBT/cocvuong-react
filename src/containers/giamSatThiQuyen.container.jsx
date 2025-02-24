@@ -361,7 +361,7 @@ class GiamSatThiQuyenContainer extends Component {
   }
 
   playSound() {
-    let sound = document.getElementById("reggSound");
+    let sound = document.getElementById("sound");
     if (sound.paused) {
       sound.play();
     } else {
@@ -791,7 +791,7 @@ class GiamSatThiQuyenContainer extends Component {
           </div>
         </div>
         <div style={{ display: 'none' }}>
-          <audio id="reggSound">
+          <audio id="sound">
             <source src={sound} type="audio/ogg" />
           </audio>
         </div>

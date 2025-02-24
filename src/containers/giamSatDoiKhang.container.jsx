@@ -3,7 +3,7 @@ import $ from 'jquery';
 import Firebase from '../firebase';
 import {ref, set, get, update, remove, child, onValue} from "firebase/database";
 import logo from '../assets/img/logo.png';
-import sound from '../assets/sound/Reg.mp3';
+import sound from '../assets/sound/School_Bell.mp3';
 import {ToastContainer, toast} from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -990,12 +990,11 @@ class GiamSatDoiKhangContainer extends Component {
     }
 
     playSound() {
-        let sound = document.getElementById("reggSound");
-        if (sound.paused) {
-            sound.play();
-        } else {
-            sound.currentTime = 0
+        let sound = document.getElementById("sound");
+        if (!sound.paused) {
+            return;
         }
+        sound.currentTime = 0;
         sound.play();
     }
 
@@ -1723,7 +1722,7 @@ class GiamSatDoiKhangContainer extends Component {
                     </div>
                 </div>
                 <div style={{display: 'none'}}>
-                    <audio id="reggSound">
+                    <audio id="sound">
                         <source src={sound} type="audio/ogg"/>
                     </audio>
                 </div>
