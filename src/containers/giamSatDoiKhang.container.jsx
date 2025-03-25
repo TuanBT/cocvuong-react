@@ -1190,8 +1190,9 @@ class GiamSatDoiKhangContainer extends Component {
                                 className="red-leg-strike-image" id="red-leg-strike"
                                 src=""/></div>
                             <div className="subtraction subtraction-red" onClick={this.redSubtraction}></div>
+                            <div className="line-break-score"></div>
                             <div className="red-caution cautions-information" style={{display: 'none'}}>
-                                <div className="line-break-caution"></div>
+                                {/*<div className="line-break-caution"></div>*/}
                                 <div className="cautions-box">
                                     <div className="cautions-label cautions-label-red"><span className="info-text">Nhắc
                                         nhở</span></div>
@@ -1256,8 +1257,9 @@ class GiamSatDoiKhangContainer extends Component {
                                         {/* <span className="info-text"><span>+</span></span> */}
                                     </div>
                                 </div>
-                                <div className="line-break-caution"></div>
+                                {/*<div className="line-break-caution"></div>*/}
                             </div>
+                            <div className="line-break-score-bot"></div>
                             <span className="info-text">
                                 <span id="red-score"></span>
                             </span>
@@ -1383,8 +1385,9 @@ class GiamSatDoiKhangContainer extends Component {
                                 className="blue-leg-strike-image" id="blue-leg-strike"
                                 src=""/></div>
                             <div className="subtraction subtraction-blue" onClick={this.blueSubtraction}></div>
+                            <div className="line-break-score"></div>
                             <div className="blue-caution cautions-information" style={{display: 'none'}}>
-                                <div className="line-break-caution"></div>
+                                {/*<div className="line-break-caution"></div>*/}
                                 <div className="cautions-box">
                                     <div className="cautions-label cautions-label-blue"><span className="info-text">Nhắc
                                         nhở</span></div>
@@ -1453,8 +1456,9 @@ class GiamSatDoiKhangContainer extends Component {
                                         {/* <span className="info-text"><span>+</span></span> */}
                                     </div>
                                 </div>
-                                <div className="line-break-caution"></div>
+                                {/*<div className="line-break-caution"></div>*/}
                             </div>
+                            <div className="line-break-score-bot"></div>
                             <span className="info-text">
                                 <span id="blue-score"></span>
                             </span>
