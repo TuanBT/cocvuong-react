@@ -82,6 +82,15 @@ class GiamDinhThiQuyenContainer extends Component {
       this.isShowFiveReferee = this.settingObj.martial.isShowFiveReferee;
       this.setState({ data: this.isShowFiveReferee });
       this.showChooseRefereeNoModal();
+
+      //Kiểm tra kết nối internet
+      onValue(ref(this.db, '.info/connected'), (snapshot) => {
+        if (!snapshot.val() === true) {
+          $('#internet-status').show();
+        } else {
+          $('#internet-status').hide();
+        }
+      })
     })
   }
 
@@ -269,6 +278,9 @@ class GiamDinhThiQuyenContainer extends Component {
           <div className="info-header p-3 mx-auto text-center text-belize-hole">
             <h1 className="blog-header-logo text-midnight-blue"><span className="gd-hd-arena-name" id="hd-arena-name"></span>&nbsp;|&nbsp;<span id="gd-name"></span></h1>
             <h2>
+              <span id="internet-status">
+                <i className="fa-solid fa-wifi"></i> Mất kết nối Internet
+              </span>
               <span id="match-martial-name"></span>
               <span> - </span>
               <span id="match-martial-no"></span>

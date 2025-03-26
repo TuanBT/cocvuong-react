@@ -144,12 +144,22 @@ class GiamSatThiQuyenContainer extends Component {
       let lastMatchMartialObj = snapshot.val();
       this.matchMartialNoCurrent = lastMatchMartialObj.matchMartialNo;
       this.teamMartialNoCurrent = lastMatchMartialObj.teamMartialNo;
+
       onValue(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/martial'), (snapshot) => {
         console.log("on value Start");
         this.initVariable(snapshot);
         this.showValue();
         console.log("on value End");
       });
+
+      //Kiểm tra kết nối internet
+      onValue(ref(this.db, '.info/connected'), (snapshot) => {
+        if (!snapshot.val() === true) {
+          $('#internet-status').show();
+        } else {
+          $('#internet-status').hide();
+        }
+      })
     })
   }
 
@@ -439,6 +449,9 @@ class GiamSatThiQuyenContainer extends Component {
               <div className="style-hd-info">
                 <span className="info-text text-center tournament-quyen-name">
                   <span id="tournamentName">
+                  </span>
+                  <span id="internet-status">
+                    <i class="fa-solid fa-wifi"></i> Mất kết nối Internet
                   </span>
                 </span>
               </div>

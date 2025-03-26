@@ -120,19 +120,19 @@ class GiamDinhDoiKhangContainer extends Component {
       $("#gd-name").html(this.refereeName);
 
       onValue(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/lastMatch/no'), (snapshot) => {
-        //Kiểm tra kết nối internet
-        onValue(ref(this.db, '.info/connected'), (snapshot) => {
-          if (!snapshot.val() === true) {
-            $('#internet-status').show();
-          } else {
-            $('#internet-status').hide();
-          }
-        })
-
         let matchCurrentNoIndex = snapshot.val() - 1;
         let matchCurrentNo = matchCurrentNoIndex + 1
         $("#gd-match").html("Trận số " + matchCurrentNo);
         this.path = "tournament/" + this.tournamentNoIndex + "/combatArena/" + this.combatArenaNoIndex + "/referee/" + this.referreIndex;
+      })
+
+      //Kiểm tra kết nối internet
+      onValue(ref(this.db, '.info/connected'), (snapshot) => {
+        if (!snapshot.val() === true) {
+          $('#internet-status').show();
+        } else {
+          $('#internet-status').hide();
+        }
       })
     }
   }
@@ -215,6 +215,9 @@ class GiamDinhDoiKhangContainer extends Component {
               <header className="blog-header p-3">
                 <div className="row justify-content-between align-items-center">
 
+                  <span id="internet-status">
+                    <i className="fa-solid fa-wifi"></i> Mất kết nối Internet
+                  </span>
                   <div className="col-12 text-center">
                     <h1 className="" id="arena-name">&nbsp;</h1>
                     <h1 className="text-midnight-blue" id="gd-name">&nbsp;</h1>

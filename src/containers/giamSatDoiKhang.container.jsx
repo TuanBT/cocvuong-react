@@ -1075,7 +1075,7 @@ class GiamSatDoiKhangContainer extends Component {
                                     <span id="tournamentName">
                                     </span>
                                     <span id="internet-status">
-                                        - Mất kết nối Internet...
+                                        <i className="fa-solid fa-wifi"></i> Mất kết nối Internet
                                     </span>
                                 </span>
                             </div>
