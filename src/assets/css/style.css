@@ -1020,12 +1020,13 @@ html {
     position: relative;
     float: left;
     top: 50%;
-    left: 50%;
+    left: 70%;
     transform: translate(-50%, -50%);
     font-weight: bold;
     background: rgb(0 0 0 / 5%);
     border-radius: 20px;
     padding: 0px 0.5em;
+    z-index: 1;
 }
 
 .brackets div.bracketbox>span {
