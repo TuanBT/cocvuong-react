@@ -16,6 +16,17 @@ import SettingContainer from './containers/setting.container';
 import CreateTournamentContainer from './containers/createTournament.container';
 import LoginContainer from './containers/login.container';
 import SignupContainer from './containers/signup.container';
+import ReactGA from 'react-ga4';
+
+// Initialize GA4
+ReactGA.initialize('G-HPGXRB180Q');
+
+// Track pageview
+ReactGA.send({ hitType: "pageview", page: window.location.pathname });
+
+// Initialize GA4
+ReactGA.initialize('G-HPGXRB180Q');
+
 
 ReactDOM.render(
   <HashRouter>
