@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Remove underline from all links - force override Bootstrap */
+a, a:link, a:visited, a:hover, a:active, a:focus {
+  text-decoration: none !important;
+}
+
+/* NavLink specific */
+.nav-link {
+  text-decoration: none !important;
+}

@@ -4,12 +4,10 @@
 
 /**
  * Chuyển đổi W.X hoặc L.X thành text hiển thị
- * @param {string} type_no - Chuỗi dạng "W.1" hoặc "L.1" hoặc tên vận động viên
- * @returns {string} - Chuỗi đã được chuyển đổi
  */
-export const convertWinLoseFormat = (type_no) => {
+export const convertWinLoseFormat = (type_no: string | null | undefined): string => {
   if (!type_no || typeof type_no !== 'string') {
-    return type_no;
+    return type_no || '';
   }
   
   const parts = type_no.split('.');
@@ -27,22 +25,21 @@ export const convertWinLoseFormat = (type_no) => {
 
 /**
  * Lấy mode (giá trị xuất hiện nhiều nhất) từ mảng số
- * @param {Array<number>} array - Mảng các số
- * @returns {number} - Mode hoặc 0 nếu có nhiều mode
  */
-export const getModes = (array) => {
+export const getModes = (array: number[]): number => {
   if (!array || array.length === 0) {
     return 0;
   }
 
-  const frequency = {};
+  const frequency: Record<string, number> = {};
   let maxFreq = 0;
-  const modes = [];
+  const modes: string[] = [];
 
   for (const value of array) {
-    frequency[value] = (frequency[value] || 0) + 1;
-    if (frequency[value] > maxFreq) {
-      maxFreq = frequency[value];
+    const key = String(value);
+    frequency[key] = (frequency[key] || 0) + 1;
+    if (frequency[key] > maxFreq) {
+      maxFreq = frequency[key];
     }
   }
 
@@ -63,10 +60,8 @@ export const getModes = (array) => {
 
 /**
  * Format thời gian từ giây sang MM:SS
- * @param {number} totalSeconds - Tổng số giây
- * @returns {string} - Chuỗi dạng "MM:SS"
  */
-export const formatTime = (totalSeconds) => {
+export const formatTime = (totalSeconds: number): string => {
   if (totalSeconds < 0) {
     return "00:00";
   }
@@ -82,26 +77,25 @@ export const formatTime = (totalSeconds) => {
 
 /**
  * Deep clone một object
- * @param {any} obj - Object cần clone
- * @returns {any} - Object đã được clone
  */
-export const deepClone = (obj) => {
+export const deepClone = <T>(obj: T): T => {
   return JSON.parse(JSON.stringify(obj));
 };
 
 /**
  * Resize text để fit vào container
- * @param {string|HTMLElement} parentSelector - Element cha hoặc class name (không có dấu .)
- * @param {string|HTMLElement} childSelector - Element chứa text hoặc id (không có dấu #)
- * @param {number} maxFontSize - Font size tối đa (mặc định 100px)
  */
-export const resizeTextToFit = (parentSelector, childSelector, maxFontSize = 100) => {
+export const resizeTextToFit = (
+  parentSelector: string | HTMLElement, 
+  childSelector: string | HTMLElement, 
+  maxFontSize: number = 100
+): void => {
   // Get elements from selectors
-  let parentElement = parentSelector;
-  let childElement = childSelector;
+  let parentElement: HTMLElement | null | undefined = parentSelector as HTMLElement;
+  let childElement: HTMLElement | null | undefined = childSelector as HTMLElement;
   
   if (typeof parentSelector === 'string') {
-    parentElement = document.getElementsByClassName(parentSelector)[0];
+    parentElement = document.getElementsByClassName(parentSelector)[0] as HTMLElement;
   }
   
   if (typeof childSelector === 'string') {
@@ -128,10 +122,9 @@ export const resizeTextToFit = (parentSelector, childSelector, maxFontSize = 100
 
 /**
  * Phát âm thanh
- * @param {string} elementId - ID của element audio
  */
-export const playSound = (elementId = 'sound') => {
-  const sound = document.getElementById(elementId);
+export const playSound = (elementId: string = 'sound'): void => {
+  const sound = document.getElementById(elementId) as HTMLAudioElement | null;
   if (!sound || !sound.paused) {
     return;
   }
@@ -141,31 +134,31 @@ export const playSound = (elementId = 'sound') => {
 
 /**
  * Debounce function
- * @param {Function} func - Hàm cần debounce
- * @param {number} wait - Thời gian chờ (ms)
- * @returns {Function}
  */
-export const debounce = (func, wait) => {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
+export const debounce = <T extends (...args: any[]) => any>(
+  func: T, 
+  wait: number
+): ((...args: Parameters<T>) => void) => {
+  let timeout: NodeJS.Timeout | null = null;
+  return function executedFunction(...args: Parameters<T>): void {
+    const later = (): void => {
+      if (timeout) clearTimeout(timeout);
       func(...args);
     };
-    clearTimeout(timeout);
+    if (timeout) clearTimeout(timeout);
     timeout = setTimeout(later, wait);
   };
 };
 
 /**
  * Throttle function
- * @param {Function} func - Hàm cần throttle
- * @param {number} limit - Giới hạn thời gian (ms)
- * @returns {Function}
  */
-export const throttle = (func, limit) => {
-  let inThrottle;
-  return function executedFunction(...args) {
+export const throttle = <T extends (...args: any[]) => any>(
+  func: T, 
+  limit: number
+): ((...args: Parameters<T>) => void) => {
+  let inThrottle = false;
+  return function executedFunction(...args: Parameters<T>): void {
     if (!inThrottle) {
       func(...args);
       inThrottle = true;

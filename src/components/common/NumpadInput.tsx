@@ -1,10 +1,15 @@
 import React from 'react';
 
+interface NumpadInputProps {
+  onNumberClick: (value: string) => void;
+  onClear?: () => void;
+}
+
 /**
  * NumpadInput Component
  * Bàn phím số để nhập mật khẩu
  */
-const NumpadInput = ({ onNumberClick, onClear }) => {
+const NumpadInput: React.FC<NumpadInputProps> = ({ onNumberClick, onClear }) => {
   const numbers = [
     [1, 2, 3, 4, 5],
     [6, 7, 8, 9, 0]

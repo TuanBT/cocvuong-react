@@ -3,14 +3,36 @@
  * Index = số vận động viên (0-22)
  */
 
-const createFighter = (name, result = "") => ({
+export interface FighterData {
+  name: number | string;
+  code: string;
+  country: string;
+  result: string;
+}
+
+export interface MatchData {
+  match: number;
+  weight: number;
+  type: string;
+  redFighter: FighterData;
+  blueFighter: FighterData;
+}
+
+const createFighter = (name: number | string, result: string = ""): FighterData => ({
   name,
   code: "",
   country: "",
   result
 });
 
-const createMatch = (matchNo, type, redName, blueName, redResult = "", blueResult = "") => ({
+const createMatch = (
+  matchNo: number, 
+  type: string, 
+  redName: number | string, 
+  blueName: number | string, 
+  redResult: string = "", 
+  blueResult: string = ""
+): MatchData => ({
   match: matchNo,
   weight: 1,
   type,
@@ -21,14 +43,14 @@ const createMatch = (matchNo, type, redName, blueName, redResult = "", blueResul
 /**
  * Schema cho 2 vận động viên - Chung kết trực tiếp
  */
-export const SCHEMA_2 = [
+export const SCHEMA_2: MatchData[] = [
   createMatch(1, "Chung Kết", 1, 2)
 ];
 
 /**
  * Schema cho 3 vận động viên
  */
-export const SCHEMA_3 = [
+export const SCHEMA_3: MatchData[] = [
   createMatch(1, "Bán Kết", 1, 2),
   createMatch(2, "Chung Kết", 3, "W.1", "", "W.1")
 ];
@@ -36,14 +58,14 @@ export const SCHEMA_3 = [
 /**
  * Schema cho 4 vận động viên
  */
-export const SCHEMA_4 = [
+export const SCHEMA_4: MatchData[] = [
   createMatch(1, "Bán Kết", 1, 2),
   createMatch(2, "Bán Kết", 3, 4),
   createMatch(3, "Chung Kết", "W.1", "W.2", "W.1", "W.2")
 ];
 
 // Schemas từ 5-22 vận động viên (giữ nguyên format JSON gốc để đảm bảo tính chính xác)
-export const BRACKET_SCHEMAS = [
+export const BRACKET_SCHEMAS: MatchData[][] = [
   [], // 0
   [], // 1
   JSON.parse('[{"match":1,"weight":1,"type":"Chung Kết","redFighter":{"name":1,"code":"","country":"","result":""},"blueFighter":{"name":2,"code":"","country":"","result":""}}]'), // 2
@@ -71,10 +93,10 @@ export const BRACKET_SCHEMAS = [
 
 /**
  * Lấy schema bracket theo số lượng vận động viên
- * @param {number} fighterCount - Số lượng vận động viên (2-22)
- * @returns {Array} - Mảng các trận đấu
+ * @param fighterCount - Số lượng vận động viên (2-22)
+ * @returns Mảng các trận đấu
  */
-export const getBracketSchema = (fighterCount) => {
+export const getBracketSchema = (fighterCount: number): MatchData[] => {
   if (fighterCount < 2 || fighterCount > 22) {
     console.warn(`Số lượng vận động viên ${fighterCount} không hợp lệ. Phải từ 2-22.`);
     return [];

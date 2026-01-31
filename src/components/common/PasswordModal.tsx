@@ -1,32 +1,39 @@
 import React, { useState } from 'react';
 import NumpadInput from './NumpadInput';
 
+interface PasswordModalProps {
+  isVisible: boolean;
+  onVerify: (password: string) => void;
+  onCancel?: () => void;
+  title?: string;
+}
+
 /**
  * PasswordModal Component
  * Modal nhập mật khẩu dùng chung cho các trang
  */
-const PasswordModal = ({ 
+const PasswordModal: React.FC<PasswordModalProps> = ({ 
   isVisible, 
   onVerify, 
   onCancel,
   title = "Vui lòng nhập mật khẩu"
 }) => {
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState<string>('');
 
-  const handleNumberClick = (num) => {
+  const handleNumberClick = (num: string): void => {
     setPassword(prev => prev + num);
   };
 
-  const handleClear = () => {
+  const handleClear = (): void => {
     setPassword('');
   };
 
-  const handleVerify = () => {
+  const handleVerify = (): void => {
     onVerify(password);
     setPassword('');
   };
 
-  const handleCancel = () => {
+  const handleCancel = (): void => {
     setPassword('');
     if (onCancel) onCancel();
   };
@@ -34,7 +41,7 @@ const PasswordModal = ({
   if (!isVisible) return null;
 
   return (
-    <div className={`modal display-block`} tabIndex="-1">
+    <div className="modal display-block" tabIndex={-1}>
       <div className="modal-dialog">
         <div className="modal-content">
           <div className="modal-header">

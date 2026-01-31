@@ -1,10 +1,21 @@
 import React from 'react';
 
+interface Tournament {
+  index?: number;
+  name: string;
+}
+
+interface TournamentSelectorProps {
+  tournaments?: Tournament[];
+  selectedIndex?: number;
+  onSelect: (index: number) => void;
+}
+
 /**
  * TournamentSelector Component
  * Chọn giải đấu từ danh sách
  */
-const TournamentSelector = ({ 
+const TournamentSelector: React.FC<TournamentSelectorProps> = ({ 
   tournaments = [], 
   selectedIndex = 0, 
   onSelect 
@@ -16,19 +27,19 @@ const TournamentSelector = ({
   return (
     <div className="tournament-selector">
       {tournaments.map((tournament, index) => (
-        <div className="mb-2" key={tournament.index || index}>
+        <div className="mb-2" key={tournament.index ?? index}>
           <input 
             type="radio" 
             className="btn-check" 
             name="tournamentRadio"
-            id={`tournamentRadio-${tournament.index || index}`}
+            id={`tournamentRadio-${tournament.index ?? index}`}
             value={tournament.name}
-            checked={selectedIndex === (tournament.index || index)}
-            onChange={() => onSelect(tournament.index || index)}
+            checked={selectedIndex === (tournament.index ?? index)}
+            onChange={() => onSelect(tournament.index ?? index)}
           />
           <label 
             className="btn btn-outline-secondary" 
-            htmlFor={`tournamentRadio-${tournament.index || index}`}
+            htmlFor={`tournamentRadio-${tournament.index ?? index}`}
           >
             <i className="fas fa-caret-right"></i> {tournament.name}
           </label>

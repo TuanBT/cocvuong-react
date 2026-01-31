@@ -1,0 +1,1947 @@
+import React, { Component, createRef, RefObject } from 'react';
+import { database } from '../firebase';
+import { ref, set, get, update, child, onValue, off, Database, DatabaseReference } from "firebase/database";
+import logo from '../assets/img/logo.png';
+import sound from '../assets/sound/School_Bell.mp3';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+// Import constants
+import { COLORS } from '../constants/colors';
+import { ROUNDS, REFEREE_COUNT, TIME_SCORE } from '../constants/rounds';
+import { DEFAULT_COMBAT_CONST, DEFAULT_MATCH_OBJ } from '../constants/settings';
+
+// Import utils
+import { convertWinLoseFormat, getModes, resizeTextToFit } from '../utils/helpers';
+
+// Import types
+import {
+    Tournament,
+    TournamentSetting,
+    CombatMatch,
+    CombatArena,
+    RefereeScore,
+    Fighter
+} from '../types';
+
+// Props interface
+interface GiamSatDoiKhangProps {
+    // Add any props if needed
+}
+
+// State interface
+interface GiamSatDoiKhangState {
+    data: any[];
+    isShowFiveReferee: boolean;
+    // Password modal
+    showPasswordModal: boolean;
+    password: string;
+    // Arena selection modal
+    showChooseArenaNoModal: boolean;
+    // Match choose modal
+    showModalChooseMatch: boolean;
+    matchChooseValue: string;
+    // Confirm modal
+    showModalConfirm: boolean;
+    confirmTitle: string;
+    confirmBody: string;
+    confirmWinnerColor: 'red' | 'blue' | null;
+    // Shortcut modal
+    showModalShortcut: boolean;
+    // Display values
+    tournamentName: string;
+    arenaName: string;
+    matchNo: number;
+    matchType: string;
+    matchCategory: string;
+    matchTime: string;
+    matchRound: string | number;
+    redFighterName: string;
+    redCode: string;
+    redScore: number;
+    blueFighterName: string;
+    blueCode: string;
+    blueScore: number;
+    showMatchPrev: boolean;
+    showMatchNext: boolean;
+    iconWinRed: boolean;
+    iconWinBlue: boolean;
+    // Timer background color
+    timerBgColor: string;
+    // Score background colors
+    redScoreBgColor: string;
+    redScoreColor: string;
+    blueScoreBgColor: string;
+    blueScoreColor: string;
+    // Referee scores
+    refereeScores: Array<{ redScore: number; blueScore: number; redBg: string; redColor: string; blueBg: string; blueColor: string }>;
+    // Caution values
+    remindRed: number;
+    warningRed: number;
+    medicalRed: number;
+    fallRed: number;
+    boundRed: number;
+    remindBlue: number;
+    warningBlue: number;
+    medicalBlue: number;
+    fallBlue: number;
+    boundBlue: number;
+    // Leg strike images
+    redLegStrikeSrc: string;
+    blueLegStrikeSrc: string;
+    redLegStrikeActive: boolean;
+    blueLegStrikeActive: boolean;
+    // Visibility
+    showRedFlag: boolean;
+    showBlueFlag: boolean;
+    showRedCaution: boolean;
+    showBlueCaution: boolean;
+    showInternetStatus: boolean;
+}
+
+// Tournament info tuple type
+type TournamentInfo = [number, string];
+
+// Combat const type
+interface CombatConstType {
+    lastMatch: { no: number };
+    referee: RefereeScore[];
+    combat: CombatMatch[];
+}
+
+// Match object type
+interface MatchObjType {
+    match: { no: number; type: string; category: string; win: string };
+    fighters: {
+        redFighter: Fighter;
+        blueFighter: Fighter;
+    };
+}
+
+class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDoiKhangState> {
+    // Firebase listener references for cleanup
+    firebaseListeners: DatabaseReference[] = [];
+
+    // Firebase database reference
+    db: Database;
+
+    // Round constants
+    fistRound: number | string;
+    breakRound: number | string;
+    secondRound: number | string;
+    breakExtraRound: number | string;
+    extraRound: number | string;
+
+    // Color constants
+    greenColor: string;
+    yellowColor: string;
+    redColor: string;
+    grayColor: string;
+    whiteColor: string;
+    blackColor: string;
+    orangeColor: string;
+    bodyBgColor: string;
+    silverColor: string;
+
+    // Timer related
+    timeScore: number;
+    numReferee: number;
+    timerCoundown: number | undefined;
+    timer: ReturnType<typeof setInterval> | false | undefined;
+    effectTimer: ReturnType<typeof setInterval> | undefined;
+    scoreTimer: ReturnType<typeof setInterval> | undefined;
+    isTimerRunning: boolean;
+    scoreTimerCount: number;
+    isHumanPauseTimer: boolean;
+
+    // Time settings
+    timeBreak: number = 0;
+    timeExtra: number = 0;
+    timeExtraBreak: number = 0;
+
+    // Match related
+    round: number | string;
+    matchNoCurrent: number | undefined;
+    matchNoCurrentIndex: number | undefined;
+    combatObj: CombatMatch[] | null;
+    settingObj: TournamentSetting | null;
+    refereeObj: RefereeScore[] | null;
+    lastMatchObj: { no: number } | null;
+    match: CombatMatch | null;
+    temporaryWin: string | null;
+
+    // Tournament related
+    tournamentObj: Tournament[] | null = null;
+    tournaments: TournamentInfo[] = [];
+    combatArenaNoIndex: number;
+    tournamentNoIndex: number;
+
+    // Fighter country
+    countryRed: string;
+    countryBlue: string;
+
+    // Display time
+    minutes: string = "00";
+    seconds: string = "00";
+
+    // Referee display
+    isFirstRefereeScore: boolean;
+
+    // Default objects
+    combatConst: CombatConstType;
+    matchObj: MatchObjType;
+
+    // Confirm callback
+    confirmCallback: (() => void) | null = null;
+
+    // Leg strike images
+    legStrikeWhite: string;
+    legStrikeBlack: string;
+
+    constructor(props: GiamSatDoiKhangProps) {
+        super(props);
+        document.title = 'Giám Sát Đối Kháng';
+
+        this.db = database;
+
+        // Load leg strike images
+        this.legStrikeWhite = require('../assets/img/donchan_white.png');
+        this.legStrikeBlack = require('../assets/img/donchan_black.png');
+
+        // Initialize state
+        this.state = {
+            data: [],
+            isShowFiveReferee: false,
+            showPasswordModal: true,
+            password: '',
+            showChooseArenaNoModal: false,
+            showModalChooseMatch: false,
+            matchChooseValue: '',
+            showModalConfirm: false,
+            confirmTitle: '',
+            confirmBody: '',
+            confirmWinnerColor: null,
+            showModalShortcut: false,
+            tournamentName: '',
+            arenaName: '',
+            matchNo: 0,
+            matchType: '',
+            matchCategory: '',
+            matchTime: '00:00',
+            matchRound: '',
+            redFighterName: '',
+            redCode: '',
+            redScore: 0,
+            blueFighterName: '',
+            blueCode: '',
+            blueScore: 0,
+            showMatchPrev: true,
+            showMatchNext: true,
+            iconWinRed: false,
+            iconWinBlue: false,
+            timerBgColor: this.silverColor,
+            redScoreBgColor: 'red',
+            redScoreColor: 'white',
+            blueScoreBgColor: 'blue',
+            blueScoreColor: 'white',
+            refereeScores: Array(5).fill({ redScore: 0, blueScore: 0, redBg: '', redColor: 'red', blueBg: '', blueColor: 'blue' }),
+            remindRed: 0,
+            warningRed: 0,
+            medicalRed: 0,
+            fallRed: 0,
+            boundRed: 0,
+            remindBlue: 0,
+            warningBlue: 0,
+            medicalBlue: 0,
+            fallBlue: 0,
+            boundBlue: 0,
+            redLegStrikeSrc: this.legStrikeBlack,
+            blueLegStrikeSrc: this.legStrikeBlack,
+            redLegStrikeActive: false,
+            blueLegStrikeActive: false,
+            showRedFlag: false,
+            showBlueFlag: false,
+            showRedCaution: false,
+            showBlueCaution: false,
+            showInternetStatus: false,
+        };
+
+        // Use constants instead of hardcoded values
+        this.fistRound = ROUNDS.FIRST;
+        this.breakRound = ROUNDS.BREAK;
+        this.secondRound = ROUNDS.SECOND;
+        this.breakExtraRound = ROUNDS.BREAK_EXTRA;
+        this.extraRound = ROUNDS.EXTRA;
+
+        // Colors from constants
+        this.greenColor = COLORS.GREEN;
+        this.yellowColor = COLORS.YELLOW;
+        this.redColor = COLORS.RED;
+        this.grayColor = COLORS.GRAY;
+        this.whiteColor = COLORS.WHITE;
+        this.blackColor = COLORS.BLACK;
+        this.orangeColor = COLORS.ORANGE;
+        this.bodyBgColor = COLORS.BODY_BG;
+        this.silverColor = COLORS.SILVER;
+
+        this.timeScore = TIME_SCORE;
+        this.numReferee = REFEREE_COUNT.DEFAULT;
+
+        this.timerCoundown = undefined;
+        this.round = this.fistRound;
+        this.matchNoCurrent = undefined;
+        this.matchNoCurrentIndex = undefined;
+        this.combatObj = null;
+        this.settingObj = null;
+        this.refereeObj = null;
+        this.lastMatchObj = null;
+        this.match = null;
+        this.timer = undefined;
+        this.effectTimer = undefined;
+        this.scoreTimer = undefined;
+        this.isFirstRefereeScore = false;
+        this.isTimerRunning = false;
+        this.scoreTimerCount = this.timeScore;
+        this.temporaryWin = null;
+        this.countryRed = "red";
+        this.countryBlue = "blue";
+        this.combatArenaNoIndex = 0;
+        this.tournamentNoIndex = 0;
+        this.isHumanPauseTimer = false;
+
+        // Use constants for default objects
+        this.combatConst = JSON.parse(JSON.stringify(DEFAULT_COMBAT_CONST));
+        this.matchObj = JSON.parse(JSON.stringify(DEFAULT_MATCH_OBJ));
+    }
+
+    componentDidMount(): void {
+        document.addEventListener("keydown", this._handleKeyDown);
+        window.onresize = () => resizeTextToFit('referee-score-area-top', 'tournamentName');
+        
+        // Check for saved password in localStorage (valid for 6 hours)
+        const savedPassword = localStorage.getItem('giamSatPassword');
+        const savedTime = localStorage.getItem('giamSatPasswordTime');
+        if (savedPassword && savedTime) {
+            const timeDiff = Date.now() - parseInt(savedTime);
+            const sixHours = 6 * 60 * 60 * 1000;
+            if (timeDiff < sixHours) {
+                // Auto verify saved password
+                this.setState({ password: savedPassword }, () => {
+                    this.autoVerifyPassword(savedPassword);
+                });
+                return;
+            } else {
+                // Clear expired password
+                localStorage.removeItem('giamSatPassword');
+                localStorage.removeItem('giamSatPasswordTime');
+            }
+        }
+        this.setState({ showPasswordModal: true });
+    }
+
+    componentWillUnmount(): void {
+        // Cleanup event listeners
+        document.removeEventListener("keydown", this._handleKeyDown);
+        window.onresize = null;
+
+        // Cleanup timers
+        if (this.timer) {
+            clearInterval(this.timer);
+        }
+        if (this.effectTimer) {
+            clearInterval(this.effectTimer);
+        }
+        if (this.scoreTimer) {
+            clearInterval(this.scoreTimer);
+        }
+
+        // Cleanup Firebase listeners
+        this.firebaseListeners.forEach(listenerRef => {
+            off(listenerRef);
+        });
+        this.firebaseListeners = [];
+    }
+
+    autoVerifyPassword = (savedPassword: string): void => {
+        const passwordRef = ref(this.db, 'commonSetting/passwordGiamSat');
+        onValue(passwordRef, (snapshot) => {
+            if (savedPassword === String(snapshot.val())) {
+                this.setState({ showPasswordModal: false });
+                this.main();
+            } else {
+                // Password changed, clear and show modal
+                localStorage.removeItem('giamSatPassword');
+                localStorage.removeItem('giamSatPasswordTime');
+                this.setState({ password: '', showPasswordModal: true });
+            }
+        }, { onlyOnce: true });
+    }
+
+    verifyPassword = (): void => {
+        const password = this.state.password;
+
+        if (password != null && password !== "") {
+            const passwordRef = ref(this.db, 'commonSetting/passwordGiamSat');
+            onValue(passwordRef, (snapshot) => {
+                if (password === String(snapshot.val())) {
+                    // Save password to localStorage for 6 hours
+                    localStorage.setItem('giamSatPassword', password);
+                    localStorage.setItem('giamSatPasswordTime', Date.now().toString());
+                    this.setState({ showPasswordModal: false });
+                    this.main();
+                } else {
+                    toast.error("Sai mật khẩu!");
+                    window.location.reload();
+                }
+            }, { onlyOnce: true });
+        } else {
+            toast.error("Sai mật khẩu!");
+        }
+    }
+
+    main(): void {
+        get(child(ref(this.db), 'tournament')).then((snapshot) => {
+            this.tournamentObj = snapshot.val();
+            this.tournaments = [];
+
+            if (this.tournamentObj) {
+                for (let i = 0; i < this.tournamentObj.length; i++) {
+                    this.tournaments.push([i, this.tournamentObj[i].setting.tournamentName]);
+                }
+            }
+            this.setState({ data: this.tournaments });
+        });
+
+        get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
+            this.settingObj = snapshot.val();
+            if (this.settingObj && this.settingObj.combat.isShowArenaB === true) {
+                this.setState({ showChooseArenaNoModal: true });
+            } else {
+                this.showTournamentInfo();
+            }
+        });
+    }
+
+    chooseArenaNo = (): void => {
+        const arenaRadio = document.querySelector("input[name='optionsArena']:checked") as HTMLInputElement;
+        const combatArenaNo = arenaRadio?.value;
+        if (combatArenaNo != null && combatArenaNo !== "") {
+            this.setState({ showChooseArenaNoModal: false });
+            this.combatArenaNoIndex = parseInt(combatArenaNo, 10);
+            this.showTournamentInfo();
+        }
+    }
+
+    showTournamentInfo = (): void => {
+        get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/combatArenaName')).then((snapshot) => {
+            this.setState({ arenaName: snapshot.val() || '' });
+        });
+        get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
+            this.settingObj = snapshot.val();
+            if (!this.settingObj) return;
+
+            this.setState({ tournamentName: this.settingObj.tournamentName });
+            resizeTextToFit('referee-score-area-top', 'tournamentName');
+            this.timerCoundown = this.settingObj.combat.timeRound;
+            this.timeBreak = this.settingObj.combat.timeBreak;
+            this.timeExtra = this.settingObj.combat.timeExtra;
+            this.timeExtraBreak = this.settingObj.combat.timeExtraBreak;
+            
+            if (this.settingObj.combat.isShowCountryFlag === true) {
+                this.setState({ showRedFlag: true, showBlueFlag: true });
+            }
+            if (this.settingObj.combat.isShowCautionBox === true) {
+                this.setState({ showRedCaution: true, showBlueCaution: true });
+            }
+            this.numReferee = this.settingObj.combat.isShowFiveReferee === true ? REFEREE_COUNT.FIVE : REFEREE_COUNT.DEFAULT;
+            this.setState({ isShowFiveReferee: this.settingObj.combat.isShowFiveReferee || false });
+
+            this.startEffectTimer();
+
+            // Store Firebase listener references for cleanup
+            const combatRef = ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat');
+            this.firebaseListeners.push(combatRef);
+            onValue(combatRef, (snapshot) => {
+                this.combatObj = snapshot.val();
+                if (this.lastMatchObj == null) {
+                    this.matchNoCurrent = this.combatConst.lastMatch.no;
+                    this.matchNoCurrentIndex = this.matchNoCurrent - 1;
+                    if (this.combatObj) {
+                        this.match = this.combatObj[this.matchNoCurrentIndex];
+                    }
+                }
+                if (this.refereeObj == null) {
+                    this.refereeObj = this.combatConst.referee;
+                }
+                this.showValue();
+            });
+
+            const lastMatchRef = ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/lastMatch');
+            this.firebaseListeners.push(lastMatchRef);
+            onValue(lastMatchRef, (snapshot) => {
+                this.lastMatchObj = snapshot.val();
+                if (this.lastMatchObj) {
+                    this.matchNoCurrent = this.lastMatchObj.no;
+                    this.matchNoCurrentIndex = this.matchNoCurrent - 1;
+                    if (this.combatObj) {
+                        this.match = this.combatObj[this.matchNoCurrentIndex];
+                    }
+                }
+                this.showValue();
+            });
+
+            const refereeRef = ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/referee');
+            this.firebaseListeners.push(refereeRef);
+            onValue(refereeRef, (snapshot) => {
+                this.refereeObj = snapshot.val();
+                this.showValue();
+            });
+
+            //Kiểm tra kết nối internet
+            const connectedRef = ref(this.db, '.info/connected');
+            this.firebaseListeners.push(connectedRef);
+            onValue(connectedRef, (snapshot) => {
+                this.setState({ showInternetStatus: !snapshot.val() });
+            });
+        });
+    }
+
+    chooseTournament = (tournamentNoIndex: number): void => {
+        this.tournamentNoIndex = tournamentNoIndex;
+    }
+
+    _handleKeyDown = (e: KeyboardEvent): void => {
+        //Space
+        if (e.which === 32) {
+            this.startTimer();
+        }
+        //Left arrow
+        if (e.which === 37) {
+            this.redSubtraction();
+        }
+        //Up arrow
+        if (e.which === 38) {
+            this.redAddition();
+        }
+        //Right arrow
+        if (e.which === 39) {
+            this.blueAddition();
+        }
+        //Down arrow
+        if (e.which === 40) {
+            this.blueSubtraction();
+        }
+        //D
+        if (e.which === 68) {
+            this.redWin();
+        }
+        //X
+        if (e.which === 88) {
+            this.blueWin();
+        }
+        //C
+        if (e.which === 67) {
+            this.chooseMatch();
+        }
+        //T
+        if (e.which === 84) {
+            this.prevMatch();
+        }
+    }
+
+    formatRoundDisplay = (round: string | number): string => {
+        if (round === 1) return 'Hiệp 1';
+        if (round === 2) return 'Hiệp 2';
+        if (round === 'break') return 'Nghỉ';
+        if (round === 'break_extra') return 'Nghỉ';
+        if (round === 'extra') return 'Hiệp phụ';
+        return String(round);
+    }
+
+    showValue(): void {
+        // Early return if match data not loaded
+        if (!this.match) {
+            console.log("showValue() - No match data");
+            return;
+        }
+
+        console.log("showValue() Start");
+
+        //Khung thông tin về trận đấu
+        const newState: Partial<GiamSatDoiKhangState> = {};
+
+        newState.matchNo = this.match.match.no;
+        newState.matchType = this.match.match.type;
+        newState.matchCategory = this.match.match.category;
+
+        //Khung thời gian
+        if (this.timerCoundown === undefined || this.timerCoundown < 0) {
+            this.minutes = "00";
+            this.seconds = "00";
+            newState.timerBgColor = this.redColor;
+        } else {
+            const minutes = Math.floor(this.timerCoundown / 60);
+            const seconds = Math.floor(this.timerCoundown - (minutes * 60));
+            this.minutes = minutes < 10 ? "0" + minutes : "" + minutes;
+            this.seconds = seconds < 10 ? "0" + seconds : "" + seconds;
+        }
+        newState.matchTime = this.minutes + ":" + this.seconds;
+
+        if (this.timerCoundown !== undefined && this.timerCoundown > 0) {
+            const isMainRound = this.round === this.fistRound || this.round === this.secondRound || this.round === this.extraRound;
+            const isBreakRound = this.round === this.breakRound || this.round === this.breakExtraRound;
+
+            if (this.isTimerRunning) {
+                //Đổi màu trạng thái running cho đồng hồ đang chạy
+                if (isMainRound) {
+                    newState.timerBgColor = this.greenColor;
+                } else if (isBreakRound) {
+                    newState.timerBgColor = this.orangeColor;
+                }
+            } else {
+                //Đổi màu trạng thái dừng cho đồng hồ
+                if (isMainRound) {
+                    if (this.round === this.fistRound && this.settingObj && this.timerCoundown === this.settingObj.combat.timeRound) {
+                        newState.timerBgColor = this.silverColor;
+                    } else {
+                        newState.timerBgColor = this.yellowColor;
+                    }
+                } else if (isBreakRound) {
+                    newState.timerBgColor = this.yellowColor;
+                }
+            }
+        }
+        newState.matchRound = this.formatRoundDisplay(this.round);
+        //Khung cúp cho người chiến thắng
+        if (this.match.match.win === "red") {
+            newState.iconWinRed = true;
+            newState.iconWinBlue = false;
+        } else if (this.match.match.win === "blue") {
+            newState.iconWinBlue = true;
+            newState.iconWinRed = false;
+        } else {
+            newState.iconWinRed = false;
+            newState.iconWinBlue = false;
+        }
+
+        //Khung thông tin vận động viên
+        const redFighter = this.match.fighters.redFighter;
+        const blueFighter = this.match.fighters.blueFighter;
+
+        newState.redFighterName = convertWinLoseFormat(redFighter.name);
+        newState.redCode = redFighter.code;
+        this.countryRed = redFighter.country !== "" ? redFighter.country : "red";
+        newState.redScore = redFighter.score;
+
+        newState.blueFighterName = convertWinLoseFormat(blueFighter.name);
+        newState.blueCode = blueFighter.code;
+        newState.blueScore = blueFighter.score;
+        this.countryBlue = blueFighter.country !== "" ? blueFighter.country : "blue";
+
+        //Khung chuyển trận đấu
+        //Xóa nút next và Prev nếu gặp biên
+        if (this.matchNoCurrent === 1) {
+            newState.showMatchPrev = false;
+            newState.showMatchNext = true;
+        } else if (this.combatObj && this.matchNoCurrent === this.combatObj.length) {
+            newState.showMatchPrev = true;
+            newState.showMatchNext = false;
+        } else {
+            newState.showMatchPrev = true;
+            newState.showMatchNext = true;
+        }
+
+        //Khung các giám định - Hiện điểm các giám định
+        if (this.refereeObj && this.combatObj && this.matchNoCurrentIndex !== undefined) {
+            set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex), this.combatObj[this.matchNoCurrentIndex]);
+
+            const refereeScores = [];
+            for (let i = 0; i < this.numReferee; i++) {
+                const refereeData = this.refereeObj[i];
+                if (refereeData) {
+                    refereeScores.push({
+                        redScore: refereeData.redScore,
+                        blueScore: refereeData.blueScore,
+                        redBg: refereeData.redScore !== 0 ? 'red' : '',
+                        redColor: refereeData.redScore !== 0 ? 'white' : 'red',
+                        blueBg: refereeData.blueScore !== 0 ? 'blue' : '',
+                        blueColor: refereeData.blueScore !== 0 ? 'white' : 'blue',
+                    });
+                }
+            }
+            newState.refereeScores = refereeScores;
+        }
+
+        //caution area
+        const redCaution = redFighter.caution;
+        const blueCaution = blueFighter.caution;
+
+        newState.remindRed = redCaution.remind;
+        newState.warningRed = redCaution.warning;
+        newState.medicalRed = redCaution.medical;
+        newState.fallRed = redCaution.fall;
+        newState.boundRed = redCaution.bound;
+
+        newState.remindBlue = blueCaution.remind;
+        newState.warningBlue = blueCaution.warning;
+        newState.medicalBlue = blueCaution.medical;
+        newState.fallBlue = blueCaution.fall;
+        newState.boundBlue = blueCaution.bound;
+
+        // Leg strike icons
+        newState.redLegStrikeSrc = redFighter.legStrike ? this.legStrikeWhite : this.legStrikeBlack;
+        newState.blueLegStrikeSrc = blueFighter.legStrike ? this.legStrikeWhite : this.legStrikeBlack;
+        newState.redLegStrikeActive = redFighter.legStrike || false;
+        newState.blueLegStrikeActive = blueFighter.legStrike || false;
+
+        this.setState(newState as GiamSatDoiKhangState);
+
+        console.log("showValue() End");
+    }
+
+    saveMatch(): void {
+        console.log("saveMatch() Start");
+        if (this.match && this.matchNoCurrentIndex !== undefined) {
+            update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex), this.match);
+        }
+        console.log("saveMatch() End");
+    }
+
+    //Gõ số để đi đến trận đấu
+    chooseMatch = (): void => {
+        console.log("chooseMatch() Start");
+
+        const matchChooseStr = this.state.matchChooseValue;
+        const matchChoose = parseInt(matchChooseStr, 10);
+
+        if (matchChooseStr != null && matchChooseStr !== "") {
+            if (this.combatObj && (matchChoose < 1 || matchChoose > this.combatObj.length)) {
+                toast.error("Vui lòng nhập số thứ tự trận đấu lớn hơn 1!");
+                return;
+            }
+            this.setState({ showModalChooseMatch: false, matchChooseValue: '' });
+            this.matchNoCurrent = matchChoose;
+            this.restoreMatch();
+        }
+        console.log("chooseMatch() End");
+    }
+
+    nextMatch = (): void => {
+        console.log("nextMatch() Start");
+        if (this.timer === undefined || this.timer === false) {
+            if (this.matchNoCurrent !== undefined) {
+                this.matchNoCurrent++;
+                this.restoreMatch();
+            }
+        } else {
+            this.confirmCallback = () => {
+                if (this.matchNoCurrent !== undefined) {
+                    this.matchNoCurrent++;
+                    this.restoreMatch();
+                    this.setState({ showModalConfirm: false });
+                }
+            };
+            this.setState({
+                showModalConfirm: true,
+                confirmTitle: "Xác nhận",
+                confirmBody: "Bạn muốn dừng trận đấu và đến trận đấu kế tiếp?"
+            });
+        }
+        console.log("nextMatch() End");
+    }
+
+    prevMatch = (): void => {
+        console.log("prevMatch() Start");
+        if (this.timer === undefined || this.timer === false) {
+            if (this.matchNoCurrent !== undefined) {
+                this.matchNoCurrent--;
+                this.restoreMatch();
+            }
+        } else {
+            this.confirmCallback = () => {
+                if (this.matchNoCurrent !== undefined) {
+                    this.matchNoCurrent--;
+                    this.restoreMatch();
+                    this.setState({ showModalConfirm: false });
+                }
+            };
+            this.setState({
+                showModalConfirm: true,
+                confirmTitle: "Xác nhận",
+                confirmBody: "Bạn muốn dừng trận đấu và về trận đấu trước đó?"
+            });
+        }
+        console.log("prevMatch() End");
+    }
+
+    restoreMatch(): void {
+        console.log("restoreMatch() Start");
+        this.setState({
+            redScoreBgColor: 'red',
+            redScoreColor: this.whiteColor,
+            blueScoreBgColor: 'blue',
+            blueScoreColor: this.whiteColor,
+        });
+        this.stopTimer();
+        this.round = this.fistRound;
+        if (this.settingObj) {
+            this.timerCoundown = this.settingObj.combat.timeRound;
+        }
+        this.isTimerRunning = false;
+        this.setState({ timerBgColor: this.silverColor });
+        if (this.timerCoundown !== undefined) {
+            const minutes = Math.floor(this.timerCoundown / 60);
+            const seconds = Math.floor(this.timerCoundown - (minutes * 60));
+            this.minutes = minutes < 10 ? "0" + minutes : String(minutes);
+            this.seconds = seconds < 10 ? "0" + seconds : String(seconds);
+        }
+        
+        this.setState({
+            matchTime: this.minutes + ":" + this.seconds,
+            matchRound: this.formatRoundDisplay(this.round)
+        });
+        if (this.matchNoCurrent !== undefined) {
+            set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/lastMatch/no'), this.matchNoCurrent);
+        }
+        const referees: RefereeScore[] = [];
+        if (this.refereeObj) {
+            for (let i = 0; i < this.numReferee; i++) {
+                this.refereeObj[i] = { blueScore: 0, redScore: 0 };
+                referees.push(this.refereeObj[i]);
+            }
+        }
+        set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/referee'), referees);
+        console.log("restoreMatch() End");
+    }
+
+
+    redWin = (): void => {
+        console.log("redWin() Start");
+        if (!this.match || !this.combatObj || this.matchNoCurrent === undefined) return;
+
+        const winMatch = "W." + this.matchNoCurrent;
+        for (let i = this.matchNoCurrent; i < this.combatObj.length; i++) {
+            const fightersTemp = this.combatObj[i].fighters;
+            if (fightersTemp.redFighter.result === winMatch) {
+                for (let j = i; j < this.combatObj.length; j++) {
+                    const fightersTemp2 = this.combatObj[j].fighters;
+                    const winMatch2 = "W." + j;
+                    if (fightersTemp2.redFighter.result === winMatch2)
+                        if (fightersTemp2.redFighter.name !== winMatch2) {
+                            toast.error("Bạn không thể chấm lại trận đấu này!");
+                            return;
+                        }
+                    if (fightersTemp2.blueFighter.result === winMatch2) {
+                        if (fightersTemp2.blueFighter.name !== winMatch2) {
+                            toast.error("Bạn không thể chấm lại trận đấu này!");
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        this.temporaryWin = "red";
+
+        this.confirmCallback = () => {
+            if (this.temporaryWin === "red" && this.match && this.matchNoCurrentIndex !== undefined) {
+                this.stopTimer();
+                this.replaceFighter("red");
+                setTimeout(() => {
+                    if (this.match && this.matchNoCurrentIndex !== undefined) {
+                        this.match.match.win = "red";
+                        set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex + '/match/win'), "red");
+                        this.setState({
+                            iconWinRed: true,
+                            iconWinBlue: false,
+                            redScoreBgColor: 'red',
+                            redScoreColor: this.whiteColor,
+                            blueScoreBgColor: 'blue',
+                            blueScoreColor: this.whiteColor,
+                        });
+                    }
+                }, 1000);
+                this.setState({ showModalConfirm: false, confirmWinnerColor: null });
+            }
+        };
+
+        this.setState({
+            showModalConfirm: true,
+            confirmTitle: "<i class='fa-solid fa-clipboard-check'></i> Xác nhận kết quả <b>THẮNG</b>",
+            confirmBody: "<h3 style='color: red'><i class='fa-solid fa-hand-back-fist'></i> " + convertWinLoseFormat(this.match.fighters.redFighter.name) + "</h3><h3 style='color: red'>" + this.match.fighters.redFighter.code + "</h3>",
+            confirmWinnerColor: 'red'
+        });
+        console.log("redWin() End");
+    }
+
+    blueWin = (): void => {
+        console.log("blueWin() Start");
+        if (!this.match || !this.combatObj || this.matchNoCurrent === undefined) return;
+
+        const winMatch = "W." + this.matchNoCurrent;
+        for (let i = this.matchNoCurrent; i < this.combatObj.length; i++) {
+            const fightersTemp = this.combatObj[i].fighters;
+            if (fightersTemp.redFighter.result === winMatch) {
+                for (let j = i; j < this.combatObj.length; j++) {
+                    const fightersTemp2 = this.combatObj[j].fighters;
+                    const winMatch2 = "W." + j;
+                    if (fightersTemp2.redFighter.result === winMatch2)
+                        if (fightersTemp2.redFighter.name !== winMatch2) {
+                            toast.error("Bạn không thể chấm lại trận đấu này!");
+                            return;
+                        }
+                    if (fightersTemp2.blueFighter.result === winMatch2) {
+                        if (fightersTemp2.blueFighter.name !== winMatch2) {
+                            toast.error("Bạn không thể chấm lại trận đấu này!");
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        this.temporaryWin = "blue";
+
+        this.confirmCallback = () => {
+            if (this.temporaryWin === "blue" && this.match && this.matchNoCurrentIndex !== undefined) {
+                this.stopTimer();
+                this.replaceFighter("blue");
+                setTimeout(() => {
+                    if (this.match && this.matchNoCurrentIndex !== undefined) {
+                        this.match.match.win = "blue";
+                        set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex + '/match/win'), "blue");
+                        this.setState({
+                            iconWinBlue: true,
+                            iconWinRed: false,
+                            redScoreBgColor: 'red',
+                            redScoreColor: this.whiteColor,
+                            blueScoreBgColor: 'blue',
+                            blueScoreColor: this.whiteColor,
+                        });
+                    }
+                }, 1000);
+                this.setState({ showModalConfirm: false, confirmWinnerColor: null });
+            }
+        };
+
+        this.setState({
+            showModalConfirm: true,
+            confirmTitle: "<i class='fa-solid fa-clipboard-check'></i> Xác nhận kết quả <b>THẮNG</b>",
+            confirmBody: "<h3 style='color: blue'><i class='fa-solid fa-hand-back-fist'></i> " + convertWinLoseFormat(this.match.fighters.blueFighter.name) + "</h3><h3 style='color: blue'>" + this.match.fighters.blueFighter.code + "</h3>",
+            confirmWinnerColor: 'blue'
+        });
+        console.log("blueWin() End");
+    }
+
+    redAddition = (): void => {
+        if (this.match) {
+            this.match.fighters.redFighter.score++;
+            this.saveMatch();
+        }
+    }
+
+    blueAddition = (): void => {
+        if (this.match) {
+            this.match.fighters.blueFighter.score++;
+            this.saveMatch();
+        }
+    }
+
+    redSubtraction = (): void => {
+        if (this.match) {
+            this.match.fighters.redFighter.score--;
+            this.saveMatch();
+        }
+    }
+
+    blueSubtraction = (): void => {
+        if (this.match) {
+            this.match.fighters.blueFighter.score--;
+            this.saveMatch();
+        }
+    }
+
+    remindRedDecrease = (): void => {
+        if (this.match && this.match.fighters.redFighter.caution.remind > 0) {
+            this.match.fighters.redFighter.caution.remind--;
+        }
+        this.saveMatch();
+    }
+    remindRedIncrease = (): void => {
+        if (this.match && this.match.fighters.redFighter.caution.remind < 3) {
+            this.match.fighters.redFighter.caution.remind++;
+        }
+        this.saveMatch();
+    }
+    warningRedDecrease = (): void => {
+        if (this.match && this.match.fighters.redFighter.caution.warning > 0) {
+            this.match.fighters.redFighter.caution.warning--;
+            this.match.fighters.redFighter.score = this.match.fighters.redFighter.score + 2;
+        }
+        this.saveMatch();
+    }
+    warningRedIncrease = (): void => {
+        if (this.match) {
+            this.match.fighters.redFighter.caution.warning++;
+            this.match.fighters.redFighter.caution.remind = 0;
+            this.match.fighters.redFighter.score = this.match.fighters.redFighter.score - 2;
+        }
+        this.saveMatch();
+    }
+    medicalRedDecrease = (): void => {
+        if (this.match && this.match.fighters.redFighter.caution.medical > 0) {
+            this.match.fighters.redFighter.caution.medical--;
+        }
+        this.saveMatch();
+    }
+    medicalRedIncrease = (): void => {
+        if (this.match) {
+            this.match.fighters.redFighter.caution.medical++;
+        }
+        this.saveMatch();
+    }
+    fallRedDecrease = (): void => {
+        if (this.match && this.match.fighters.redFighter.caution.fall > 0) {
+            this.match.fighters.redFighter.caution.fall--;
+            this.match.fighters.blueFighter.score--;
+        }
+        this.saveMatch();
+    }
+    fallRedIncrease = (): void => {
+        if (this.match) {
+            this.match.fighters.redFighter.caution.fall++;
+            this.match.fighters.blueFighter.score++;
+        }
+        this.saveMatch();
+    }
+    boundRedDecrease = (): void => {
+        if (this.match && this.match.fighters.redFighter.caution.bound > 0) {
+            this.match.fighters.redFighter.caution.bound--;
+            this.match.fighters.redFighter.score++;
+        }
+        this.saveMatch();
+    }
+    boundRedIncrease = (): void => {
+        if (this.match) {
+            this.match.fighters.redFighter.caution.bound++;
+            this.match.fighters.redFighter.score--;
+        }
+        this.saveMatch();
+    }
+
+    remindBlueDecrease = (): void => {
+        if (this.match && this.match.fighters.blueFighter.caution.remind > 0) {
+            this.match.fighters.blueFighter.caution.remind--;
+        }
+        this.saveMatch();
+    }
+    remindBlueIncrease = (): void => {
+        if (this.match && this.match.fighters.blueFighter.caution.remind < 3) {
+            this.match.fighters.blueFighter.caution.remind++;
+        }
+        this.saveMatch();
+    }
+    warningBlueDecrease = (): void => {
+        if (this.match && this.match.fighters.blueFighter.caution.warning > 0) {
+            this.match.fighters.blueFighter.caution.warning--;
+            this.match.fighters.blueFighter.score = this.match.fighters.blueFighter.score + 2;
+        }
+        this.saveMatch();
+    }
+    warningBlueIncrease = (): void => {
+        if (this.match) {
+            this.match.fighters.blueFighter.caution.warning++;
+            this.match.fighters.blueFighter.caution.remind = 0;
+            this.match.fighters.blueFighter.score = this.match.fighters.blueFighter.score - 2;
+        }
+        this.saveMatch();
+    }
+    medicalBlueDecrease = (): void => {
+        if (this.match && this.match.fighters.blueFighter.caution.medical > 0) {
+            this.match.fighters.blueFighter.caution.medical--;
+        }
+        this.saveMatch();
+    }
+    medicalBlueIncrease = (): void => {
+        if (this.match) {
+            this.match.fighters.blueFighter.caution.medical++;
+        }
+        this.saveMatch();
+    }
+    fallBlueDecrease = (): void => {
+        if (this.match && this.match.fighters.blueFighter.caution.fall > 0) {
+            this.match.fighters.blueFighter.caution.fall--;
+            this.match.fighters.redFighter.score--;
+        }
+        this.saveMatch();
+    }
+    fallBlueIncrease = (): void => {
+        if (this.match) {
+            this.match.fighters.blueFighter.caution.fall++;
+            this.match.fighters.redFighter.score++;
+        }
+        this.saveMatch();
+    }
+    boundBlueDecrease = (): void => {
+        if (this.match && this.match.fighters.blueFighter.caution.bound > 0) {
+            this.match.fighters.blueFighter.caution.bound--;
+            this.match.fighters.blueFighter.score++;
+        }
+        this.saveMatch();
+    }
+    boundBlueIncrease = (): void => {
+        if (this.match) {
+            this.match.fighters.blueFighter.caution.bound++;
+            this.match.fighters.blueFighter.score--;
+        }
+        this.saveMatch();
+    }
+    legStirkeRed = (): void => {
+        if (this.match) {
+            this.match.fighters.redFighter.legStrike = !this.match.fighters.redFighter.legStrike;
+            this.saveMatch();
+        }
+    }
+    legStirkeBlue = (): void => {
+        if (this.match) {
+            this.match.fighters.blueFighter.legStrike = !this.match.fighters.blueFighter.legStrike;
+            this.saveMatch();
+        }
+    }
+
+    //Hàm dùng để thay thế những trận đấu có ký hiệu W. và L. trong giải đấu
+    replaceFighter(winColor: string): void {
+        console.log("replaceFighter() Start");
+        if (!this.match || !this.combatObj || this.matchNoCurrent === undefined) return;
+
+        const matchWin = "W." + this.matchNoCurrent;
+        const matchLose = "L." + this.matchNoCurrent;
+        let winFighter: Fighter;
+        let loseFighter: Fighter;
+
+        if (winColor === "red") {
+            winFighter = this.match.fighters.redFighter;
+            loseFighter = this.match.fighters.blueFighter;
+        } else {
+            winFighter = this.match.fighters.blueFighter;
+            loseFighter = this.match.fighters.redFighter;
+        }
+
+        for (let i = this.matchNoCurrent; i < this.combatObj.length; i++) {
+            const fightersTemp = this.combatObj[i].fighters;
+            if (fightersTemp.redFighter.result === matchWin) {
+                fightersTemp.redFighter = JSON.parse(JSON.stringify(winFighter));
+                fightersTemp.redFighter.result = matchWin;
+                fightersTemp.redFighter.score = 0;
+                update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters'), fightersTemp);
+                break;
+            }
+
+            if (fightersTemp.redFighter.result === matchLose) {
+                fightersTemp.redFighter = JSON.parse(JSON.stringify(loseFighter));
+                fightersTemp.redFighter.result = matchLose;
+                fightersTemp.redFighter.score = 0;
+                update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters'), fightersTemp);
+                break;
+            }
+
+            if (fightersTemp.blueFighter.result === matchWin) {
+                fightersTemp.blueFighter = JSON.parse(JSON.stringify(winFighter));
+                fightersTemp.blueFighter.result = matchWin;
+                fightersTemp.blueFighter.score = 0;
+                update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters'), fightersTemp);
+                break;
+            }
+
+            if (fightersTemp.blueFighter.result === matchLose) {
+                fightersTemp.blueFighter = JSON.parse(JSON.stringify(loseFighter));
+                fightersTemp.blueFighter.result = matchLose;
+                fightersTemp.blueFighter.score = 0;
+                update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters'), fightersTemp);
+                break;
+            }
+        }
+        console.log("replaceFighter() End");
+    }
+
+    makeScoreTimer(): void {
+        if (!this.refereeObj || !this.match || this.matchNoCurrentIndex === undefined) return;
+
+        for (let i = 0; i < this.numReferee; i++) {
+            const referee = this.refereeObj[i];
+            if (!referee) continue;
+            
+            if (referee.redScore !== 0 || referee.blueScore !== 0) {
+                if (!this.isFirstRefereeScore) {
+                    this.isFirstRefereeScore = true;
+                }
+                this.scoreTimerCount--;
+                console.log(this.scoreTimerCount);
+                //Kết thúc nếu có >50% trọng tài chấm điểm
+                let redScoreCounter = 0;
+                let blueScoreCounter = 0;
+                for (let j = 0; j < this.numReferee; j++) {
+                    const refereeJ = this.refereeObj[j];
+                    if (!refereeJ) continue;
+                    if (refereeJ.redScore !== 0) {
+                        redScoreCounter++;
+                    }
+                    if (refereeJ.blueScore !== 0) {
+                        blueScoreCounter++;
+                    }
+                }
+                if (this.scoreTimerCount === 0 || redScoreCounter > this.numReferee / 2 || blueScoreCounter > this.numReferee / 2) {
+                    console.log("makeScoreTimer() Start");
+                    //Tổng kết và tính điểm
+                    const redScoreArray: number[] = [];
+                    const blueScoreArray: number[] = [];
+                    for (let k = 0; k < this.numReferee; k++) {
+                        redScoreArray.push(this.refereeObj[k].redScore);
+                        blueScoreArray.push(this.refereeObj[k].blueScore);
+                    }
+                    this.match.fighters.redFighter.score += getModes(redScoreArray);
+                    this.match.fighters.blueFighter.score += getModes(blueScoreArray);
+                    set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex + '/fighters'), this.match.fighters);
+                    //Reset Giám định
+                    set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/referee'), this.combatConst.referee);
+                    this.refereeObj = this.combatConst.referee;
+                    this.scoreTimerCount = this.timeScore;
+                    this.isFirstRefereeScore = false;
+                    console.log("makeScoreTimer() End");
+                    break;
+                }
+            }
+        }
+    }
+
+    makeTimer(): void {
+        if (this.timerCoundown === undefined) return;
+
+        if (this.timerCoundown < 0) {
+            //Hiệp 1 kết thúc
+            if (this.round === this.fistRound) {
+                this.round = this.breakRound;
+                this.timerCoundown = this.timeBreak;
+                this.setState({ timerBgColor: this.orangeColor });
+            }
+            //Nghỉ giữa hiệp kết thúc
+            else if (this.round === this.breakRound) {
+                this.round = this.secondRound;
+                if (this.settingObj) {
+                    this.timerCoundown = this.settingObj.combat.timeRound;
+                }
+                this.stopTimer();
+                this.setState({ timerBgColor: this.yellowColor });
+            }
+            //Hiệp 2 kết thúc
+            else if (this.round === this.secondRound) {
+                //Hết trận
+                if (this.match && this.match.fighters.redFighter.score !== this.match.fighters.blueFighter.score) {
+                    this.stopTimer();
+                    this.setState({ timerBgColor: this.redColor });
+                    if (this.match.fighters.redFighter.score > this.match.fighters.blueFighter.score) {
+                        this.redWin();
+                    } else {
+                        this.blueWin();
+                    }
+                    return;
+                } else {
+                    //Hiệp phụ khi kết quả hòa
+                    this.round = this.breakExtraRound;
+                    this.timerCoundown = this.timeExtraBreak;
+                    this.setState({ timerBgColor: this.orangeColor });
+                }
+            }
+            //Hết nghỉ hiệp phụ
+            else if (this.round === this.breakExtraRound) {
+                this.round = this.extraRound;
+                this.timerCoundown = this.timeExtra;
+                this.stopTimer();
+                this.setState({ timerBgColor: this.yellowColor });
+            }
+            //Hiệp phụ kết thúc - Hết trận
+            else if (this.round === this.extraRound) {
+                this.stopTimer();
+                this.setState({ timerBgColor: this.redColor });
+                if (this.match && this.match.fighters.redFighter.score > this.match.fighters.blueFighter.score) {
+                    this.redWin();
+                } else if (this.match && this.match.fighters.redFighter.score < this.match.fighters.blueFighter.score) {
+                    this.blueWin();
+                }
+                return;
+            }
+        }
+
+        if (this.timerCoundown === 0) {
+            this.setState({ timerBgColor: this.redColor });
+            this.minutes = "00";
+            this.seconds = "00";
+            this.playSound();
+        } else if (this.timerCoundown < 0) {
+            this.minutes = "00";
+            this.seconds = "00";
+        } else {
+            const minutes = Math.floor(this.timerCoundown / 60);
+            const seconds = Math.floor(this.timerCoundown - (minutes * 60));
+            this.minutes = minutes < 10 ? "0" + minutes : "" + minutes;
+            this.seconds = seconds < 10 ? "0" + seconds : "" + seconds;
+        }
+
+        this.setState({
+            matchTime: this.minutes + ":" + this.seconds,
+            matchRound: this.formatRoundDisplay(this.round)
+        });
+
+        this.timerCoundown--;
+    }
+
+    showShortcut = (): void => {
+        this.setState({ showModalShortcut: true });
+    }
+
+    startTimer = (): void => {
+        console.log("startTimer() Start");
+        if (this.timer) {
+            this.stopTimer();
+            this.setState({ timerBgColor: this.yellowColor });
+            this.isHumanPauseTimer = true; //Trận đấu đang được dừng bằng tay
+        } else {
+            // Nếu trận đấu đang dừng bằng tay thì không phát tiếng
+            if (this.isHumanPauseTimer) {
+                this.isHumanPauseTimer = false;
+            } else {
+                this.playSound();
+            }
+            setTimeout(() => {
+                this.timer = setInterval(() => {
+                    this.makeTimer();
+                }, 1000);
+                this.isTimerRunning = true;
+                this.setState({ timerBgColor: this.greenColor });
+            }, 0);
+        }
+        console.log("startTimer() End");
+    }
+
+    makeEffectTimer(): void {
+        if (!this.match) return;
+
+        if (this.match.match.win === "red") {
+            this.setState(prevState => ({
+                redScoreBgColor: prevState.redScoreBgColor === 'red' ? this.bodyBgColor : 'red',
+                redScoreColor: prevState.redScoreBgColor === 'red' ? 'red' : this.whiteColor,
+            }));
+        } else if (this.match.match.win === "blue") {
+            this.setState(prevState => ({
+                blueScoreBgColor: prevState.blueScoreBgColor === 'blue' ? this.bodyBgColor : 'blue',
+                blueScoreColor: prevState.blueScoreBgColor === 'blue' ? 'blue' : this.whiteColor,
+            }));
+        }
+    }
+
+    startEffectTimer(): void {
+        console.log("startEffectTimer() Start");
+        if (!this.effectTimer) {
+            this.effectTimer = setInterval(() => {
+                this.makeEffectTimer();
+            }, 500);
+        }
+        if (!this.scoreTimer) {
+            this.scoreTimer = setInterval(() => {
+                this.makeScoreTimer();
+            }, 1000);
+        }
+        console.log("startEffectTimer() End");
+    }
+
+    stopTimer(): void {
+        if (this.timer) {
+            clearInterval(this.timer);
+        }
+        this.timer = false;
+        this.isTimerRunning = false;
+    }
+
+    playSound(): void {
+        const soundElement = document.getElementById("sound") as HTMLAudioElement;
+        if (!soundElement || !soundElement.paused) {
+            return;
+        }
+        soundElement.currentTime = 0;
+        soundElement.play().catch((err) => {
+            console.warn("Sound play failed:", err);
+        });
+    }
+
+    inputPw = (value: string): void => {
+        if (value === "-1") {
+            this.setState({ password: '' });
+        } else {
+            this.setState(prevState => ({ password: prevState.password + value }));
+        }
+    }
+
+    handleConfirmOK = (): void => {
+        if (this.confirmCallback) {
+            this.confirmCallback();
+        }
+    }
+
+    render(): React.ReactNode {
+        const {
+            showPasswordModal, password,
+            showChooseArenaNoModal,
+            showModalChooseMatch, matchChooseValue,
+            showModalConfirm, confirmTitle, confirmBody, confirmWinnerColor,
+            showModalShortcut,
+            tournamentName, arenaName,
+            matchNo, matchType, matchCategory, matchTime, matchRound,
+            redFighterName, redCode, redScore,
+            blueFighterName, blueCode, blueScore,
+            showMatchPrev, showMatchNext,
+            iconWinRed, iconWinBlue,
+            timerBgColor,
+            redScoreBgColor, redScoreColor,
+            blueScoreBgColor, blueScoreColor,
+            refereeScores,
+            remindRed, warningRed, medicalRed, fallRed, boundRed,
+            remindBlue, warningBlue, medicalBlue, fallBlue, boundBlue,
+            redLegStrikeSrc, blueLegStrikeSrc,
+            redLegStrikeActive, blueLegStrikeActive,
+            showRedFlag, showBlueFlag,
+            showRedCaution, showBlueCaution,
+            showInternetStatus,
+            isShowFiveReferee
+        } = this.state;
+
+        // Calculate referee count for grid
+        const refCount = isShowFiveReferee ? 5 : 3;
+
+        // Process tournament name - replace <br>, </br>, <br/> with actual line breaks
+        const processedTournamentName = tournamentName
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<\/br>/gi, '\n');
+
+        // Build match list for dropdown
+        const matchList: { no: number; type: string; category: string }[] = [];
+        if (this.combatObj) {
+            this.combatObj.forEach((match: any, idx: number) => {
+                matchList.push({
+                    no: idx + 1,
+                    type: match.match?.type || '',
+                    category: match.match?.category || ''
+                });
+            });
+        }
+
+        // Group matches by type+category
+        const matchGroups: { [key: string]: { no: number; type: string; category: string }[] } = {};
+        matchList.forEach(m => {
+            const key = `${m.type} - ${m.category}` || 'Không xác định';
+            if (!matchGroups[key]) matchGroups[key] = [];
+            matchGroups[key].push(m);
+        });
+
+        return (
+            <div className="h-screen w-screen bg-slate-100 flex flex-col overflow-hidden">
+                {/* Header - Tournament Info */}
+                <div className="bg-white border-b border-slate-200 text-slate-800 py-2 px-4 flex items-center justify-between" style={{ minHeight: '5%' }}>
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                        <a href="#" onClick={this.showShortcut} className="flex-shrink-0">
+                            <img src={logo} alt="logo" className="h-8" />
+                        </a>
+                        <span className="text-[2vh] font-bold whitespace-pre-line leading-tight" id="tournamentName">{processedTournamentName}</span>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                        <span className="bg-slate-200 px-3 py-1 rounded font-semibold text-sm" id="arena-name">{arenaName}</span>
+                        <span className={`font-semibold text-sm px-2 py-1 rounded ${matchType?.toLowerCase().includes('chung kết') ? 'bg-yellow-400 text-yellow-900' : matchType?.toLowerCase().includes('bán kết') ? 'bg-orange-400 text-orange-900' : ''}`} id="match-type">{matchType}</span>
+                        <span className="font-medium text-sm" id="match-category">{matchCategory}</span>
+                        {showInternetStatus && (
+                            <span className="bg-red-500 text-white px-3 py-1 rounded text-sm" id="internet-status">
+                                <i className="fa-solid fa-wifi mr-1"></i>Mất kết nối
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                {/* Main Content */}
+                <div className="flex-1 flex flex-col relative" style={{ height: '95%' }}>
+                    {/* Loading Skeleton when no match data */}
+                    {(!matchNo || matchNo === 0) && (
+                        <div className="absolute inset-0 z-20 flex flex-col overflow-hidden">
+                            {/* Skeleton Top Section */}
+                            <div className="flex items-stretch" style={{ height: '30%' }}>
+                                <div className="flex-1 bg-slate-400 flex flex-col justify-center items-center">
+                                    <div className="h-8 w-48 bg-slate-500 rounded mb-2"></div>
+                                    <div className="h-6 w-24 bg-slate-500 rounded"></div>
+                                </div>
+                                <div className="flex flex-col justify-center items-center px-6 bg-slate-300" style={{ width: '20%' }}>
+                                    <div className="h-6 w-32 bg-slate-400 rounded mb-3"></div>
+                                    <div className="h-20 w-36 bg-slate-400 rounded-2xl mb-2"></div>
+                                    <div className="h-4 w-16 bg-slate-400 rounded"></div>
+                                </div>
+                                <div className="flex-1 bg-slate-400 flex flex-col justify-center items-center">
+                                    <div className="h-8 w-48 bg-slate-500 rounded mb-2"></div>
+                                    <div className="h-6 w-24 bg-slate-500 rounded"></div>
+                                </div>
+                            </div>
+                            {/* Skeleton Bottom Section */}
+                            <div className="flex-1 flex items-stretch" style={{ height: '70%' }}>
+                                <div className="flex-1 bg-slate-500 flex items-center justify-center">
+                                    <div className="h-40 w-32 bg-slate-600 rounded"></div>
+                                </div>
+                                <div className="flex flex-col justify-center gap-2 px-4 py-4 bg-slate-300" style={{ width: '12%' }}>
+                                    {[1, 2, 3].map(i => (
+                                        <div key={i} className="bg-slate-400 rounded-xl h-16 w-full"></div>
+                                    ))}
+                                </div>
+                                <div className="flex-1 bg-slate-500 flex items-center justify-center">
+                                    <div className="h-40 w-32 bg-slate-600 rounded"></div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Top Section - Fighter Info & Timer */}
+                    <div className="flex items-stretch" style={{ height: '30%' }}>
+                        {/* Red Fighter */}
+                        <div className="flex-1 bg-gradient-to-br from-red-500 to-red-600 flex flex-col justify-start items-center relative cursor-pointer pt-4" onClick={this.redWin}>
+                            {showRedFlag && (
+                                <div className="absolute top-2 left-2">
+                                    <img className="h-12 rounded shadow-lg" src={require('../assets/flag/' + this.countryRed + '.jpg')} alt="red flag" />
+                                </div>
+                            )}
+                            <div 
+                                className={`absolute top-2 right-2 cursor-pointer p-2 rounded-xl transition-all duration-300 border-2 ${
+                                    redLegStrikeActive 
+                                        ? 'bg-emerald-500 border-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.6)] scale-110' 
+                                        : 'bg-slate-700/60 border-slate-500/50 opacity-60 hover:opacity-100'
+                                }`}
+                                onClick={(e) => { e.stopPropagation(); this.legStirkeRed(); }}
+                                title="Đòn chân"
+                            >
+                                <img className="h-8" id="red-leg-strike" src={redLegStrikeSrc} alt="leg strike" />
+                            </div>
+                            {iconWinRed && (
+                                <div className="absolute top-2 left-1/2 -translate-x-1/2">
+                                    <i className="fa-solid fa-trophy text-yellow-300 text-4xl drop-shadow-lg animate-pulse"></i>
+                                </div>
+                            )}
+                            <div className="text-white text-center flex-1 flex flex-col justify-center">
+                                <div className="text-[5vh] font-bold drop-shadow-lg leading-tight" id="red-fighter">{redFighterName}</div>
+                                <div className="text-[3vh] font-medium opacity-90" id="red-code">{redCode}</div>
+                            </div>
+                            {/* Cautions */}
+                            {showRedCaution && (
+                                <div className="w-full px-2 pb-2 flex justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-1 pb-3 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.remindRedIncrease}>
+                                        <div className="text-xs truncate">Nhắc nhở</div>
+                                        <div className="text-2xl font-bold" id="remind-red">{remindRed}</div>
+                                        <div className="absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.remindRedDecrease(); }}></div>
+                                    </div>
+                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-1 pb-3 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.warningRedIncrease}>
+                                        <div className="text-xs truncate">Cảnh cáo</div>
+                                        <div className="text-2xl font-bold" id="warning-red">{warningRed}</div>
+                                        <div className="absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.warningRedDecrease(); }}></div>
+                                    </div>
+                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-1 pb-3 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.fallRedIncrease}>
+                                        <div className="text-xs truncate">Ngã</div>
+                                        <div className="text-2xl font-bold" id="fall-red">{fallRed}</div>
+                                        <div className="absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.fallRedDecrease(); }}></div>
+                                    </div>
+                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-1 pb-3 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.boundRedIncrease}>
+                                        <div className="text-xs truncate">Biên</div>
+                                        <div className="text-2xl font-bold" id="bound-red">{boundRed}</div>
+                                        <div className="absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.boundRedDecrease(); }}></div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Timer & Match Info */}
+                        <div className="flex flex-col justify-center items-center px-6" style={{ width: '20%', background: 'linear-gradient(to bottom, #f8fafc, #e2e8f0)' }}>
+                            {/* Match Navigation */}
+                            <div className="flex items-center gap-2 mb-2">
+                                {showMatchPrev && (
+                                    <button onClick={this.prevMatch} className="w-10 h-10 rounded-full bg-slate-300 hover:bg-slate-400 text-slate-700 flex items-center justify-center text-2xl transition-colors">
+                                        <i className="fa fa-caret-left"></i>
+                                    </button>
+                                )}
+                                <div className="text-[3vh] font-bold text-slate-700" id="match-no">Trận {matchNo}</div>
+                                <button onClick={() => this.setState({ showModalChooseMatch: true })} className="w-8 h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center transition-colors">
+                                    <i className="fa fa-list text-sm"></i>
+                                </button>
+                                {showMatchNext && (
+                                    <button onClick={this.nextMatch} className="w-10 h-10 rounded-full bg-slate-300 hover:bg-slate-400 text-slate-700 flex items-center justify-center text-2xl transition-colors">
+                                        <i className="fa fa-caret-right"></i>
+                                    </button>
+                                )}
+                            </div>
+                            {/* Timer */}
+                            <div 
+                                onClick={this.startTimer} 
+                                className="rounded-2xl shadow-xl cursor-pointer transition-transform hover:scale-105 hover:z-10 px-8 py-4 relative"
+                                style={{ backgroundColor: timerBgColor || '#1e293b' }}
+                            >
+                                <div className="text-[10vh] font-bold text-white font-mono leading-none" id="match-time" style={{ fontFamily: 'clockicons, monospace' }}>
+                                    {matchTime}
+                                </div>
+                            </div>
+                            {/* Round */}
+                            <div className="mt-2 text-[2.5vh] font-semibold text-slate-600" id="match-round">{matchRound}</div>
+                        </div>
+
+                        {/* Blue Fighter */}
+                        <div className="flex-1 bg-gradient-to-br from-blue-500 to-blue-600 flex flex-col justify-start items-center relative cursor-pointer pt-4" onClick={this.blueWin}>
+                            {showBlueFlag && (
+                                <div className="absolute top-2 right-2">
+                                    <img className="h-12 rounded shadow-lg" src={require('../assets/flag/' + this.countryBlue + '.jpg')} alt="blue flag" />
+                                </div>
+                            )}
+                            <div 
+                                className={`absolute top-2 left-2 cursor-pointer p-2 rounded-xl transition-all duration-300 border-2 ${
+                                    blueLegStrikeActive 
+                                        ? 'bg-emerald-500 border-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.6)] scale-110' 
+                                        : 'bg-slate-700/60 border-slate-500/50 opacity-60 hover:opacity-100'
+                                }`}
+                                onClick={(e) => { e.stopPropagation(); this.legStirkeBlue(); }}
+                                title="Đòn chân"
+                            >
+                                <img className="h-8" id="blue-leg-strike" src={blueLegStrikeSrc} alt="leg strike" />
+                            </div>
+                            {iconWinBlue && (
+                                <div className="absolute top-2 left-1/2 -translate-x-1/2">
+                                    <i className="fa-solid fa-trophy text-yellow-300 text-4xl drop-shadow-lg animate-pulse"></i>
+                                </div>
+                            )}
+                            <div className="text-white text-center flex-1 flex flex-col justify-center">
+                                <div className="text-[5vh] font-bold drop-shadow-lg leading-tight" id="blue-fighter">{blueFighterName}</div>
+                                <div className="text-[3vh] font-medium opacity-90" id="blue-code">{blueCode}</div>
+                            </div>
+                            {/* Cautions */}
+                            {showBlueCaution && (
+                                <div className="w-full px-2 pb-2 flex justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-1 pb-3 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.remindBlueIncrease}>
+                                        <div className="text-xs truncate">Nhắc nhở</div>
+                                        <div className="text-2xl font-bold" id="remind-blue">{remindBlue}</div>
+                                        <div className="absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.remindBlueDecrease(); }}></div>
+                                    </div>
+                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-1 pb-3 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.warningBlueIncrease}>
+                                        <div className="text-xs truncate">Cảnh cáo</div>
+                                        <div className="text-2xl font-bold" id="warning-blue">{warningBlue}</div>
+                                        <div className="absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.warningBlueDecrease(); }}></div>
+                                    </div>
+                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-1 pb-3 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.fallBlueIncrease}>
+                                        <div className="text-xs truncate">Ngã</div>
+                                        <div className="text-2xl font-bold" id="fall-blue">{fallBlue}</div>
+                                        <div className="absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.fallBlueDecrease(); }}></div>
+                                    </div>
+                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-1 pb-3 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.boundBlueIncrease}>
+                                        <div className="text-xs truncate">Biên</div>
+                                        <div className="text-2xl font-bold" id="bound-blue">{boundBlue}</div>
+                                        <div className="absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.boundBlueDecrease(); }}></div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Bottom Section - Scores */}
+                    <div className="flex-1 flex items-stretch" style={{ height: '70%' }}>
+                        {/* Red Score */}
+                        <div 
+                            className="flex-1 flex flex-col justify-center items-center relative cursor-pointer transition-all"
+                            style={{ backgroundColor: redScoreBgColor || '#dc2626', color: redScoreColor || 'white' }}
+                            onClick={this.redAddition}
+                        >
+                            <div className="absolute inset-x-0 top-0 h-[80%] cursor-pointer" onClick={this.redAddition}></div>
+                            <div className="absolute inset-x-0 bottom-0 h-[15%] cursor-pointer bg-black/10" onClick={(e) => { e.stopPropagation(); this.redSubtraction(); }}></div>
+                            <div className="text-[45vh] font-bold leading-none drop-shadow-2xl" id="red-score">{redScore}</div>
+                        </div>
+
+                        {/* Referee Scores */}
+                        <div className="flex flex-col justify-center gap-2 px-4 py-4" style={{ width: '12%', background: 'linear-gradient(to bottom, #f1f5f9, #e2e8f0)' }}>
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="bg-white rounded-xl shadow-lg overflow-hidden flex-1 flex flex-col">
+                                    <div className="bg-slate-600 text-white text-center py-1 text-[1.5vh] font-semibold">
+                                        Giám định {i}
+                                    </div>
+                                    <div className="flex-1 flex">
+                                        <div 
+                                            className="flex-1 flex items-center justify-center text-[4vh] font-bold border-r border-slate-200"
+                                            style={{ backgroundColor: refereeScores[i-1]?.redBg || 'white', color: refereeScores[i-1]?.redColor || '#dc2626' }}
+                                        >
+                                            <span id={`red-score-${i}`}>{refereeScores[i-1]?.redScore || 0}</span>
+                                        </div>
+                                        <div 
+                                            className="flex-1 flex items-center justify-center text-[4vh] font-bold"
+                                            style={{ backgroundColor: refereeScores[i-1]?.blueBg || 'white', color: refereeScores[i-1]?.blueColor || '#2563eb' }}
+                                        >
+                                            <span id={`blue-score-${i}`}>{refereeScores[i-1]?.blueScore || 0}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            {isShowFiveReferee && [4, 5].map(i => (
+                                <div key={i} className="bg-white rounded-xl shadow-lg overflow-hidden flex-1 flex flex-col">
+                                    <div className="bg-slate-600 text-white text-center py-1 text-[1.5vh] font-semibold">
+                                        Giám định {i}
+                                    </div>
+                                    <div className="flex-1 flex">
+                                        <div 
+                                            className="flex-1 flex items-center justify-center text-[4vh] font-bold border-r border-slate-200"
+                                            style={{ backgroundColor: refereeScores[i-1]?.redBg || 'white', color: refereeScores[i-1]?.redColor || '#dc2626' }}
+                                        >
+                                            <span id={`red-score-${i}`}>{refereeScores[i-1]?.redScore || 0}</span>
+                                        </div>
+                                        <div 
+                                            className="flex-1 flex items-center justify-center text-[4vh] font-bold"
+                                            style={{ backgroundColor: refereeScores[i-1]?.blueBg || 'white', color: refereeScores[i-1]?.blueColor || '#2563eb' }}
+                                        >
+                                            <span id={`blue-score-${i}`}>{refereeScores[i-1]?.blueScore || 0}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Blue Score */}
+                        <div 
+                            className="flex-1 flex flex-col justify-center items-center relative cursor-pointer transition-all"
+                            style={{ backgroundColor: blueScoreBgColor || '#2563eb', color: blueScoreColor || 'white' }}
+                            onClick={this.blueAddition}
+                        >
+                            <div className="absolute inset-x-0 top-0 h-[80%] cursor-pointer" onClick={this.blueAddition}></div>
+                            <div className="absolute inset-x-0 bottom-0 h-[15%] cursor-pointer bg-black/10" onClick={(e) => { e.stopPropagation(); this.blueSubtraction(); }}></div>
+                            <div className="text-[45vh] font-bold leading-none drop-shadow-2xl" id="blue-score">{blueScore}</div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Password Modal */}
+                <div className={`fixed inset-0 z-50 ${showPasswordModal ? 'flex' : 'hidden'} items-center justify-center bg-black/50`}>
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4">
+                        <div className="flex items-center justify-between px-6 py-4 border-b">
+                            <h5 className="text-lg font-semibold text-slate-800">
+                                <i className="fa-solid fa-lock mr-2 text-blue-500"></i>Vui lòng nhập mật khẩu
+                            </h5>
+                            <button onClick={() => this.setState({ showPasswordModal: false })} className="text-slate-400 hover:text-slate-600 text-2xl">×</button>
+                        </div>
+                        <div className="p-6">
+                            <div className="flex mb-4">
+                                <span className="flex items-center px-4 bg-slate-100 border border-r-0 border-slate-300 rounded-l-lg">
+                                    <i className="fa fa-key text-slate-500"></i>
+                                </span>
+                                <input type="password" className="flex-1 px-4 py-3 border border-slate-300 text-lg" placeholder="Mật khẩu" value={password} disabled />
+                                <button onClick={() => this.inputPw('-1')} className="px-4 bg-red-500 hover:bg-red-600 text-white rounded-r-lg">
+                                    <i className="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                            <div className="grid grid-cols-5 gap-2 mb-2">
+                                {['1', '2', '3', '4', '5'].map(n => (
+                                    <button key={n} onClick={() => this.inputPw(n)} className="py-4 text-xl font-semibold bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+                                        {n}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="grid grid-cols-5 gap-2">
+                                {['6', '7', '8', '9', '0'].map(n => (
+                                    <button key={n} onClick={() => this.inputPw(n)} className="py-4 text-xl font-semibold bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+                                        {n}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-3 px-6 py-4 border-t bg-slate-50">
+                            <button onClick={this.verifyPassword} className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors">OK</button>
+                            <button onClick={() => this.setState({ showPasswordModal: false })} className="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-lg transition-colors">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Choose Arena Modal */}
+                <div className={`fixed inset-0 z-50 ${showChooseArenaNoModal ? 'flex' : 'hidden'} items-center justify-center bg-black/50`}>
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4">
+                        <div className="flex items-center justify-between px-6 py-4 border-b">
+                            <h5 className="text-lg font-semibold text-slate-800">
+                                <i className="fa-solid fa-id-badge mr-2 text-blue-500"></i>Chọn giải và sân thi đấu
+                            </h5>
+                            <button onClick={() => this.setState({ showChooseArenaNoModal: false })} className="text-slate-400 hover:text-slate-600 text-2xl">×</button>
+                        </div>
+                        <div className="p-6 max-h-96 overflow-y-auto">
+                            <div className="space-y-2 mb-6">
+                                {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
+                                    <label key={i} className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-blue-50 cursor-pointer transition-colors">
+                                        <input type="radio" name="tournamentRadio" defaultChecked={i === 0} onClick={() => this.chooseTournament(i)} className="w-5 h-5 text-blue-500" />
+                                        <span className="font-medium text-slate-700">{tournament[1]}</span>
+                                    </label>
+                                )) : null}
+                            </div>
+                            <hr className="my-4" />
+                            <div className="flex justify-center gap-4">
+                                <label className="flex-1 cursor-pointer">
+                                    <input type="radio" name="optionsArena" id="optionsArena0" value="0" defaultChecked className="peer sr-only" />
+                                    <div className="p-4 text-center border-2 border-slate-200 rounded-xl peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:bg-slate-50 transition-all">
+                                        <i className="fa-solid fa-chess-board text-3xl text-slate-600 mb-2"></i>
+                                        <div className="font-semibold text-slate-700">Sân A</div>
+                                    </div>
+                                </label>
+                                <label className="flex-1 cursor-pointer">
+                                    <input type="radio" name="optionsArena" id="optionsArena1" value="1" className="peer sr-only" />
+                                    <div className="p-4 text-center border-2 border-slate-200 rounded-xl peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:bg-slate-50 transition-all">
+                                        <i className="fa-solid fa-chess-board text-3xl text-slate-600 mb-2"></i>
+                                        <div className="font-semibold text-slate-700">Sân B</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-3 px-6 py-4 border-t bg-slate-50">
+                            <button onClick={this.chooseArenaNo} className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors">OK</button>
+                            <button onClick={() => this.setState({ showChooseArenaNoModal: false })} className="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-lg transition-colors">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Choose Match Modal - Grouped by Type/Category */}
+                <div className={`fixed inset-0 z-50 ${showModalChooseMatch ? 'flex' : 'hidden'} items-center justify-center bg-black/50`}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-4 overflow-hidden">
+                        <div className="flex items-center justify-between px-6 py-4 bg-emerald-600">
+                            <h5 className="text-lg font-semibold text-white">
+                                <i className="fa-solid fa-list mr-2"></i>Chọn trận theo nội dung
+                            </h5>
+                            <button onClick={() => this.setState({ showModalChooseMatch: false })} className="text-white/80 hover:text-white text-2xl">×</button>
+                        </div>
+                        <div className="p-4 max-h-[65vh] overflow-y-auto">
+                            {Object.keys(matchGroups).length > 0 ? (
+                                <div className="space-y-5">
+                                    {Object.entries(matchGroups).map(([typeCat, matches], gi) => (
+                                        <div key={gi} className="border border-slate-200 rounded-xl overflow-hidden">
+                                            {/* Type/Category Header */}
+                                            <div className="bg-emerald-600 px-4 py-3 font-bold text-white flex items-center gap-2">
+                                                <i className="fa-solid fa-trophy"></i>
+                                                <span>{typeCat}</span>
+                                                <span className="ml-auto bg-white/20 px-2 py-0.5 rounded text-sm">{matches.length} trận</span>
+                                            </div>
+                                            {/* Matches grid */}
+                                            <div className="p-3 grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2 bg-slate-50">
+                                                {matches.map((m, idx) => {
+                                                    const isCurrentMatch = m.no === matchNo;
+                                                    return (
+                                                        <button
+                                                            key={idx}
+                                                            onClick={() => {
+                                                                this.matchNoCurrent = m.no;
+                                                                this.restoreMatch();
+                                                                this.setState({ showModalChooseMatch: false });
+                                                            }}
+                                                            className={`text-center px-2 py-3 rounded-lg transition-colors border hover:shadow-md ${
+                                                                isCurrentMatch 
+                                                                    ? 'bg-amber-400 border-amber-500 ring-2 ring-amber-300' 
+                                                                    : 'bg-white hover:bg-emerald-100 border-slate-200 hover:border-emerald-500'
+                                                            }`}
+                                                        >
+                                                            <div className={`text-lg font-bold ${isCurrentMatch ? 'text-white' : 'text-emerald-600'}`}>{m.no}</div>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-8 text-slate-500">Chưa có dữ liệu trận đấu</div>
+                            )}
+                        </div>
+                        <div className="flex justify-end px-6 py-3 border-t bg-slate-50">
+                            <button onClick={() => this.setState({ showModalChooseMatch: false })} className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg transition-colors">Đóng</button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Confirm Modal */}
+                <div className={`fixed inset-0 z-50 ${showModalConfirm ? 'flex' : 'hidden'} items-center justify-center bg-black/60 backdrop-blur-sm`}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+                        <div className={`px-6 py-4 ${
+                            confirmWinnerColor === 'red' 
+                                ? 'bg-gradient-to-r from-red-500 to-red-600' 
+                                : confirmWinnerColor === 'blue' 
+                                    ? 'bg-gradient-to-r from-blue-500 to-blue-600'
+                                    : 'bg-gradient-to-r from-amber-500 to-orange-500'
+                        }`}>
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                                    <i className={`fa-solid ${confirmWinnerColor ? 'fa-trophy' : 'fa-question'} text-white text-lg`}></i>
+                                </div>
+                                <h5 className="text-lg font-bold text-white" dangerouslySetInnerHTML={{ __html: confirmTitle }}></h5>
+                            </div>
+                        </div>
+                        <div className="p-6">
+                            <p className="text-slate-600 text-base leading-relaxed" dangerouslySetInnerHTML={{ __html: confirmBody }}></p>
+                        </div>
+                        <div className="flex gap-3 px-6 py-4 bg-slate-50 border-t">
+                            <button onClick={() => this.setState({ showModalConfirm: false, confirmWinnerColor: null })} className="flex-1 px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-xl transition-colors">
+                                <i className="fa-solid fa-xmark mr-2"></i>Hủy
+                            </button>
+                            <button onClick={this.handleConfirmOK} id="buttonConfirmOK" className={`flex-1 px-4 py-2.5 text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-xl ${
+                                confirmWinnerColor === 'red'
+                                    ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'
+                                    : confirmWinnerColor === 'blue'
+                                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'
+                                        : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600'
+                            }`}>
+                                <i className="fa-solid fa-check mr-2"></i>Xác nhận
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Shortcut Modal */}
+                <div className={`fixed inset-0 z-50 ${showModalShortcut ? 'flex' : 'hidden'} items-center justify-center bg-black/50`}>
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4">
+                        <div className="flex items-center justify-between px-6 py-4 border-b">
+                            <h5 className="text-lg font-semibold text-slate-800">
+                                <i className="fa-solid fa-keyboard mr-2 text-blue-500"></i>Các phím tắt
+                            </h5>
+                            <button onClick={() => this.setState({ showModalShortcut: false })} className="text-slate-400 hover:text-slate-600 text-2xl">×</button>
+                        </div>
+                        <div className="p-6">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-slate-200">
+                                        <th className="py-3 px-4 text-left text-sm font-semibold text-slate-600">Biểu Tượng</th>
+                                        <th className="py-3 px-4 text-left text-sm font-semibold text-slate-600">Tên phím</th>
+                                        <th className="py-3 px-4 text-left text-sm font-semibold text-slate-600">Chức năng</th>
+                                        <th className="py-3 px-4 text-left text-sm font-semibold text-slate-600">Ghi chú</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-slate-700">
+                                    <tr className="border-b border-slate-100"><td className="py-2 px-4 font-mono">←</td><td className="py-2 px-4">Trái</td><td className="py-2 px-4 text-red-600">-1 điểm cho Đỏ</td><td className="py-2 px-4"></td></tr>
+                                    <tr className="border-b border-slate-100"><td className="py-2 px-4 font-mono">↑</td><td className="py-2 px-4">Lên</td><td className="py-2 px-4 text-red-600">+1 điểm cho Đỏ</td><td className="py-2 px-4"></td></tr>
+                                    <tr className="border-b border-slate-100"><td className="py-2 px-4 font-mono">→</td><td className="py-2 px-4">Phải</td><td className="py-2 px-4 text-blue-600">+1 điểm cho Xanh</td><td className="py-2 px-4"></td></tr>
+                                    <tr className="border-b border-slate-100"><td className="py-2 px-4 font-mono">↓</td><td className="py-2 px-4">Xuống</td><td className="py-2 px-4 text-blue-600">-1 điểm cho Xanh</td><td className="py-2 px-4"></td></tr>
+                                    <tr className="border-b border-slate-100"><td className="py-2 px-4 font-mono">—</td><td className="py-2 px-4">Cách</td><td className="py-2 px-4">Điều khiển đồng hồ</td><td className="py-2 px-4 text-slate-500">Space</td></tr>
+                                    <tr className="border-b border-slate-100"><td className="py-2 px-4 font-mono">T</td><td className="py-2 px-4">T</td><td className="py-2 px-4">Lùi trận trước</td><td className="py-2 px-4"></td></tr>
+                                    <tr className="border-b border-slate-100"><td className="py-2 px-4 font-mono">C</td><td className="py-2 px-4">C</td><td className="py-2 px-4">Chọn trận nhảy cóc</td><td className="py-2 px-4"></td></tr>
+                                    <tr className="border-b border-slate-100"><td className="py-2 px-4 font-mono">D</td><td className="py-2 px-4">D</td><td className="py-2 px-4 text-red-600">Đỏ thắng</td><td className="py-2 px-4"></td></tr>
+                                    <tr><td className="py-2 px-4 font-mono">X</td><td className="py-2 px-4">X</td><td className="py-2 px-4 text-blue-600">Xanh thắng</td><td className="py-2 px-4"></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="flex justify-end px-6 py-4 border-t bg-slate-50">
+                            <button onClick={() => this.setState({ showModalShortcut: false })} className="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-lg transition-colors">Đóng</button>
+                        </div>
+                    </div>
+                </div>
+                <div style={{ display: 'none' }}>
+                    <audio id="sound">
+                        <source src={sound} type="audio/mpeg" />
+                    </audio>
+                </div>
+                <ToastContainer />
+
+            </div>
+        );
+    }
+}
+
+export default GiamSatDoiKhangContainer;

@@ -3,6 +3,8 @@
         "git checkout": true,
         "mkdir": true,
         "git add": true,
-        "git commit": true
+        "git commit": true,
+        "npm install": true,
+        "npx tailwindcss": true
     }
 }

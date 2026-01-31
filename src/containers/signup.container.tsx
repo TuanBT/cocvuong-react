@@ -1,16 +1,19 @@
 import React, { Component } from 'react';
 
-class LoginContainer extends Component {
-  constructor(props) {
+interface SignupContainerProps {}
+
+interface SignupContainerState {}
+
+class SignupContainer extends Component<SignupContainerProps, SignupContainerState> {
+  constructor(props: SignupContainerProps) {
     super(props);
   }
 
   render() {
     return (
       <div>
-
         <div className="container-auth">
-          <h2>Login</h2>
+          <h2>Create an account</h2>
 
           <form>
             <input
@@ -23,18 +26,14 @@ class LoginContainer extends Component {
               type="password"
               placeholder="Password"
             />
-
             <div className="container-buttons">
-              <button type="submit">Log In</button>
-              <button type="button"> Google </button>
+              <button type="submit">Sign up</button>
             </div>
           </form>
         </div>
-
-
       </div>
     );
   }
 }
 
-export default LoginContainer;
+export default SignupContainer;

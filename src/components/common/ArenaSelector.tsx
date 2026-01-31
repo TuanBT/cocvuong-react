@@ -1,10 +1,16 @@
 import React from 'react';
 
+interface ArenaSelectorProps {
+  arenas?: string[];
+  selectedIndex?: number;
+  onSelect: (index: number) => void;
+}
+
 /**
  * ArenaSelector Component  
  * Chọn sàn đấu từ danh sách
  */
-const ArenaSelector = ({ 
+const ArenaSelector: React.FC<ArenaSelectorProps> = ({ 
   arenas = [], 
   selectedIndex = 0, 
   onSelect 

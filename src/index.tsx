@@ -2,8 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 import 'bootstrap/dist/css/bootstrap.css';
-import '../src/assets/css/style.css';
-import { Route, HashRouter } from 'react-router-dom'
+import './assets/css/style.css';
+import { Route, HashRouter } from 'react-router-dom';
 import HomeContainer from './containers/home.container';
 import TestContainer from './containers/test.container';
 import InformationDkContainer from './containers/infomationDK.container';
@@ -19,6 +19,13 @@ import SignupContainer from './containers/signup.container';
 import ReactGA from 'react-ga4';
 import { ErrorBoundary } from './components/common';
 
+// Extend Window interface for GA_INITIALIZED
+declare global {
+  interface Window {
+    GA_INITIALIZED?: boolean;
+  }
+}
+
 // Initialize GA4 - Only once
 if (!window.GA_INITIALIZED) {
   ReactGA.initialize('G-HPGXRB180Q');
@@ -27,7 +34,6 @@ if (!window.GA_INITIALIZED) {
 
 // Track pageview
 ReactGA.send({ hitType: "pageview", page: window.location.pathname });
-
 
 ReactDOM.render(
   <ErrorBoundary>
