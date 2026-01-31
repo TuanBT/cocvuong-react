@@ -27,12 +27,14 @@ export const DEFAULT_TIME_SETTINGS = {
  */
 export const REFEREE_COUNT = {
   DEFAULT: 3,
-  EXTENDED: 5
+  FIVE: 5,
+  EXTENDED: 5  // alias
 };
 
 /**
  * Thời gian cho phép chấm điểm từ giám định đầu tới cuối (giây)
  */
 export const SCORE_TIME_LIMIT = 2;
+export const TIME_SCORE = 2; // alias for backward compatibility
 
 export default ROUNDS;
