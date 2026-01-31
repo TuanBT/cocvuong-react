@@ -1,50 +1,64 @@
 import React, { Component } from 'react';
 import $ from 'jquery';
 import Firebase from '../firebase';
-import { ref, set, get, update, remove, child, onValue } from "firebase/database";
+import { ref, set, get, update, child, onValue, off } from "firebase/database";
 import logo from '../assets/img/logo.png';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { NavLink } from "react-router-dom";
 
+// Import constants
+import { DEFAULT_SETTING, DEFAULT_COMMON_SETTING } from '../constants/settings';
+
 class SettingContainer extends Component {
+  // Firebase listener references for cleanup
+  firebaseListeners = [];
+
   constructor(props) {
-    document.title = 'Thiết Đặt';
     super(props);
-    const me = this;
+    document.title = 'Thiết Đặt';
+    
     this.state = {
       data: []
     };
 
-
     this.db = Firebase();
-    this.settingObj;
-    this.tournamentObj;
+    this.settingObj = null;
+    this.tournamentObj = null;
 
     this.tournamentNoIndex = 0;
 
-    this.settingConst = { "setting": { "combat": { "isShowArenaB": true, "isShowCautionBox": true, "isShowCountryFlag": true, "isShowFiveReferee": false, "timeBreak": 60, "timeExtra": 120, "timeExtraBreak": 60, "timeRound": 120 }, "martial": { "isShowArenaB": true, "isShowCountryFlag": true, "isShowFiveReferee": false }, "tournamentName": "Cóc Vương" } };
-    this.commonSettingConst = { "passwordSetting": 1, "passwordGiamSat": 1, "passwordGiamDinh": 1 };
+    // Use constants instead of hardcoded values
+    this.settingConst = JSON.parse(JSON.stringify(DEFAULT_SETTING));
+    this.commonSettingConst = JSON.parse(JSON.stringify(DEFAULT_COMMON_SETTING));
   }
 
   componentDidMount() {
     this.showPasswordModal();
-    // this.main();
+  }
+
+  componentWillUnmount() {
+    // Cleanup Firebase listeners
+    this.firebaseListeners.forEach(listenerRef => {
+      off(listenerRef);
+    });
+    this.firebaseListeners = [];
   }
 
   verifyPassword = () => {
-    var password = $('#txtPassword').val();
+    const password = $('#txtPassword').val();
 
-    if (password != null && password != "") {
-      onValue(ref(this.db, 'commonSetting/passwordSetting'), (snapshot) => {
-        if (password == snapshot.val()) {
+    if (password != null && password !== "") {
+      const passwordRef = ref(this.db, 'commonSetting/passwordSetting');
+      onValue(passwordRef, (snapshot) => {
+        if (password === snapshot.val()) {
           this.hidePasswordModal();
           this.main();
         } else {
           toast.error("Sai mật khẩu!");
-          location.reload();
+          window.location.reload();
         }
-      })
+      }, { onlyOnce: true });
     } else {
       toast.error("Sai mật khẩu!");
     }

@@ -1,33 +1,38 @@
 import React, { Component } from 'react';
 import $ from 'jquery';
 import Firebase from '../firebase';
-import { ref, set, get, update, remove, child, onValue } from "firebase/database";
+import { ref, set, get, update, child, onValue, off } from "firebase/database";
 import logo from '../assets/img/logo.png';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+// Import constants
+import { REFEREE_COUNT } from '../constants/rounds';
+
 class GiamDinhDoiKhangContainer extends Component {
+  // Firebase listener references for cleanup
+  firebaseListeners = [];
+
   constructor(props) {
-    document.title = 'Giám Định Đối Kháng';
     super(props);
-    const me = this;
+    document.title = 'Giám Định Đối Kháng';
+    
     this.db = Firebase();
 
-    this.round = me.fistRound;
-    this.matchNoCurrent;
-    this.matchNoCurrentIndex;
-    this.tournamentObj;
-    this.settingObj;
-    this.match;
-    this.scoreTimer;
-    this.numReferee = 3; //Số lượng Giám định chấm điểm
+    this.round = this.fistRound;
+    this.matchNoCurrent = undefined;
+    this.matchNoCurrentIndex = undefined;
+    this.tournamentObj = null;
+    this.settingObj = null;
+    this.match = null;
+    this.scoreTimer = null;
+    this.numReferee = REFEREE_COUNT.DEFAULT;
 
     this.refereeName = "";
     this.referreIndex = -1;
     this.path = "";
     this.combatArenaNoIndex = 0;
-    this.matchNoCurrentIndex;
-    this.teamNoCurrentIndex;
+    this.teamNoCurrentIndex = undefined;
     this.tournamentNoIndex = 0;
   }
 
@@ -36,19 +41,31 @@ class GiamDinhDoiKhangContainer extends Component {
     this.showPasswordModal();
   }
 
-  verifyPassword = () => {
-    var password = $('#txtPassword').val();
+  componentWillUnmount() {
+    // Cleanup event listeners
+    document.removeEventListener("keydown", this._handleKeyDown);
+    
+    // Cleanup Firebase listeners
+    this.firebaseListeners.forEach(listenerRef => {
+      off(listenerRef);
+    });
+    this.firebaseListeners = [];
+  }
 
-    if (password != null && password != "") {
-      onValue(ref(this.db, 'commonSetting/passwordGiamDinh'), (snapshot) => {
-        if (password == snapshot.val()) {
+  verifyPassword = () => {
+    const password = $('#txtPassword').val();
+
+    if (password != null && password !== "") {
+      const passwordRef = ref(this.db, 'commonSetting/passwordGiamDinh');
+      onValue(passwordRef, (snapshot) => {
+        if (password === snapshot.val()) {
           this.hidePasswordModal();
           this.main();
         } else {
           toast.error("Sai mật khẩu!");
-          location.reload();
+          window.location.reload();
         }
-      })
+      }, { onlyOnce: true });
     } else {
       toast.error("Sai mật khẩu!");
     }
@@ -68,11 +85,11 @@ class GiamDinhDoiKhangContainer extends Component {
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       $('#tournamentName').html(this.settingObj.tournamentName);
-      let refereeChoose123 = "<input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee1' value='1' checked><label class='btn btn-outline-secondary' for='optionsReferee1'><i class='fa-solid fa-user'></i><br>Giám định 1</label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee2' value='2'><label class='btn btn-outline-secondary' for='optionsReferee2'><i class='fa-solid fa-user'></i><br>Giám định 2</label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee3' value='3'><label class='btn btn-outline-secondary' for='optionsReferee3'><i class='fa-solid fa-user'></i><br>Giám định 3</label>";
+      const refereeChoose123 = "<input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee1' value='1' checked><label class='btn btn-outline-secondary' for='optionsReferee1'><i class='fa-solid fa-user'></i><br>Giám định 1</label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee2' value='2'><label class='btn btn-outline-secondary' for='optionsReferee2'><i class='fa-solid fa-user'></i><br>Giám định 2</label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee3' value='3'><label class='btn btn-outline-secondary' for='optionsReferee3'><i class='fa-solid fa-user'></i><br>Giám định 3</label>";
       $(".refereeChoose").append(refereeChoose123);
       if (this.settingObj.combat.isShowFiveReferee === true) {
-        this.numReferee = 5;
-        let refereeChoose45 = "<input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee4' value='4'/> <label class='btn btn-outline-secondary' for='optionsReferee4'> <i class='fa-solid fa-user'></i> <br/>Giám định 4 </label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee5' value='5'/> <label class='btn btn-outline-secondary' for='optionsReferee5'> <i class='fa-solid fa-user'></i> <br/>Giám định 5 </label>"
+        this.numReferee = REFEREE_COUNT.FIVE;
+        const refereeChoose45 = "<input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee4' value='4'/> <label class='btn btn-outline-secondary' for='optionsReferee4'> <i class='fa-solid fa-user'></i> <br/>Giám định 4 </label><input type='radio' class='btn-check' name='optionsReferee' id='optionsReferee5' value='5'/> <label class='btn btn-outline-secondary' for='optionsReferee5'> <i class='fa-solid fa-user'></i> <br/>Giám định 5 </label>"
         $(".refereeChoose").append(refereeChoose45);
       }
       this.showChooseRefereeNoModal();
@@ -85,30 +102,30 @@ class GiamDinhDoiKhangContainer extends Component {
 
   _handleKeyDown = (e) => {
     //Left arrow
-    if (e.which == 37) {
+    if (e.which === 37) {
       this.redAddition(2);
     }//up arrow
-    if (e.which == 38) {
+    if (e.which === 38) {
       this.redAddition(1);
     }
     //Right arrow
-    if (e.which == 39) {
+    if (e.which === 39) {
       this.blueAddition(2);
     }
     //Down arrow
-    if (e.which == 40) {
+    if (e.which === 40) {
       this.blueAddition(1);
     }
   }
 
   chooseRefereeNo = () => {
-    let combatArenaNo = $("input:radio[name ='optionsArena']:checked").val();
+    const combatArenaNo = $("input:radio[name ='optionsArena']:checked").val();
     this.combatArenaNoIndex = combatArenaNo;
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/combatArenaName')).then((snapshot) => {
       $('#arena-name').html(snapshot.val());
     })
-    let refereeNo = $("input:radio[name ='optionsReferee']:checked").val();
-    if (refereeNo != null && refereeNo != "") {
+    const refereeNo = $("input:radio[name ='optionsReferee']:checked").val();
+    if (refereeNo != null && refereeNo !== "") {
       this.hideChooseRefereeNoModal();
 
       for (let i = 1; i <= this.numReferee; i++) {
@@ -119,15 +136,19 @@ class GiamDinhDoiKhangContainer extends Component {
       }
       $("#gd-name").html(this.refereeName);
 
-      onValue(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/lastMatch/no'), (snapshot) => {
-        let matchCurrentNoIndex = snapshot.val() - 1;
-        let matchCurrentNo = matchCurrentNoIndex + 1
+      const lastMatchRef = ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/lastMatch/no');
+      this.firebaseListeners.push(lastMatchRef);
+      onValue(lastMatchRef, (snapshot) => {
+        const matchCurrentNoIndex = snapshot.val() - 1;
+        const matchCurrentNo = matchCurrentNoIndex + 1
         $("#gd-match").html("Trận số " + matchCurrentNo);
         this.path = "tournament/" + this.tournamentNoIndex + "/combatArena/" + this.combatArenaNoIndex + "/referee/" + this.referreIndex;
       })
 
       //Kiểm tra kết nối internet
-      onValue(ref(this.db, '.info/connected'), (snapshot) => {
+      const connectedRef = ref(this.db, '.info/connected');
+      this.firebaseListeners.push(connectedRef);
+      onValue(connectedRef, (snapshot) => {
         if (!snapshot.val() === true) {
           $('#internet-status').show();
         } else {
@@ -171,11 +192,11 @@ class GiamDinhDoiKhangContainer extends Component {
   }
 
   inputPw = (value) => {
+    const $password = $("#txtPassword");
     if (value === "-1") {
-      $("#txtPassword").val("");
+      $password.val("");
     } else {
-      let oldValue = $("#txtPassword").val();
-      $("#txtPassword").val(oldValue + value);
+      $password.val($password.val() + value);
     }
   }
 

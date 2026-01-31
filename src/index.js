@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import './index.css';
 import 'bootstrap/dist/css/bootstrap.css';
 import '../src/assets/css/style.css';
-import { BrowserRouter, Route, HashRouter } from 'react-router-dom'
+import { Route, HashRouter } from 'react-router-dom'
 import HomeContainer from './containers/home.container';
 import TestContainer from './containers/test.container';
 import InformationDkContainer from './containers/infomationDK.container';
@@ -17,33 +17,36 @@ import CreateTournamentContainer from './containers/createTournament.container';
 import LoginContainer from './containers/login.container';
 import SignupContainer from './containers/signup.container';
 import ReactGA from 'react-ga4';
+import { ErrorBoundary } from './components/common';
 
-// Initialize GA4
-ReactGA.initialize('G-HPGXRB180Q');
+// Initialize GA4 - Only once
+if (!window.GA_INITIALIZED) {
+  ReactGA.initialize('G-HPGXRB180Q');
+  window.GA_INITIALIZED = true;
+}
 
 // Track pageview
 ReactGA.send({ hitType: "pageview", page: window.location.pathname });
 
-// Initialize GA4
-ReactGA.initialize('G-HPGXRB180Q');
-
 
 ReactDOM.render(
-  <HashRouter>
-    <div>
-      <Route path="/" exact component={HomeContainer} />
-      <Route path="/test" component={TestContainer} />
-      <Route path="/thong-tin-doi-khang" component={InformationDkContainer} />
-      <Route path="/thong-tin-thi-quyen" component={InformationTqContainer} />
-      <Route path="/giam-sat-doi-khang" component={GiamSatDoiKhangContainer} />
-      <Route path="/giam-sat-thi-quyen" component={GiamSatThiQuyenContainer} />
-      <Route path="/giam-dinh-thi-quyen" component={GiamDinhThiQuyenContainer} />
-      <Route path="/giam-dinh-doi-khang" component={GiamDinhDoiKhangContainer} />
-      <Route path="/thiet-dat" component={SettingContainer} />
-      <Route path="/tao-giai" component={CreateTournamentContainer} />
-      <Route path="/login" component={LoginContainer} />
-      <Route path="/signup" component={SignupContainer} />
-    </div>
-  </HashRouter>,
+  <ErrorBoundary>
+    <HashRouter>
+      <div>
+        <Route path="/" exact component={HomeContainer} />
+        <Route path="/test" component={TestContainer} />
+        <Route path="/thong-tin-doi-khang" component={InformationDkContainer} />
+        <Route path="/thong-tin-thi-quyen" component={InformationTqContainer} />
+        <Route path="/giam-sat-doi-khang" component={GiamSatDoiKhangContainer} />
+        <Route path="/giam-sat-thi-quyen" component={GiamSatThiQuyenContainer} />
+        <Route path="/giam-dinh-thi-quyen" component={GiamDinhThiQuyenContainer} />
+        <Route path="/giam-dinh-doi-khang" component={GiamDinhDoiKhangContainer} />
+        <Route path="/thiet-dat" component={SettingContainer} />
+        <Route path="/tao-giai" component={CreateTournamentContainer} />
+        <Route path="/login" component={LoginContainer} />
+        <Route path="/signup" component={SignupContainer} />
+      </div>
+    </HashRouter>
+  </ErrorBoundary>,
   document.getElementById('root')
 );

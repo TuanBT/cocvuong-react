@@ -1,97 +1,124 @@
 import React, {Component} from 'react';
 import $ from 'jquery';
 import Firebase from '../firebase';
-import {ref, set, get, update, remove, child, onValue} from "firebase/database";
+import {ref, set, get, update, child, onValue, off} from "firebase/database";
 import logo from '../assets/img/logo.png';
 import sound from '../assets/sound/School_Bell.mp3';
 import {ToastContainer, toast} from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+// Import constants
+import { COLORS } from '../constants/colors';
+import { ROUNDS, REFEREE_COUNT, TIME_SCORE } from '../constants/rounds';
+import { DEFAULT_COMBAT_CONST, DEFAULT_MATCH_OBJ } from '../constants/settings';
+
+// Import utils
+import { convertWinLoseFormat, getModes, resizeTextToFit } from '../utils/helpers';
+
 class GiamSatDoiKhangContainer extends Component {
+    // Firebase listener references for cleanup
+    firebaseListeners = [];
+
     constructor(props) {
-        document.title = 'Giám Sát Đối Kháng';
         super(props);
-        const me = this;
+        document.title = 'Giám Sát Đối Kháng';
+        
         this.db = Firebase();
         this.state = {
             data: []
         };
 
-        this.fistRound = "Hiệp 1";
-        this.breakRound = "Nghỉ giữa hiệp";
-        this.secondRound = "Hiệp 2";
-        this.breakExtraRound = "Nghỉ hiệp phụ";
-        this.extraRound = "Hiệp phụ";
-        this.greenColor = "#27ae60"; //Lục - Green
-        this.yellowColor = "#f1c40f"; //Vàng - Yellow
-        this.redColor = "#e74c3c"; //Đỏ - red
-        this.grayColor = "#95a5a6"; //Xám - Gray
-        this.whiteColor = "#ffffff"; //Trắng - white
-        this.blackColor = "#000000"; //Đen - black
-        this.orangeColor = "#e67e22"; //Cam - Orange
-        this.bodyBgColor = "#ecf0f1"; //Xám nhạt
-        this.silverColor = "#bdc3c7" //Bạc
-        this.timeScore = 2; //2s Thời gian cho phép chấm điểm từ GD đầu tới cuối
-        this.numReferee = 3; //Số lượng giám định chấm điểm
+        // Use constants instead of hardcoded values
+        this.fistRound = ROUNDS.FIRST;
+        this.breakRound = ROUNDS.BREAK;
+        this.secondRound = ROUNDS.SECOND;
+        this.breakExtraRound = ROUNDS.BREAK_EXTRA;
+        this.extraRound = ROUNDS.EXTRA;
+        
+        // Colors from constants
+        this.greenColor = COLORS.GREEN;
+        this.yellowColor = COLORS.YELLOW;
+        this.redColor = COLORS.RED;
+        this.grayColor = COLORS.GRAY;
+        this.whiteColor = COLORS.WHITE;
+        this.blackColor = COLORS.BLACK;
+        this.orangeColor = COLORS.ORANGE;
+        this.bodyBgColor = COLORS.BODY_BG;
+        this.silverColor = COLORS.SILVER;
+        
+        this.timeScore = TIME_SCORE;
+        this.numReferee = REFEREE_COUNT.DEFAULT;
 
-        this.timerCoundown;
-        this.round = me.fistRound;
-        this.matchNoCurrent;
-        this.matchNoCurrentIndex;
-        this.combatObj;
-        this.settingObj;
-        this.refereeObj;
-        this.lastMatchObj;
-        this.match;
-        this.timer;
-        this.effectTimer;
-        this.scoreTimer;
+        this.timerCoundown = undefined;
+        this.round = this.fistRound;
+        this.matchNoCurrent = undefined;
+        this.matchNoCurrentIndex = undefined;
+        this.combatObj = null;
+        this.settingObj = null;
+        this.refereeObj = null;
+        this.lastMatchObj = null;
+        this.match = null;
+        this.timer = null;
+        this.effectTimer = null;
+        this.scoreTimer = null;
         this.isFirstRefereeScore = false;
         this.isTimerRunning = false;
-        this.scoreTimerCount = me.timeScore;
-        this.temporaryWin;
+        this.scoreTimerCount = this.timeScore;
+        this.temporaryWin = null;
         this.countryRed = "red";
         this.countryBlue = "blue";
         this.combatArenaNoIndex = 0;
         this.tournamentNoIndex = 0;
-        this.isHumanPauseTimer = false; // Cờ để ghi lại việc thao tác tạm dừng trận đấu
+        this.isHumanPauseTimer = false;
 
-        this.combatConst = {
-            "lastMatch": {"no": 1},
-            "referee": [{"redScore": 0, "blueScore": 0}, {"redScore": 0, "blueScore": 0}, {
-                "redScore": 0,
-                "blueScore": 0
-            }, {"redScore": 0, "blueScore": 0}, {"redScore": 0, "blueScore": 0}],
-            "combat": []
-        };
-        this.matchObj = {
-            "match": {"no": 1, "type": "", "category": "", "win": ""},
-            "fighters": {
-                "redFighter": {"name": "Đỏ", "code": "", "score": 0},
-                "blueFighter": {"name": "Xanh", "code": "", "score": 0}
-            }
-        };
+        // Use constants for default objects
+        this.combatConst = JSON.parse(JSON.stringify(DEFAULT_COMBAT_CONST));
+        this.matchObj = JSON.parse(JSON.stringify(DEFAULT_MATCH_OBJ));
     }
 
     componentDidMount() {
         document.addEventListener("keydown", this._handleKeyDown);
         this.showPasswordModal();
-        window.onresize = this.resizeTextToFit;
+        window.onresize = () => resizeTextToFit('referee-score-area-top', 'tournamentName');
+    }
+
+    componentWillUnmount() {
+        // Cleanup event listeners
+        document.removeEventListener("keydown", this._handleKeyDown);
+        window.onresize = null;
+        
+        // Cleanup timers
+        if (this.timer) {
+            clearInterval(this.timer);
+        }
+        if (this.effectTimer) {
+            clearInterval(this.effectTimer);
+        }
+        if (this.scoreTimer) {
+            clearInterval(this.scoreTimer);
+        }
+        
+        // Cleanup Firebase listeners
+        this.firebaseListeners.forEach(listenerRef => {
+            off(listenerRef);
+        });
+        this.firebaseListeners = [];
     }
 
     verifyPassword = () => {
-        var password = $('#txtPassword').val();
+        const password = $('#txtPassword').val();
 
-        if (password != null && password != "") {
-            onValue(ref(this.db, 'commonSetting/passwordGiamSat'), (snapshot) => {
-                if (password == snapshot.val()) {
+        if (password != null && password !== "") {
+            const passwordRef = ref(this.db, 'commonSetting/passwordGiamSat');
+            onValue(passwordRef, (snapshot) => {
+                if (password === snapshot.val()) {
                     this.hidePasswordModal();
                     this.main();
                 } else {
                     toast.error("Sai mật khẩu!");
-                    location.reload();
+                    window.location.reload();
                 }
-            })
+            }, { onlyOnce: true });
         } else {
             toast.error("Sai mật khẩu!");
         }
@@ -134,7 +161,7 @@ class GiamSatDoiKhangContainer extends Component {
         get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
             this.settingObj = snapshot.val();
             $('#tournamentName').html(this.settingObj.tournamentName);
-            this.resizeTextToFit();
+            resizeTextToFit('referee-score-area-top', 'tournamentName');
             this.settingObj = snapshot.val();
             this.timerCoundown = this.settingObj.combat.timeRound;
             this.timeBreak = this.settingObj.combat.timeBreak;
@@ -148,13 +175,16 @@ class GiamSatDoiKhangContainer extends Component {
                 $(".red-caution").show();
                 $(".blue-caution").show();
             }
-            this.numReferee = this.settingObj.combat.isShowFiveReferee === true ? 5 : 3;
+            this.numReferee = this.settingObj.combat.isShowFiveReferee === true ? REFEREE_COUNT.FIVE : REFEREE_COUNT.DEFAULT;
             this.isShowFiveReferee = this.settingObj.combat.isShowFiveReferee;
             this.setState({data: this.isShowFiveReferee});
 
             this.startEffectTimer();
 
-            onValue(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat'), (snapshot) => {
+            // Store Firebase listener references for cleanup
+            const combatRef = ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat');
+            this.firebaseListeners.push(combatRef);
+            onValue(combatRef, (snapshot) => {
                 this.combatObj = snapshot.val();
                 if (this.lastMatchObj == null) {
                     this.matchNoCurrent = this.combatConst.lastMatch.no;
@@ -167,7 +197,9 @@ class GiamSatDoiKhangContainer extends Component {
                 this.showValue();
             });
 
-            onValue(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/lastMatch'), (snapshot) => {
+            const lastMatchRef = ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/lastMatch');
+            this.firebaseListeners.push(lastMatchRef);
+            onValue(lastMatchRef, (snapshot) => {
                 this.lastMatchObj = snapshot.val();
                 this.matchNoCurrent = this.lastMatchObj.no;
                 this.matchNoCurrentIndex = this.matchNoCurrent - 1;
@@ -176,13 +208,17 @@ class GiamSatDoiKhangContainer extends Component {
                 this.showValue();
             })
 
-            onValue(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/referee'), (snapshot) => {
+            const refereeRef = ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/referee');
+            this.firebaseListeners.push(refereeRef);
+            onValue(refereeRef, (snapshot) => {
                 this.refereeObj = snapshot.val();
                 this.showValue();
             })
 
             //Kiểm tra kết nối internet
-            onValue(ref(this.db, '.info/connected'), (snapshot) => {
+            const connectedRef = ref(this.db, '.info/connected');
+            this.firebaseListeners.push(connectedRef);
+            onValue(connectedRef, (snapshot) => {
                 if (!snapshot.val() === true) {
                     $('#internet-status').show();
                 } else {
@@ -236,7 +272,17 @@ class GiamSatDoiKhangContainer extends Component {
     }
 
     showValue() {
+        // Early return if match data not loaded
+        if (!this.match) {
+            console.log("showValue() - No match data");
+            return;
+        }
+        
         console.log("showValue() Start");
+        
+        // Cache DOM elements for better performance
+        const $timerText = $(".timer-text");
+        
         //Khung thông tin về trận đấu
         $("#match-no").html(this.match.match.no);
         $("#match-type").html(this.match.match.type);
@@ -246,123 +292,133 @@ class GiamSatDoiKhangContainer extends Component {
         if (this.timerCoundown < 0) {
             this.minutes = "00";
             this.seconds = "00";
-            $(".timer-text").css("background-color", this.redColor);
+            $timerText.css("background-color", this.redColor);
         } else {
-            let minutes = Math.floor(this.timerCoundown / 60);
-            let seconds = Math.floor(this.timerCoundown - (minutes * 60));
-            minutes < "10" ? this.minutes = "0" + minutes : this.minutes = minutes;
-            seconds < "10" ? this.seconds = "0" + seconds : this.seconds = seconds;
+            const minutes = Math.floor(this.timerCoundown / 60);
+            const seconds = Math.floor(this.timerCoundown - (minutes * 60));
+            this.minutes = minutes < 10 ? "0" + minutes : "" + minutes;
+            this.seconds = seconds < 10 ? "0" + seconds : "" + seconds;
         }
         $("#match-time").html(this.minutes + ":" + this.seconds);
+        
         if (this.timerCoundown > 0) {
-            if (this.isTimerRunning == true) {
+            const isMainRound = this.round === this.fistRound || this.round === this.secondRound || this.round === this.extraRound;
+            const isBreakRound = this.round === this.breakRound || this.round === this.breakExtraRound;
+            
+            if (this.isTimerRunning) {
                 //Đổi màu trạng thái running cho đồng hồ đang chạy
-                if (this.round == this.fistRound || this.round == this.secondRound || this.round == this.extraRound) {
-                    $(".timer-text").css("background-color", this.greenColor);
-                } else if (this.round == this.breakRound || this.round == this.breakExtraRound) {
-                    $(".timer-text").css("background-color", this.orangeColor);
+                if (isMainRound) {
+                    $timerText.css("background-color", this.greenColor);
+                } else if (isBreakRound) {
+                    $timerText.css("background-color", this.orangeColor);
                 }
-            } else if (this.isTimerRunning == false) {
-                //Đổi màu trạng thái running cho đồng hồ đang chạy
-                if (this.round == this.fistRound || this.round == this.secondRound || this.round == this.extraRound) {
-                    if (this.round == this.fistRound && this.timerCoundown == this.settingObj.combat.timeRound) {
-                        $(".timer-text").css("background-color", this.silverColor);
+            } else {
+                //Đổi màu trạng thái dừng cho đồng hồ
+                if (isMainRound) {
+                    if (this.round === this.fistRound && this.timerCoundown === this.settingObj.combat.timeRound) {
+                        $timerText.css("background-color", this.silverColor);
                     } else {
-                        $(".timer-text").css("background-color", this.yellowColor);
+                        $timerText.css("background-color", this.yellowColor);
                     }
-                } else if (this.round == this.breakRound || this.round == this.breakExtraRound) {
-                    $(".timer-text").css("background-color", this.yellowColor);
-
+                } else if (isBreakRound) {
+                    $timerText.css("background-color", this.yellowColor);
                 }
             }
         }
         $("#match-round").html(this.round);
 
         //Khung cúp cho người chiến thắng
-        if (this.match.match.win == "red") {
-            $(".icon-win-red").css("opacity", 1);
-            $(".icon-win-blue").css("opacity", "");
-        } else if (this.match.match.win == "blue") {
-            $(".icon-win-blue").css("opacity", 1);
-            $(".icon-win-red").css("opacity", "");
+        const $iconWinRed = $(".icon-win-red");
+        const $iconWinBlue = $(".icon-win-blue");
+        
+        if (this.match.match.win === "red") {
+            $iconWinRed.css("opacity", 1);
+            $iconWinBlue.css("opacity", "");
+        } else if (this.match.match.win === "blue") {
+            $iconWinBlue.css("opacity", 1);
+            $iconWinRed.css("opacity", "");
         } else {
-            $(".icon-win-red").css("opacity", "");
-            $(".icon-win-blue").css("opacity", "");
+            $iconWinRed.css("opacity", "");
+            $iconWinBlue.css("opacity", "");
         }
 
         //Khung thông tin vận động viên
-        $("#red-fighter").html(this.convertWL(this.match.fighters.redFighter.name));
-        $("#red-code").html(this.match.fighters.redFighter.code);
-        this.countryRed = this.match.fighters.redFighter.country !== "" ? this.match.fighters.redFighter.country : "red";
-        $("#red-score").html(this.match.fighters.redFighter.score);
-        $("#blue-fighter").html(this.convertWL(this.match.fighters.blueFighter.name));
-        $("#blue-code").html(this.match.fighters.blueFighter.code);
-        $("#blue-score").html(this.match.fighters.blueFighter.score);
-        this.countryBlue = this.match.fighters.blueFighter.country !== "" ? this.match.fighters.blueFighter.country : "blue";
+        const redFighter = this.match.fighters.redFighter;
+        const blueFighter = this.match.fighters.blueFighter;
+        
+        $("#red-fighter").html(convertWinLoseFormat(redFighter.name));
+        $("#red-code").html(redFighter.code);
+        this.countryRed = redFighter.country !== "" ? redFighter.country : "red";
+        $("#red-score").html(redFighter.score);
+        
+        $("#blue-fighter").html(convertWinLoseFormat(blueFighter.name));
+        $("#blue-code").html(blueFighter.code);
+        $("#blue-score").html(blueFighter.score);
+        this.countryBlue = blueFighter.country !== "" ? blueFighter.country : "blue";
         this.setState({data: []});
 
         //Khung chuyển trận đấu
         //Xóa nút next và Prev nếu gặp biên
-        if (this.matchNoCurrent == 1) {
-            $(".match-prev").hide();
-            $(".match-next").show();
-        } else if (this.matchNoCurrent == this.combatObj.length) {
-            $(".match-prev").show();
-            $(".match-next").hide();
+        const $matchPrev = $(".match-prev");
+        const $matchNext = $(".match-next");
+        
+        if (this.matchNoCurrent === 1) {
+            $matchPrev.hide();
+            $matchNext.show();
+        } else if (this.matchNoCurrent === this.combatObj.length) {
+            $matchPrev.show();
+            $matchNext.hide();
         } else {
-            $(".match-prev").show();
-            $(".match-next").show();
+            $matchPrev.show();
+            $matchNext.show();
         }
 
-        //Khung các giám định
-        //Hiện điểm các giám định
+        //Khung các giám định - Hiện điểm các giám định
         for (let i = 1; i <= this.numReferee; i++) {
             set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex), this.combatObj[this.matchNoCurrentIndex])
-            $("#red-score-" + i).html(this.refereeObj[i - 1].redScore);
-            $("#blue-score-" + i).html(this.refereeObj[i - 1].blueScore);
-            // if (this.refereeObj[i - 1].redScore != 0 || this.refereeObj[i - 1].blueScore != 0) {
-            //   $(".referee-title.gd" + i).css("background-color", this.greenColor);
-            // } else {
-            //   $(".referee-title.gd" + i).css("background-color", "");
-            // }
-            if (this.refereeObj[i - 1].redScore != 0) {
-                $(".red-score-referee-giamsat.gd" + i).css("background-color", "red");
-                $(".red-score-referee-giamsat.gd" + i).css("color", "white");
+            
+            const refereeData = this.refereeObj[i - 1];
+            $("#red-score-" + i).html(refereeData.redScore);
+            $("#blue-score-" + i).html(refereeData.blueScore);
+            
+            const $redScoreRef = $(".red-score-referee-giamsat.gd" + i);
+            const $blueScoreRef = $(".blue-score-referee-giamsat.gd" + i);
+            
+            if (refereeData.redScore !== 0) {
+                $redScoreRef.css({"background-color": "red", "color": "white"});
             } else {
-                $(".red-score-referee-giamsat.gd" + i).css("background-color", "");
-                $(".red-score-referee-giamsat.gd" + i).css("color", "red");
+                $redScoreRef.css({"background-color": "", "color": "red"});
             }
-            if (this.refereeObj[i - 1].blueScore != 0) {
-                $(".blue-score-referee-giamsat.gd" + i).css("background-color", "blue");
-                $(".blue-score-referee-giamsat.gd" + i).css("color", "white");
+            
+            if (refereeData.blueScore !== 0) {
+                $blueScoreRef.css({"background-color": "blue", "color": "white"});
             } else {
-                $(".blue-score-referee-giamsat.gd" + i).css("background-color", "");
-                $(".blue-score-referee-giamsat.gd" + i).css("color", "blue");
+                $blueScoreRef.css({"background-color": "", "color": "blue"});
             }
         }
 
         //caution area
-        $("#remind-red").text(this.match.fighters.redFighter.caution.remind);
-        $("#warning-red").text(this.match.fighters.redFighter.caution.warning);
-        $("#medical-red").text(this.match.fighters.redFighter.caution.medical);
-        $("#fall-red").text(this.match.fighters.redFighter.caution.fall);
-        $("#bound-red").text(this.match.fighters.redFighter.caution.bound);
-        $("#remind-blue").text(this.match.fighters.blueFighter.caution.remind);
-        $("#warning-blue").text(this.match.fighters.blueFighter.caution.warning);
-        $("#medical-blue").text(this.match.fighters.blueFighter.caution.medical);
-        $("#fall-blue").text(this.match.fighters.blueFighter.caution.fall);
-        $("#bound-blue").text(this.match.fighters.blueFighter.caution.bound);
+        const redCaution = redFighter.caution;
+        const blueCaution = blueFighter.caution;
+        
+        $("#remind-red").text(redCaution.remind);
+        $("#warning-red").text(redCaution.warning);
+        $("#medical-red").text(redCaution.medical);
+        $("#fall-red").text(redCaution.fall);
+        $("#bound-red").text(redCaution.bound);
+        
+        $("#remind-blue").text(blueCaution.remind);
+        $("#warning-blue").text(blueCaution.warning);
+        $("#medical-blue").text(blueCaution.medical);
+        $("#fall-blue").text(blueCaution.fall);
+        $("#bound-blue").text(blueCaution.bound);
 
-        if (this.match.fighters.redFighter.legStrike == true) {
-            $("#red-leg-strike").attr("src", require('../assets/img/donchan_white.png'));
-        } else {
-            $("#red-leg-strike").attr("src", require('../assets/img/donchan_black.png'));
-        }
-        if (this.match.fighters.blueFighter.legStrike == true) {
-            $("#blue-leg-strike").attr("src", require('../assets/img/donchan_white.png'));
-        } else {
-            $("#blue-leg-strike").attr("src", require('../assets/img/donchan_black.png'));
-        }
+        // Leg strike icons
+        const legStrikeWhite = require('../assets/img/donchan_white.png');
+        const legStrikeBlack = require('../assets/img/donchan_black.png');
+        
+        $("#red-leg-strike").attr("src", redFighter.legStrike ? legStrikeWhite : legStrikeBlack);
+        $("#blue-leg-strike").attr("src", blueFighter.legStrike ? legStrikeWhite : legStrikeBlack);
 
         console.log("showValue() End");
     }
@@ -459,13 +515,13 @@ class GiamSatDoiKhangContainer extends Component {
 
     redWin = () => {
         console.log("redWin() Start");
-        let winMatch = "W." + this.matchNoCurrent;
+        const winMatch = "W." + this.matchNoCurrent;
         for (let i = this.matchNoCurrent; i < this.combatObj.length; i++) {
-            let fightersTemp = this.combatObj[i].fighters;
+            const fightersTemp = this.combatObj[i].fighters;
             if (fightersTemp.redFighter.result === winMatch) {
                 for (let j = i; j < this.combatObj.length; j++) {
-                    let fightersTemp2 = this.combatObj[j].fighters;
-                    let winMatch2 = "W." + j;
+                    const fightersTemp2 = this.combatObj[j].fighters;
+                    const winMatch2 = "W." + j;
                     if (fightersTemp2.redFighter.result === winMatch2)
                         if (fightersTemp2.redFighter.name !== winMatch2) {
                             toast.error("Bạn không thể chấm lại trận đấu này!");
@@ -484,11 +540,11 @@ class GiamSatDoiKhangContainer extends Component {
         this.temporaryWin = "red";
 
         $('#modalConfirm .modal-title').html("<i class='fa-solid fa-clipboard-check'></i> Xác nhận kết quả <b>THẮNG</b>");
-        $('#modalConfirm .modal-body').html("<h3 style='color: red'><i class='fa-solid fa-hand-back-fist'></i> " + this.convertWL(this.match.fighters.redFighter.name) + "</h3><h3 style='color: red'>" + this.match.fighters.redFighter.code + "</h3>");
+        $('#modalConfirm .modal-body').html("<h3 style='color: red'><i class='fa-solid fa-hand-back-fist'></i> " + convertWinLoseFormat(this.match.fighters.redFighter.name) + "</h3><h3 style='color: red'>" + this.match.fighters.redFighter.code + "</h3>");
         this.showModalConfirm();
 
         $("#buttonConfirmOK").click(() => {
-            if (this.temporaryWin == "red") {
+            if (this.temporaryWin === "red") {
                 this.stopTimer();
                 this.replaceFighter("red");
                 setTimeout(() => {
@@ -496,10 +552,8 @@ class GiamSatDoiKhangContainer extends Component {
                     set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex + '/match/win'), "red")
                     $(".icon-win-red").css({opacity: 1});
                     $(".icon-win-blue").css("opacity", "");
-                    $(".red-score").css("background-color", "red");
-                    $(".red-score").css("color", this.whiteColor);
-                    $(".blue-score").css("background-color", "blue");
-                    $(".blue-score").css("color", this.whiteColor);
+                    $(".red-score").css({"background-color": "red", "color": this.whiteColor});
+                    $(".blue-score").css({"background-color": "blue", "color": this.whiteColor});
                 }, 1000);
                 this.hideModalConfirm();
             }
@@ -509,13 +563,13 @@ class GiamSatDoiKhangContainer extends Component {
 
     blueWin = () => {
         console.log("blueWin() Start");
-        let winMatch = "W." + this.matchNoCurrent;
+        const winMatch = "W." + this.matchNoCurrent;
         for (let i = this.matchNoCurrent; i < this.combatObj.length; i++) {
-            let fightersTemp = this.combatObj[i].fighters;
+            const fightersTemp = this.combatObj[i].fighters;
             if (fightersTemp.redFighter.result === winMatch) {
                 for (let j = i; j < this.combatObj.length; j++) {
-                    let fightersTemp2 = this.combatObj[j].fighters;
-                    let winMatch2 = "W." + j;
+                    const fightersTemp2 = this.combatObj[j].fighters;
+                    const winMatch2 = "W." + j;
                     if (fightersTemp2.redFighter.result === winMatch2)
                         if (fightersTemp2.redFighter.name !== winMatch2) {
                             toast.error("Bạn không thể chấm lại trận đấu này!");
@@ -534,11 +588,11 @@ class GiamSatDoiKhangContainer extends Component {
         this.temporaryWin = "blue";
 
         $('#modalConfirm .modal-title').html("<i class='fa-solid fa-clipboard-check'></i> Xác nhận kết quả <b>THẮNG</b>");
-        $('#modalConfirm .modal-body').html("<h3 style='color: blue'><i class='fa-solid fa-hand-back-fist'></i> " + this.convertWL(this.match.fighters.blueFighter.name) + "</h3><h3 style='color: blue'>" + this.match.fighters.blueFighter.code + "</h3>");
+        $('#modalConfirm .modal-body').html("<h3 style='color: blue'><i class='fa-solid fa-hand-back-fist'></i> " + convertWinLoseFormat(this.match.fighters.blueFighter.name) + "</h3><h3 style='color: blue'>" + this.match.fighters.blueFighter.code + "</h3>");
         this.showModalConfirm();
 
         $("#buttonConfirmOK").click(() => {
-            if (this.temporaryWin == "blue") {
+            if (this.temporaryWin === "blue") {
                 this.stopTimer();
                 this.replaceFighter("blue");
                 setTimeout(() => {
@@ -546,10 +600,8 @@ class GiamSatDoiKhangContainer extends Component {
                     set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex + '/match/win'), "blue")
                     $(".icon-win-blue").css({opacity: 1});
                     $(".icon-win-red").css("opacity", "");
-                    $(".red-score").css("background-color", "red");
-                    $(".red-score").css("color", this.whiteColor);
-                    $(".blue-score").css("background-color", "blue");
-                    $(".blue-score").css("color", this.whiteColor);
+                    $(".red-score").css({"background-color": "red", "color": this.whiteColor});
+                    $(".blue-score").css({"background-color": "blue", "color": this.whiteColor});
                 }, 1000);
                 this.hideModalConfirm();
             }
@@ -760,7 +812,7 @@ class GiamSatDoiKhangContainer extends Component {
 
     makeScoreTimer() {
         for (let i = 0; i < this.numReferee; i++) {
-            if (this.refereeObj[i].redScore != 0 || this.refereeObj[i].blueScore != 0) {
+            if (this.refereeObj[i].redScore !== 0 || this.refereeObj[i].blueScore !== 0) {
                 if (!this.isFirstRefereeScore) {
                     this.isFirstRefereeScore = true;
                 }
@@ -769,25 +821,25 @@ class GiamSatDoiKhangContainer extends Component {
                 //Kết thúc nếu có >50% trọng tài chấm điểm
                 let redScoreCounter = 0;
                 let blueScoreCounter = 0;
-                for (let i = 0; i < this.numReferee; i++) {
-                    if (this.refereeObj[i].redScore !== 0) {
+                for (let j = 0; j < this.numReferee; j++) {
+                    if (this.refereeObj[j].redScore !== 0) {
                         redScoreCounter++;
                     }
-                    if (this.refereeObj[i].blueScore !== 0) {
+                    if (this.refereeObj[j].blueScore !== 0) {
                         blueScoreCounter++;
                     }
                 }
-                if (this.scoreTimerCount == 0 || redScoreCounter > this.numReferee / 2 || blueScoreCounter > this.numReferee / 2) {
+                if (this.scoreTimerCount === 0 || redScoreCounter > this.numReferee / 2 || blueScoreCounter > this.numReferee / 2) {
                     console.log("makeScoreTimer() Start");
                     //Tổng kết và tính điểm
-                    let redScoreArray = [];
-                    let blueScoreArray = [];
-                    for (let i = 0; i < this.numReferee; i++) {
-                        redScoreArray.push(this.refereeObj[i].redScore);
-                        blueScoreArray.push(this.refereeObj[i].blueScore);
+                    const redScoreArray = [];
+                    const blueScoreArray = [];
+                    for (let k = 0; k < this.numReferee; k++) {
+                        redScoreArray.push(this.refereeObj[k].redScore);
+                        blueScoreArray.push(this.refereeObj[k].blueScore);
                     }
-                    this.match.fighters.redFighter.score += this.getModes(redScoreArray);
-                    this.match.fighters.blueFighter.score += this.getModes(blueScoreArray);
+                    this.match.fighters.redFighter.score += getModes(redScoreArray);
+                    this.match.fighters.blueFighter.score += getModes(blueScoreArray);
                     set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex + '/fighters'), this.match.fighters)
                     //Reset Giám định
                     set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/referee'), this.combatConst.referee)
@@ -803,26 +855,28 @@ class GiamSatDoiKhangContainer extends Component {
 
     makeTimer() {
         // console.log("makeTimer() Start");
+        const $timerText = $(".timer-text");
+        
         if (this.timerCoundown < 0) {
             //Hiệp 1 kết thúc
-            if (this.round == this.fistRound) {
+            if (this.round === this.fistRound) {
                 this.round = this.breakRound;
                 this.timerCoundown = this.timeBreak;
-                $(".timer-text").css("background-color", this.orangeColor);
+                $timerText.css("background-color", this.orangeColor);
             }
             //Nghỉ giữa hiệp kết thúc
-            else if (this.round == this.breakRound) {
+            else if (this.round === this.breakRound) {
                 this.round = this.secondRound;
                 this.timerCoundown = this.settingObj.combat.timeRound;
                 this.stopTimer();
-                $(".timer-text").css("background-color", this.yellowColor);
+                $timerText.css("background-color", this.yellowColor);
             }
             //Hiệp 2 kết thúc
-            else if (this.round == this.secondRound) {
+            else if (this.round === this.secondRound) {
                 //Hết trận
-                if (this.match.fighters.redFighter.score != this.match.fighters.blueFighter.score) {
+                if (this.match.fighters.redFighter.score !== this.match.fighters.blueFighter.score) {
                     this.stopTimer();
-                    $(".timer-text").css("background-color", this.redColor);
+                    $timerText.css("background-color", this.redColor);
                     if (this.match.fighters.redFighter.score > this.match.fighters.blueFighter.score) {
                         this.redWin();
                     } else {
@@ -833,20 +887,20 @@ class GiamSatDoiKhangContainer extends Component {
                     //Hiệp phụ khi kết quả hòa
                     this.round = this.breakExtraRound;
                     this.timerCoundown = this.timeExtraBreak;
-                    $(".timer-text").css("background-color", this.orangeColor);
+                    $timerText.css("background-color", this.orangeColor);
                 }
             }
             //Hết nghỉ hiệp phụ
-            else if (this.round == this.breakExtraRound) {
+            else if (this.round === this.breakExtraRound) {
                 this.round = this.extraRound;
                 this.timerCoundown = this.timeExtra;
                 this.stopTimer();
-                $(".timer-text").css("background-color", this.yellowColor);
+                $timerText.css("background-color", this.yellowColor);
             }
             //Hiệp phụ kết thúc - Hết trận
-            else if (this.round == this.extraRound) {
+            else if (this.round === this.extraRound) {
                 this.stopTimer();
-                $(".timer-text").css("background-color", this.redColor);
+                $timerText.css("background-color", this.redColor);
                 if (this.match.fighters.redFighter.score > this.match.fighters.blueFighter.score) {
                     this.redWin();
                 } else if (this.match.fighters.redFighter.score < this.match.fighters.blueFighter.score) {
@@ -856,8 +910,8 @@ class GiamSatDoiKhangContainer extends Component {
             }
         }
 
-        if (this.timerCoundown == 0) {
-            $(".timer-text").css("background-color", this.redColor);
+        if (this.timerCoundown === 0) {
+            $timerText.css("background-color", this.redColor);
             this.minutes = "00";
             this.seconds = "00";
             this.playSound();
@@ -865,10 +919,10 @@ class GiamSatDoiKhangContainer extends Component {
             this.minutes = "00";
             this.seconds = "00";
         } else {
-            let minutes = Math.floor(this.timerCoundown / 60);
-            let seconds = Math.floor(this.timerCoundown - (minutes * 60));
-            minutes < "10" ? this.minutes = "0" + minutes : this.minutes = minutes;
-            seconds < "10" ? this.seconds = "0" + seconds : this.seconds = seconds;
+            const minutes = Math.floor(this.timerCoundown / 60);
+            const seconds = Math.floor(this.timerCoundown - (minutes * 60));
+            this.minutes = minutes < 10 ? "0" + minutes : "" + minutes;
+            this.seconds = seconds < 10 ? "0" + seconds : "" + seconds;
         }
 
         $("#match-time").html(this.minutes + ":" + this.seconds);
@@ -948,46 +1002,8 @@ class GiamSatDoiKhangContainer extends Component {
         this.isTimerRunning = false;
     }
 
-    getModes(array) {
-        let frequency = {}; // array of frequency.
-        let maxFreq = 0; // holds the max frequency.
-        let modes = [];
-
-        for (let i in array) {
-            frequency[array[i]] = (frequency[array[i]] || 0) + 1; // increment frequency.
-
-            if (frequency[array[i]] > maxFreq) { // is this frequency > max so far ?
-                maxFreq = frequency[array[i]]; // update max.
-            }
-        }
-
-        for (let k in frequency) {
-            if (frequency[k] == maxFreq) {
-                modes.push(k);
-            }
-        }
-
-        if (modes.length == 1) {
-            return +modes[0];
-        }
-
-        return 0;
-    }
-
-    convertWL(type_no) {
-        let type = type_no.split('.')[0];
-        let no = type_no.split('.')[1];
-
-        if (type === "W") {
-            let s = "THẮNG TRẬN " + no;
-            return s
-        } else if (type === "L") {
-            let s = "THUA TRẬN " + no;
-            return s
-        } else {
-            return type_no;
-        }
-    }
+    // Note: getModes and convertWL are now imported from utils/helpers.js
+    // as getModes and convertWinLoseFormat
 
     playSound() {
         let sound = document.getElementById("sound");
@@ -999,33 +1015,15 @@ class GiamSatDoiKhangContainer extends Component {
     }
 
     inputPw = (value) => {
+        const $password = $("#txtPassword");
         if (value === "-1") {
-            $("#txtPassword").val("");
+            $password.val("");
         } else {
-            let oldValue = $("#txtPassword").val();
-            $("#txtPassword").val(oldValue + value);
+            $password.val($password.val() + value);
         }
     }
 
-    resizeTextToFit = () => {
-        const parentDiv = document.getElementsByClassName('referee-score-area-top')[0];
-        const span = document.getElementById('tournamentName');
-        let fontSize = 10; // Start with a small font size in px
-
-        span.style.fontSize = fontSize + 'px';
-
-        // Increase the font size until the span fits within the parent div
-        while (span.offsetHeight < parentDiv.offsetHeight && fontSize < 100) { // Set a reasonable maximum font size
-            fontSize++;
-            span.style.fontSize = fontSize + 'px';
-        }
-
-        // Reduce the font size if it overflows
-        while (span.offsetHeight > parentDiv.offsetHeight && fontSize > 0) {
-            fontSize--;
-            span.style.fontSize = fontSize + 'px';
-        }
-    }
+    // Note: resizeTextToFit is now imported from utils/helpers.js
 
     showPasswordModal = () => {
         $('#passwordModal').removeClass('modal display-none').addClass('modal display-block');
