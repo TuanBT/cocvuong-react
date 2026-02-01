@@ -1564,20 +1564,26 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                                 <i className="fa fa-cog text-sm"></i>
                             </button>
                             {showQuickMenu && (
-                                <div className="absolute right-0 top-10 bg-white rounded-lg shadow-xl border border-slate-200 py-2 min-w-[200px] z-50">
-                                    <button 
-                                        onClick={() => { this.setState({ showQuickMenu: false, showModalFighterInfo: true }); }}
-                                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                                    >
-                                        <i className="fa fa-user text-slate-400"></i>
-                                        Thông tin VĐV
-                                    </button>
+                                <>
+                                    {/* Overlay to close menu when clicking outside */}
+                                    <div 
+                                        className="fixed inset-0 z-40" 
+                                        onClick={() => this.setState({ showQuickMenu: false })}
+                                    ></div>
+                                    <div className="absolute right-0 top-10 bg-white rounded-lg shadow-xl border border-slate-200 py-2 min-w-[200px] z-50">
                                     <button 
                                         onClick={() => { this.setState({ showQuickMenu: false, showModalChooseMatch: true }); }}
                                         className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
                                     >
                                         <i className="fa fa-list text-slate-400"></i>
                                         Chọn trận
+                                    </button>
+                                    <button 
+                                        onClick={() => { this.setState({ showQuickMenu: false, showModalFighterInfo: true }); }}
+                                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                                    >
+                                        <i className="fa fa-user text-slate-400"></i>
+                                        Thông tin
                                     </button>
                                     <div className="border-t border-slate-200 my-1"></div>
                                     <button 
@@ -1588,7 +1594,8 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                                         Cài đặt
                                         <i className="fa fa-external-link text-slate-300 text-xs ml-auto"></i>
                                     </button>
-                                </div>
+                                    </div>
+                                </>
                             )}
                         </div>
                     </div>

@@ -1244,22 +1244,6 @@ html {
     box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
 }
 
-.brackets div.bracketbox.current-match>span.teama {
-    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
-    border-color: #fcd34d !important;
-    color: #92400e !important;
-    font-weight: 600;
-    box-shadow: 0 2px 4px rgba(251, 191, 36, 0.2);
-}
-
-.brackets div.bracketbox.current-match>span.teamb {
-    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
-    border-color: #fcd34d !important;
-    color: #92400e !important;
-    font-weight: 600;
-    box-shadow: 0 2px 4px rgba(251, 191, 36, 0.2);
-}
-
 /* Hover Path Highlight - khi hover vào tên VĐV */
 .brackets div.bracketbox span.teama,
 .brackets div.bracketbox span.teamb {

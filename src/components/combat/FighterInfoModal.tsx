@@ -35,7 +35,6 @@ interface FighterInfoModalProps {
 
 interface FighterInfoModalState {
   bracketHtml: string;
-  selectedCategory: string;
 }
 
 class FighterInfoModal extends Component<FighterInfoModalProps, FighterInfoModalState> {
@@ -45,34 +44,30 @@ class FighterInfoModal extends Component<FighterInfoModalProps, FighterInfoModal
     super(props);
     this.state = {
       bracketHtml: '',
-      selectedCategory: props.currentCategory || 'ALL',
     };
     this.bracketRef = createRef();
   }
 
   componentDidUpdate(prevProps: FighterInfoModalProps, prevState: FighterInfoModalState) {
-    // Update bracket when modal opens or category changes
-    if (this.props.isOpen && (!prevProps.isOpen || prevState.selectedCategory !== this.state.selectedCategory)) {
+    // Update bracket when modal opens
+    if (this.props.isOpen && !prevProps.isOpen) {
       this.updateBracket();
     }
     
     // Update bracket HTML content and match info
-    if (prevState.bracketHtml !== this.state.bracketHtml && this.bracketRef.current && this.state.selectedCategory !== 'ALL') {
+    if (prevState.bracketHtml !== this.state.bracketHtml && this.bracketRef.current) {
       this.bracketRef.current.innerHTML = this.state.bracketHtml;
       if (this.props.combatObj) {
+        // showUnit = false: không hiển thị đơn vị trong bracket
         updateBracketMatchInfo(
           this.bracketRef.current,
           this.props.combatObj as unknown as CombatInfo[],
-          this.state.selectedCategory,
-          this.props.currentMatchNo
+          this.props.currentCategory,
+          this.props.currentMatchNo,
+          false  // không hiển thị đơn vị
         );
         addPathHoverListeners(this.bracketRef.current);
       }
-    }
-
-    // Update currentCategory when props change
-    if (prevProps.currentCategory !== this.props.currentCategory && this.props.currentCategory) {
-      this.setState({ selectedCategory: this.props.currentCategory });
     }
   }
 
@@ -83,15 +78,14 @@ class FighterInfoModal extends Component<FighterInfoModalProps, FighterInfoModal
   }
 
   updateBracket() {
-    const { combatObj } = this.props;
-    const { selectedCategory } = this.state;
+    const { combatObj, currentCategory } = this.props;
     
-    if (!combatObj) return;
+    if (!combatObj || !currentCategory) return;
 
     const fighters: string[] = [];
     
     for (let i = 0; i < combatObj.length; i++) {
-      if (combatObj[i].match.category === selectedCategory || selectedCategory === 'ALL') {
+      if (combatObj[i].match.category === currentCategory) {
         const combat = combatObj[i];
         if (!fighters.includes(combat.fighters.redFighter.name + combat.fighters.redFighter.code) && 
             !combat.fighters.redFighter.name.includes("W.") && 
@@ -111,15 +105,14 @@ class FighterInfoModal extends Component<FighterInfoModalProps, FighterInfoModal
   }
 
   getCombatArray() {
-    const { combatObj, currentMatchNo } = this.props;
-    const { selectedCategory } = this.state;
+    const { combatObj, currentMatchNo, currentCategory } = this.props;
     
-    if (!combatObj) return [];
+    if (!combatObj || !currentCategory) return [];
 
     const combatArray: any[][] = [];
     
     for (let i = 0; i < combatObj.length; i++) {
-      if (combatObj[i].match.category === selectedCategory || selectedCategory === "ALL") {
+      if (combatObj[i].match.category === currentCategory) {
         const combat = combatObj[i];
 
         let nameWin = "";
@@ -148,76 +141,25 @@ class FighterInfoModal extends Component<FighterInfoModalProps, FighterInfoModal
     return combatArray;
   }
 
-  getCategoryArray() {
-    const { combatObj } = this.props;
-    
-    if (!combatObj) return [];
-    
-    const categories: string[] = ['ALL'];
-    
-    for (let i = 0; i < combatObj.length; i++) {
-      const category = combatObj[i].match.category;
-      if (!categories.includes(category)) {
-        categories.push(category);
-      }
-    }
-    
-    return categories;
-  }
-
   render() {
-    const { isOpen, onClose, currentMatchNo, tournamentName, arenaName } = this.props;
-    const { selectedCategory } = this.state;
+    const { isOpen, onClose, currentMatchNo, currentCategory, tournamentName, arenaName } = this.props;
     const combatArray = this.getCombatArray();
-    const categoryArray = this.getCategoryArray();
 
     if (!isOpen) return null;
 
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl mx-4 max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-slate-700 to-slate-800 text-white">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center shadow">
-                <i className="fa-solid fa-fist-raised text-white"></i>
-              </div>
-              <div>
-                <h5 className="text-lg font-semibold">
-                  Thông tin Đối Kháng - Trận {currentMatchNo}
-                </h5>
-                {tournamentName && (
-                  <p className="text-xs text-amber-400 font-medium">{arenaName ? `${arenaName} - ` : ''}{tournamentName.replace(/<br\s*\/?>/gi, ' ')}</p>
-                )}
-              </div>
-            </div>
-            <button onClick={onClose} className="text-white/70 hover:text-white text-2xl">×</button>
+            <h5 className="text-lg font-semibold">
+              <i className="fa-solid fa-info-circle mr-2"></i>
+              Thông tin trận đấu - {currentCategory}
+            </h5>
+            <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+              <i className="fa-solid fa-times text-white"></i>
+            </button>
           </div>
-
-          {/* Category Filter */}
-          {categoryArray.length > 1 && (
-            <div className="px-6 py-3 border-b bg-slate-50">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm text-slate-500 font-medium mr-2">
-                  <i className="fa-solid fa-filter mr-1"></i>
-                  Hạng cân:
-                </span>
-                {categoryArray.map((category, i) => (
-                  <button 
-                    key={i}
-                    onClick={() => this.setState({ selectedCategory: category })}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                      selectedCategory === category 
-                        ? 'bg-emerald-500 text-white shadow-md' 
-                        : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                    }`}
-                  >
-                    {category === 'ALL' ? 'Tất cả' : category}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-6">
@@ -229,14 +171,12 @@ class FighterInfoModal extends Component<FighterInfoModalProps, FighterInfoModal
                     <tr className="bg-slate-100 text-slate-700">
                       <th className="px-3 py-2.5 text-center text-xs font-semibold whitespace-nowrap">Mã</th>
                       <th className="px-3 py-2.5 text-left text-xs font-semibold whitespace-nowrap">Trận</th>
-                      <th className="px-3 py-2.5 text-left text-xs font-semibold whitespace-nowrap">Hạng cân</th>
                       <th className="px-3 py-2.5 text-left text-xs font-semibold whitespace-nowrap">
                         <span className="inline-flex items-center gap-1">
                           <span className="w-2 h-2 bg-red-400 rounded-full"></span>
                           VĐV Đỏ
                         </span>
                       </th>
-                      <th className="px-3 py-2.5 text-left text-xs font-semibold whitespace-nowrap">MSSV</th>
                       <th className="px-3 py-2.5 text-left text-xs font-semibold whitespace-nowrap">Đơn vị</th>
                       <th className="px-3 py-2.5 text-left text-xs font-semibold whitespace-nowrap">
                         <span className="inline-flex items-center gap-1">
@@ -244,7 +184,6 @@ class FighterInfoModal extends Component<FighterInfoModalProps, FighterInfoModal
                           VĐV Xanh
                         </span>
                       </th>
-                      <th className="px-3 py-2.5 text-left text-xs font-semibold whitespace-nowrap">MSSV</th>
                       <th className="px-3 py-2.5 text-left text-xs font-semibold whitespace-nowrap">Đơn vị</th>
                       <th className="px-3 py-2.5 text-center text-xs font-semibold whitespace-nowrap">
                         <i className="fa-solid fa-trophy text-amber-500 mr-1"></i>
@@ -269,17 +208,12 @@ class FighterInfoModal extends Component<FighterInfoModalProps, FighterInfoModal
                         </td>
                         <td className="px-3 py-2 text-xs text-slate-600">{combat[1]}</td>
                         <td className="px-3 py-2">
-                          <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-xs font-medium">{combat[2]}</span>
-                        </td>
-                        <td className="px-3 py-2">
                           <span className={`font-medium text-red-600 text-sm ${combat[10] ? 'font-bold' : ''}`}>{combat[3]}</span>
                         </td>
-                        <td className="px-3 py-2 text-xs text-slate-500">{combat[4]}</td>
                         <td className="px-3 py-2 text-xs text-slate-500">{combat[5]}</td>
                         <td className="px-3 py-2">
                           <span className={`font-medium text-blue-600 text-sm ${combat[10] ? 'font-bold' : ''}`}>{combat[6]}</span>
                         </td>
-                        <td className="px-3 py-2 text-xs text-slate-500">{combat[7]}</td>
                         <td className="px-3 py-2 text-xs text-slate-500">{combat[8]}</td>
                         <td className="px-3 py-2 text-center">
                           {combat[9] ? (
@@ -298,7 +232,7 @@ class FighterInfoModal extends Component<FighterInfoModalProps, FighterInfoModal
                       </tr>
                     )) : (
                       <tr>
-                        <td colSpan={10} className="px-4 py-8 text-center text-slate-400">
+                        <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
                           <i className="fa-solid fa-inbox text-3xl mb-2"></i>
                           <p className="text-sm">Chưa có dữ liệu trận đấu</p>
                         </td>
@@ -309,16 +243,14 @@ class FighterInfoModal extends Component<FighterInfoModalProps, FighterInfoModal
               </div>
             </div>
 
-            {/* Bracket Section - only show when a specific category is selected */}
-            {selectedCategory !== 'ALL' && (
-              <div>
-                <h3 className="text-base font-bold text-slate-700 mb-3">
-                  <i className="fa-solid fa-sitemap mr-2 text-amber-500"></i>
-                  Sơ đồ thi đấu - {selectedCategory}
-                </h3>
-                <div ref={this.bracketRef} id="schema-bracket-modal" className="bg-slate-50 rounded-xl p-4 border border-slate-200 overflow-x-auto"></div>
-              </div>
-            )}
+            {/* Bracket Section */}
+            <div>
+              <h3 className="text-base font-bold text-slate-700 mb-3">
+                <i className="fa-solid fa-sitemap mr-2 text-amber-500"></i>
+                Sơ đồ thi đấu
+              </h3>
+              <div ref={this.bracketRef} id="schema-bracket-modal" className="bg-slate-50 rounded-xl p-4 border border-slate-200 overflow-x-auto"></div>
+            </div>
           </div>
 
           {/* Footer */}

@@ -104,11 +104,13 @@ export function getFighterKey(fighter: FighterInfo): string {
 }
 
 // Update bracket match info in DOM
+// Options: showUnit - whether to show unit/country in fighter name (default: true)
 export function updateBracketMatchInfo(
   bracketRef: HTMLDivElement,
   combats: CombatInfo[],
   category: string,
-  currentMatchNo?: number
+  currentMatchNo?: number,
+  showUnit: boolean = true
 ): { winner: string; winnerCountry: string } {
   let matchNo = 0;
   let nameWin = '';
@@ -145,9 +147,9 @@ export function updateBracketMatchInfo(
     const teamaEl = matchEl.querySelector('.teama') as HTMLElement;
     const teambEl = matchEl.querySelector('.teamb') as HTMLElement;
     
-    // Get display names with units
-    const redDisplay = formatFighterDisplay(combat.fighters.redFighter);
-    const blueDisplay = formatFighterDisplay(combat.fighters.blueFighter);
+    // Get display names (with or without units)
+    const redDisplay = showUnit ? formatFighterDisplay(combat.fighters.redFighter) : combat.fighters.redFighter.name;
+    const blueDisplay = showUnit ? formatFighterDisplay(combat.fighters.blueFighter) : combat.fighters.blueFighter.name;
     const redKey = getFighterKey(combat.fighters.redFighter);
     const blueKey = getFighterKey(combat.fighters.blueFighter);
     
@@ -179,7 +181,7 @@ export function updateBracketMatchInfo(
   // Update final winner
   const finalEl = bracketRef.querySelector('.final .teamc') as HTMLElement;
   if (finalEl && nameWin) {
-    finalEl.textContent = countryWin ? `${nameWin} (${countryWin})` : nameWin;
+    finalEl.textContent = showUnit && countryWin ? `${nameWin} (${countryWin})` : nameWin;
     
     // Find winner's fighter key by looking at the last match winner
     const lastCombat = filteredCombats[filteredCombats.length - 1];
