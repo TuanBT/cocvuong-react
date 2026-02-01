@@ -1086,7 +1086,7 @@ html {
 
 /* Red Fighter (Team A) - Top */
 .brackets div.bracketbox>span.teama {
-    top: -32px;
+    top: -26px;
     right: auto;
     color: #991b1b;
     background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
@@ -1096,7 +1096,7 @@ html {
 
 /* Blue Fighter (Team B) - Bottom */
 .brackets div.bracketbox>span.teamb {
-    bottom: -32px;
+    bottom: -26px;
     right: auto;
     color: #1e40af;
     background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
@@ -1129,7 +1129,7 @@ html {
 
 /* Group/Round Widths */
 .brackets>.group2 {
-    height: 138px;
+    height: 180px;
 }
 
 .brackets>.group2>div {
@@ -1137,7 +1137,7 @@ html {
 }
 
 .brackets>.group3 {
-    height: 122.85px;
+    height: 160px;
 }
 
 .brackets>.group3>div {
@@ -1153,7 +1153,7 @@ html {
 }
 
 .brackets>.group6 {
-    height: 767.8125px;
+    height: 1000px;
 }
 
 .brackets>.group6>div {
@@ -1162,35 +1162,35 @@ html {
 
 /* Round Spacing */
 .brackets>div>div>div {
-    margin: 17.29px 0 44.148px 0;
+    margin: 22.5px 0 57.4px 0;
 }
 
 .brackets>div>.r1>div {
-    height: 21.112px;
+    height: 27.5px;
 }
 
 .brackets>div>.r2>div {
-    margin: 27.261px 0 64.116px 0;
-    height: 66.417px;
+    margin: 35.4px 0 83.4px 0;
+    height: 86.3px;
 }
 
 .brackets>div>.r3>div {
-    margin: 61.425px 0 130.52px 0;
-    height: 131.3px;
+    margin: 79.9px 0 169.7px 0;
+    height: 170.7px;
 }
 
 .brackets>div>.r4>div {
-    margin: 122.85px 0 263.354px 0;
-    height: 264.888px;
+    margin: 159.7px 0 342.4px 0;
+    height: 344.4px;
 }
 
 .brackets>div>.r5>div {
-    margin: 254.15px 0 0 0;
-    height: 528px;
+    margin: 330.4px 0 0 0;
+    height: 686.4px;
 }
 
 .brackets>div>.r6>div {
-    margin: 517.4px 0 0 0;
+    margin: 672.6px 0 0 0;
 }
 
 /* Final Match Styling - Champion display */
