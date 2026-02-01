@@ -1,6 +1,7 @@
 import React, { Component, createRef, RefObject } from 'react';
 import { database } from '../firebase';
 import { ref, set, get, update, child, onValue, off, Database, DatabaseReference } from "firebase/database";
+import { subscribeToGiamDinhPresence, PresenceData } from '../services/firebaseService';
 import logo from '../assets/img/logo.png';
 import sound from '../assets/sound/School_Bell.mp3';
 import { ToastContainer, toast } from 'react-toastify';
@@ -15,7 +16,7 @@ import { DEFAULT_COMBAT_CONST, DEFAULT_MATCH_OBJ } from '../constants/settings';
 import { convertWinLoseFormat, getModes, resizeTextToFit } from '../utils/helpers';
 
 // Import Bridge utilities
-import { subscribeScoreForGiamSat, connectBridgeAsGiamSat, isBridgeConnected, onBridgeConnectionChange, disconnectBridge } from '../utils/scoreSync';
+import { subscribeScoreForGiamSat, connectBridgeAsGiamSat, isBridgeConnected, onBridgeConnectionChange, onBridgeClientsChange, disconnectBridge } from '../utils/scoreSync';
 
 // Import components
 import FighterInfoModal from '../components/combat/FighterInfoModal';
@@ -113,6 +114,8 @@ interface GiamSatDoiKhangState {
     showBridgeModal: boolean;
     bridgeUrl: string;
     bridgeConnecting: boolean;
+    // Giám Định connection status (indexed by referee index 0-4)
+    refereeConnectionStatus: boolean[];
 }
 
 // Tournament info tuple type
@@ -141,6 +144,10 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
     // Bridge cleanup function
     bridgeCleanup: (() => void) | null = null;
     bridgeScoreCleanup: (() => void) | null = null;
+    bridgeClientsCleanup: (() => void) | null = null;
+    
+    // Firebase presence cleanup
+    firebasePresenceCleanup: (() => void) | null = null;
 
     // Firebase database reference
     db: Database;
@@ -195,6 +202,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
     tournaments: TournamentInfo[] = [];
     combatArenaNoIndex: number;
     tournamentNoIndex: number;
+    arenaNo: string = 'A';
 
     // Fighter country
     countryRed: string;
@@ -291,6 +299,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             showBridgeModal: false,
             bridgeUrl: localStorage.getItem('bridgeUrl') || '',
             bridgeConnecting: false,
+            refereeConnectionStatus: [false, false, false, false, false],
         };
 
         // Use constants instead of hardcoded values
@@ -353,6 +362,34 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             }
         });
 
+        // Subscribe to Bridge clients list changes
+        this.bridgeClientsCleanup = onBridgeClientsChange((clients) => {
+            // Tìm các Giám Định cùng sân và tournament
+            const arena = this.arenaNo || 'A';
+            const tournament = this.tournamentNoIndex;
+            
+            // Cập nhật trạng thái kết nối cho từng giám định (index 0-4)
+            const newStatus = [false, false, false, false, false];
+            
+            clients.forEach((client: any) => {
+                if (client.type === 'giam_dinh' && 
+                    client.connected && 
+                    client.arena === arena &&
+                    (client.tournament === tournament || !client.tournament)) {
+                    // Lấy index từ tên, ví dụ "Giám định 1" -> index 0
+                    const match = client.name.match(/(\d+)/);
+                    if (match) {
+                        const gdIndex = parseInt(match[1]) - 1;
+                        if (gdIndex >= 0 && gdIndex < 5) {
+                            newStatus[gdIndex] = true;
+                        }
+                    }
+                }
+            });
+            
+            this.setState({ refereeConnectionStatus: newStatus });
+        });
+
         // Check for saved password in localStorage (valid for 6 hours)
         const savedPassword = localStorage.getItem('giamSatPassword');
         const savedTime = localStorage.getItem('giamSatPasswordTime');
@@ -402,6 +439,12 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         }
         if (this.bridgeScoreCleanup) {
             this.bridgeScoreCleanup();
+        }
+        if (this.bridgeClientsCleanup) {
+            this.bridgeClientsCleanup();
+        }
+        if (this.firebasePresenceCleanup) {
+            this.firebasePresenceCleanup();
         }
     }
 
@@ -471,8 +514,39 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         if (combatArenaNo != null && combatArenaNo !== "") {
             this.setState({ showChooseArenaNoModal: false });
             this.combatArenaNoIndex = parseInt(combatArenaNo, 10);
+            this.arenaNo = this.combatArenaNoIndex === 0 ? 'A' : 'B';
+            
+            // Subscribe to Firebase presence (Giám Định online status)
+            this.subscribeFirebasePresence();
+            
             this.showTournamentInfo();
         }
+    }
+
+    subscribeFirebasePresence = (): void => {
+        // Cleanup previous subscription if any
+        if (this.firebasePresenceCleanup) {
+            this.firebasePresenceCleanup();
+        }
+        
+        const arena = this.arenaNo || 'A';
+        this.firebasePresenceCleanup = subscribeToGiamDinhPresence(
+            arena,
+            this.tournamentNoIndex,
+            (presenceList: PresenceData[]) => {
+                // Cập nhật trạng thái kết nối cho từng giám định (index 0-4)
+                const newStatus = [false, false, false, false, false];
+                
+                presenceList.forEach((presence) => {
+                    const gdIndex = presence.refereeIndex;
+                    if (gdIndex >= 0 && gdIndex < 5) {
+                        newStatus[gdIndex] = presence.online;
+                    }
+                });
+                
+                this.setState({ refereeConnectionStatus: newStatus });
+            }
+        );
     }
 
     showTournamentInfo = (): void => {
@@ -590,7 +664,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                     toast.success('Đã tự động kết nối LAN Bridge!', { autoClose: 2000 });
                 }
             } catch (err) {
-                console.log('[AutoConnect] Không thể kết nối Bridge:', err);
                 // Silent fail - không cần thông báo lỗi vì Bridge có thể không chạy
             }
         }
@@ -651,11 +724,9 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
     showValue(): void {
         // Early return if match data not loaded
         if (!this.match) {
-            console.log("showValue() - No match data");
             return;
         }
 
-        console.log("showValue() Start");
 
         //Khung thông tin về trận đấu
         const newState: Partial<GiamSatDoiKhangState> = {};
@@ -786,20 +857,16 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
 
         this.setState(newState as GiamSatDoiKhangState);
 
-        console.log("showValue() End");
     }
 
     saveMatch(): void {
-        console.log("saveMatch() Start");
         if (this.match && this.matchNoCurrentIndex !== undefined) {
             update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex), this.match);
         }
-        console.log("saveMatch() End");
     }
 
     //Gõ số để đi đến trận đấu
     chooseMatch = (): void => {
-        console.log("chooseMatch() Start");
 
         const matchChooseStr = this.state.matchChooseValue;
         const matchChoose = parseInt(matchChooseStr, 10);
@@ -813,11 +880,9 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             this.matchNoCurrent = matchChoose;
             this.restoreMatch();
         }
-        console.log("chooseMatch() End");
     }
 
     nextMatch = (): void => {
-        console.log("nextMatch() Start");
         if (this.timer === undefined || this.timer === false) {
             if (this.matchNoCurrent !== undefined) {
                 this.matchNoCurrent++;
@@ -837,11 +902,9 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 confirmBody: "Bạn muốn dừng trận đấu và đến trận đấu kế tiếp?"
             });
         }
-        console.log("nextMatch() End");
     }
 
     prevMatch = (): void => {
-        console.log("prevMatch() Start");
         if (this.timer === undefined || this.timer === false) {
             if (this.matchNoCurrent !== undefined) {
                 this.matchNoCurrent--;
@@ -861,11 +924,9 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 confirmBody: "Bạn muốn dừng trận đấu và về trận đấu trước đó?"
             });
         }
-        console.log("prevMatch() End");
     }
 
     restoreMatch(): void {
-        console.log("restoreMatch() Start");
         this.setState({
             redScoreBgColor: 'red',
             redScoreColor: this.whiteColor,
@@ -901,12 +962,10 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             }
         }
         set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/referee'), referees);
-        console.log("restoreMatch() End");
     }
 
 
     redWin = (): void => {
-        console.log("redWin() Start");
         if (!this.match || !this.combatObj || this.matchNoCurrent === undefined) return;
 
         const winMatch = "W." + this.matchNoCurrent;
@@ -961,11 +1020,9 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             confirmBody: "<h3 style='color: red'><i class='fa-solid fa-hand-back-fist'></i> " + convertWinLoseFormat(this.match.fighters.redFighter.name) + "</h3><h3 style='color: red'>" + this.match.fighters.redFighter.code + "</h3>",
             confirmWinnerColor: 'red'
         });
-        console.log("redWin() End");
     }
 
     blueWin = (): void => {
-        console.log("blueWin() Start");
         if (!this.match || !this.combatObj || this.matchNoCurrent === undefined) return;
 
         const winMatch = "W." + this.matchNoCurrent;
@@ -1020,7 +1077,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             confirmBody: "<h3 style='color: blue'><i class='fa-solid fa-hand-back-fist'></i> " + convertWinLoseFormat(this.match.fighters.blueFighter.name) + "</h3><h3 style='color: blue'>" + this.match.fighters.blueFighter.code + "</h3>",
             confirmWinnerColor: 'blue'
         });
-        console.log("blueWin() End");
     }
 
     redAddition = (): void => {
@@ -1201,7 +1257,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
 
     //Hàm dùng để thay thế những trận đấu có ký hiệu W. và L. trong giải đấu
     replaceFighter(winColor: string): void {
-        console.log("replaceFighter() Start");
         if (!this.match || !this.combatObj || this.matchNoCurrent === undefined) return;
 
         const matchWin = "W." + this.matchNoCurrent;
@@ -1251,7 +1306,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 break;
             }
         }
-        console.log("replaceFighter() End");
     }
 
     makeScoreTimer(): void {
@@ -1266,7 +1320,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                     this.isFirstRefereeScore = true;
                 }
                 this.scoreTimerCount--;
-                console.log(this.scoreTimerCount);
                 //Kết thúc nếu có >50% trọng tài chấm điểm
                 let redScoreCounter = 0;
                 let blueScoreCounter = 0;
@@ -1281,7 +1334,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                     }
                 }
                 if (this.scoreTimerCount === 0 || redScoreCounter > this.numReferee / 2 || blueScoreCounter > this.numReferee / 2) {
-                    console.log("makeScoreTimer() Start");
                     //Tổng kết và tính điểm
                     const redScoreArray: number[] = [];
                     const blueScoreArray: number[] = [];
@@ -1297,7 +1349,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                     this.refereeObj = this.combatConst.referee;
                     this.scoreTimerCount = this.timeScore;
                     this.isFirstRefereeScore = false;
-                    console.log("makeScoreTimer() End");
                     break;
                 }
             }
@@ -1390,7 +1441,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
     }
 
     startTimer = (): void => {
-        console.log("startTimer() Start");
         if (this.timer) {
             this.stopTimer();
             this.setState({ timerBgColor: this.yellowColor });
@@ -1410,7 +1460,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 this.setState({ timerBgColor: this.greenColor });
             }, 0);
         }
-        console.log("startTimer() End");
     }
 
     makeEffectTimer(): void {
@@ -1430,7 +1479,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
     }
 
     startEffectTimer(): void {
-        console.log("startEffectTimer() Start");
         if (!this.effectTimer) {
             this.effectTimer = setInterval(() => {
                 this.makeEffectTimer();
@@ -1441,7 +1489,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 this.makeScoreTimer();
             }, 1000);
         }
-        console.log("startEffectTimer() End");
     }
 
     stopTimer(): void {
@@ -1458,8 +1505,8 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             return;
         }
         soundElement.currentTime = 0;
-        soundElement.play().catch((err) => {
-            console.warn("Sound play failed:", err);
+        soundElement.play().catch(() => {
+            // Silent fail for sound play
         });
     }
 
@@ -1571,7 +1618,8 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             isBridgeConnected: bridgeConnected,
             showBridgeModal,
             bridgeUrl,
-            bridgeConnecting
+            bridgeConnecting,
+            refereeConnectionStatus
         } = this.state;
 
         // Calculate referee count for grid
@@ -1913,7 +1961,8 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                         <div className="flex flex-col justify-center gap-2 px-4 py-4" style={{ width: '12%', background: 'linear-gradient(to bottom, #f1f5f9, #e2e8f0)' }}>
                             {[1, 2, 3].map(i => (
                                 <div key={i} className="bg-white rounded-xl shadow-lg overflow-hidden flex-1 flex flex-col">
-                                    <div className="bg-slate-600 text-white text-center py-1 text-[1.5vh] font-semibold">
+                                    <div className="bg-slate-600 text-white text-center py-1 text-[1.5vh] font-semibold flex items-center justify-center gap-1">
+                                        <span className={`w-2 h-2 rounded-full ${refereeConnectionStatus[i-1] ? 'bg-green-400' : 'bg-gray-400'}`}></span>
                                         Giám định {i}
                                     </div>
                                     <div className="flex-1 flex">
@@ -1934,7 +1983,8 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                             ))}
                             {isShowFiveReferee && [4, 5].map(i => (
                                 <div key={i} className="bg-white rounded-xl shadow-lg overflow-hidden flex-1 flex flex-col">
-                                    <div className="bg-slate-600 text-white text-center py-1 text-[1.5vh] font-semibold">
+                                    <div className="bg-slate-600 text-white text-center py-1 text-[1.5vh] font-semibold flex items-center justify-center gap-1">
+                                        <span className={`w-2 h-2 rounded-full ${refereeConnectionStatus[i-1] ? 'bg-green-400' : 'bg-gray-400'}`}></span>
                                         Giám định {i}
                                     </div>
                                     <div className="flex-1 flex">

@@ -438,10 +438,8 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       const martialRef = ref(this.db, 'tournament/' + this.tournamentNoIndex + '/martial');
       this.firebaseListeners.push(martialRef);
       onValue(martialRef, (snapshot) => {
-        console.log("on value Start");
         this.initVariable(snapshot);
         this.showValue();
-        console.log("on value End");
       });
 
       // Kiểm tra kết nối internet
@@ -507,7 +505,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
   }
 
   showValue(): void {
-    console.log("showValue() Start");
     if (!this.martialObj || !this.teamMartial || !this.settingObj) return;
 
     const currentMatch = this.martialObj[this.matchMartialNoCurrent - 1];
@@ -531,7 +528,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
   }
 
   nextMatchMartial = (): void => {
-    console.log("nextMatchMartial() Start");
     if (!this.martialObj) return;
 
     if (this.matchMartialNoCurrent === this.martialObj.length && this.teamMartialNoCurrent === this.martialObj[this.matchMartialNoCurrent - 1].team.length) {
@@ -544,11 +540,9 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       this.teamMartialNoCurrent = 1;
     }
     this.restoreMatch();
-    console.log("nextMatchMartial() End");
   }
 
   prevMatchMartial = (): void => {
-    console.log("prevMatchMartial() Start");
     if (!this.martialObj) return;
 
     if (this.matchMartialNoCurrent === 1 && this.teamMartialNoCurrent === 1) {
@@ -561,11 +555,9 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       this.teamMartialNoCurrent = this.martialObj[this.matchMartialNoCurrent - 1].team.length;
     }
     this.restoreMatch();
-    console.log("prevMatchMartial() End");
   }
 
   restoreMatch(): void {
-    console.log("restoreMatch() Start");
 
     set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/martialArena/' + this.martialArenaNoIndex + '/lastMatchMartial'), {
       "matchMartialNo": this.matchMartialNoCurrent,
@@ -584,7 +576,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       this.showValue();
     });
 
-    console.log("restoreMatch() End");
   }
 
   takeMainScore = (): void => {
@@ -634,7 +625,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
   }
 
   startTimer = (): void => {
-    console.log("startTimer() Start");
     if (this.timer) {
       this.stopTimer();
       this.setState({ timerBgColor: this.yellowColor });
@@ -644,7 +634,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       this.setState({ timerBgColor: this.greenColor });
       this.playSound();
     }
-    console.log("startTimer() End");
   }
 
   stopTimer(): void {
@@ -656,7 +645,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
   }
 
   makeTimer(): void {
-    console.log("makeTimer() Start");
 
     this.timerCoundown++;
 
@@ -666,7 +654,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     this.seconds = seconds < 10 ? "0" + seconds : String(seconds);
 
     this.setState({ matchTime: this.minutes + ":" + this.seconds });
-    console.log("makeTimer() End");
   }
 
   playSound(): void {

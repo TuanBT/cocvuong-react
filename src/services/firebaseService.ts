@@ -41,8 +41,6 @@ export const getFirebaseDb = (): Database => {
     return dbInstance;
   }
 
-  console.log("Database environment: ", process.env.REACT_APP_FIREBASE_ENV);
-  
   const firebaseConfig: FirebaseConfig = {
     apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
     authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
@@ -233,6 +231,104 @@ export const updateRefereeScore = async (
     `tournament/${tournamentIndex}/combatArena/${arenaIndex}/referee/${refereeIndex}`,
     scores
   );
+};
+
+// ==================== PRESENCE SYSTEM ====================
+
+export interface PresenceData {
+  online: boolean;
+  name: string;
+  arena: string;
+  tournament: number;
+  refereeIndex: number;
+  lastSeen: number;
+}
+
+/**
+ * Thiết lập presence cho Giám Định (online status)
+ * Sử dụng onDisconnect để tự động xóa khi client disconnect
+ */
+export const setGiamDinhPresence = async (
+  arena: string,
+  tournament: number,
+  refereeIndex: number,
+  name: string
+): Promise<() => void> => {
+  const db = getFirebaseDb();
+  const presencePath = `presence/giam_dinh/${arena}_${tournament}_${refereeIndex}`;
+  const presenceRef = ref(db, presencePath);
+  
+  // Import onDisconnect từ firebase/database
+  const { onDisconnect, serverTimestamp } = await import('firebase/database');
+  
+  // Ghi trạng thái online
+  await set(presenceRef, {
+    online: true,
+    name: name,
+    arena: arena,
+    tournament: tournament,
+    refereeIndex: refereeIndex,
+    lastSeen: serverTimestamp()
+  });
+  
+  // Đăng ký lệnh xóa khi disconnect (server sẽ thực hiện)
+  await onDisconnect(presenceRef).remove();
+  
+  // Return cleanup function để gọi khi component unmount (nếu muốn xóa ngay)
+  return async () => {
+    await remove(presenceRef);
+  };
+};
+
+/**
+ * Xóa presence (khi logout hoặc rời trang)
+ */
+export const removeGiamDinhPresence = async (
+  arena: string,
+  tournament: number,
+  refereeIndex: number
+): Promise<void> => {
+  const db = getFirebaseDb();
+  const presencePath = `presence/giam_dinh/${arena}_${tournament}_${refereeIndex}`;
+  await remove(ref(db, presencePath));
+};
+
+/**
+ * Subscribe presence của các Giám Định (dùng cho Giám Sát)
+ */
+export const subscribeToGiamDinhPresence = (
+  arena: string,
+  tournament: number,
+  callback: (presenceList: PresenceData[]) => void
+): () => void => {
+  const db = getFirebaseDb();
+  const presenceRef = ref(db, 'presence/giam_dinh');
+  
+  const unsubscribe = onValue(presenceRef, (snapshot) => {
+    const data = snapshot.val();
+    if (!data) {
+      callback([]);
+      return;
+    }
+    
+    // Lọc theo arena và tournament
+    const presenceList: PresenceData[] = Object.values(data)
+      .filter((p: any) => p.arena === arena && p.tournament === tournament && p.online)
+      .map((p: any) => ({
+        online: p.online,
+        name: p.name,
+        arena: p.arena,
+        tournament: p.tournament,
+        refereeIndex: p.refereeIndex,
+        lastSeen: p.lastSeen
+      }));
+    
+    callback(presenceList);
+  });
+  
+  return () => {
+    off(presenceRef);
+  };
 };
 
 // Export các hàm Firebase gốc để sử dụng khi cần

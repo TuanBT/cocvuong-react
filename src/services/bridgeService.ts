@@ -40,10 +40,13 @@ export interface BridgeClient {
   type: ClientType;
   name: string;
   connected: boolean;
+  arena?: string;
+  tournament?: number;
 }
 
 type MessageCallback = (message: BridgeMessage) => void;
 type ConnectionCallback = (connected: boolean) => void;
+type ClientsListCallback = (clients: BridgeClient[]) => void;
 
 // Default config
 const DEFAULT_CONFIG: Required<BridgeConfig> = {
@@ -68,6 +71,8 @@ class BridgeService {
   private messageCallbacks: Set<MessageCallback> = new Set();
   private connectionCallbacks: Set<ConnectionCallback> = new Set();
   private scoreCallbacks: Set<(score: ScoreUpdateMessage) => void> = new Set();
+  private clientsListCallbacks: Set<ClientsListCallback> = new Set();
+  private connectedClients: BridgeClient[] = [];
 
   /**
    * Cấu hình service
@@ -104,18 +109,15 @@ class BridgeService {
         this.disconnect();
         this.isManualDisconnect = false;
 
-        console.log('[Bridge] Đang kết nối tới:', this.config.url);
         this.ws = new WebSocket(this.config.url);
 
         this.ws.onopen = () => {
-          console.log('[Bridge] Đã kết nối!');
           this.reconnectAttempts = 0;
           this.notifyConnectionChange(true);
           resolve();
         };
 
         this.ws.onclose = (event) => {
-          console.log('[Bridge] Đã ngắt kết nối:', event.code, event.reason);
           this.clientId = null;
           this.notifyConnectionChange(false);
           
@@ -126,8 +128,7 @@ class BridgeService {
         };
 
         this.ws.onerror = (error) => {
-          console.error('[Bridge] Lỗi kết nối:', error);
-          reject(new Error('Không thể kết nối tới Bridge'));
+          reject(new Error('Không thể kết nối tới Cóc Vương LAN'));
         };
 
         this.ws.onmessage = (event) => {
@@ -135,7 +136,7 @@ class BridgeService {
             const message = JSON.parse(event.data) as BridgeMessage;
             this.handleMessage(message);
           } catch (err) {
-            console.error('[Bridge] Lỗi parse message:', err);
+            // Silent fail for parse errors
           }
         };
 
@@ -221,8 +222,6 @@ class BridgeService {
   send(message: BridgeMessage): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message));
-    } else {
-      console.warn('[Bridge] Chưa kết nối, không thể gửi message');
     }
   }
 
@@ -251,20 +250,47 @@ class BridgeService {
   }
 
   /**
+   * Đăng ký callback khi danh sách clients thay đổi
+   */
+  onClientsListChange(callback: ClientsListCallback): () => void {
+    this.clientsListCallbacks.add(callback);
+    // Gọi ngay với danh sách hiện tại
+    callback(this.connectedClients);
+    return () => this.clientsListCallbacks.delete(callback);
+  }
+
+  /**
+   * Lấy danh sách clients đã kết nối
+   */
+  getConnectedClients(): BridgeClient[] {
+    return [...this.connectedClients];
+  }
+
+  /**
    * Xử lý message nhận được
    */
   private handleMessage(message: BridgeMessage): void {
-    console.log('[Bridge] Nhận message:', message.type, message);
-
     switch (message.type) {
       case 'welcome':
         this.clientId = message.clientId;
-        console.log('[Bridge] Client ID:', this.clientId);
         
         // Tự động đăng ký nếu đã có thông tin
         if (this.clientType !== 'unknown') {
           this.register(this.clientType, this.clientName, this.arena, this.tournament);
         }
+        break;
+
+      case 'clients_list':
+        // Cập nhật danh sách clients từ Bridge server
+        this.connectedClients = (message.clients || []) as BridgeClient[];
+        this.clientsListCallbacks.forEach(cb => cb(this.connectedClients));
+        break;
+
+      case 'client_registered':
+      case 'client_disconnected':
+        // Khi có client đăng ký hoặc ngắt kết nối, server sẽ gửi clients_list
+        // Nhưng cũng forward message này cho UI nếu cần
+        this.messageCallbacks.forEach(cb => cb(message));
         break;
 
       case 'score_update':
@@ -304,16 +330,14 @@ class BridgeService {
    */
   private scheduleReconnect(): void {
     if (this.reconnectAttempts >= this.config.maxReconnectAttempts) {
-      console.log('[Bridge] Đã hết số lần thử kết nối lại');
       return;
     }
 
     this.reconnectAttempts++;
-    console.log(`[Bridge] Thử kết nối lại lần ${this.reconnectAttempts}/${this.config.maxReconnectAttempts} sau ${this.config.reconnectInterval}ms`);
 
     this.reconnectTimer = setTimeout(() => {
-      this.connect().catch(err => {
-        console.error('[Bridge] Kết nối lại thất bại:', err);
+      this.connect().catch(() => {
+        // Silent fail for reconnect errors
       });
     }, this.config.reconnectInterval);
   }

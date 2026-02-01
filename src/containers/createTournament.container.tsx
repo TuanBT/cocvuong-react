@@ -339,7 +339,6 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
   }
 
   importCombat = () => {
-    console.log("importCombat Start");
     // Chỉ arrange nếu chưa arrange
     if (!this.combatStandardArray?.length) {
       this.arrangeCombat();
@@ -350,25 +349,19 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
         this.setState({ tournamentCreated: true }); // Mark as created
       });
     }
-    console.log("importCombat End");
   }
 
   downloadCombat = () => {
-    console.log("downloadCombat Start");
     this.combatArrangeHeader = ["TRẬN", "HẠNG CÂN", "LOẠI TRẬN", "TÊN GIÁP ĐỎ", "CODE/ĐƠN VỊ GIÁP ĐỎ", "QUỐC GIA ĐỎ", "TÊN GIÁP XANH", "CODE/ĐƠN VỊ GIÁP XANH", "QUỐC GIA XANH"];
     this.exportExcel(this.combatArrangeHeader, this.state.data, "Thong tin DOI KHANG");
-    console.log("downloadCombat End");
   }
 
   downloadCombatOrigin = () => {
-    console.log("downloadCombat Start");
     this.combatArrangeHeader = ["STT", "HẠNG CÂN", "TÊN VẬN ĐỘNG VIÊN", "CODE/ĐƠN VỊ", "QUỐC GIA"];
     this.exportExcel(this.combatArrangeHeader, this.state.data, "Thong tin DOI KHANG");
-    console.log("downloadCombat End");
   }
 
   importMartial = () => {
-    console.log("importMartial Start");
     // Chỉ arrange nếu chưa arrange
     if (!this.martialStandardArray?.length) {
       this.arrangeMartial();
@@ -379,11 +372,9 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
         this.setState({ tournamentCreated: true }); // Mark as created
       });
     }
-    console.log("importMartial End");
   }
 
   handleimportCombatRawFile = (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("handleimportCombatRawFile Start");
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -413,11 +404,9 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
       this.setState({ data: this.combatArrayRaw });
     };
     reader.readAsArrayBuffer(file);
-    console.log("handleimportCombatRawFile End");
   }
 
   shuffle = () => {
-    console.log("shuffle Start");
     let currentIndex = this.combatArrayRaw.length;
 
     while (0 !== currentIndex) {
@@ -431,11 +420,9 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
     this.grouping();
     this.setState({ data: this.combatArrayRaw });
-    console.log("shuffle End");
   }
 
   grouping = () => {
-    console.log("grouping Start");
     const weightCount: { [key: string]: number } = {};
     this.combatArrayRaw.forEach((fighter) => {
       const weight = fighter[1];
@@ -479,11 +466,9 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     }
 
     this.setState({ data: this.combatArrayRaw });
-    console.log("grouping End");
   }
 
   arrangeCombat = () => {
-    console.log("arrangeCombat Start");
 
     const weightCount: { [key: string]: number } = {};
     this.combatArrayRaw.forEach((fighter) => {
@@ -589,12 +574,10 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     this.combatArrangeHeader = ["TRẬN", "HẠNG CÂN", "LOẠI TRẬN", "TÊN GIÁP ĐỎ", "CODE/ĐƠN VỊ GIÁP ĐỎ", "QUỐC GIA ĐỎ", "TÊN GIÁP XANH", "CODE/ĐƠN VỊ GIÁP XANH", "QUỐC GIA XANH"];
     this.setState({ data: this.combatStandardArray });
 
-    console.log("arrangeCombat End");
   }
 
   // Wizard version - sắp lịch mà không reset combatArrayRaw và không setState về data
   arrangeCombatForWizard = () => {
-    console.log("arrangeCombatForWizard Start");
     if (!this.combatArrayRaw || this.combatArrayRaw.length === 0) return;
 
     // Lưu lại bản copy của combatArrayRaw
@@ -736,7 +719,6 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     // forceUpdate thay vì setState để không reset wizard
     this.forceUpdate();
 
-    console.log("arrangeCombatForWizard End");
   }
 
   getschedule(fighters: any[][]): MatchSchema[] {
@@ -796,7 +778,6 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
   }
 
   handleimportMartialRawFile = (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("handleimportMartialRawFile Start");
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -826,17 +807,13 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
       this.setState({ data: this.martialArrayRaw });
     };
     reader.readAsArrayBuffer(file);
-    console.log("handleimportMartialRawFile End");
   }
 
   shuffleMartial = () => {
-    console.log("shuffleMartial Start");
     this.setState({ data: this.combatArrayRaw });
-    console.log("shuffleMartial End");
   }
 
   arrangeMartial = () => {
-    console.log("arrangeMartial Start");
 
     this.martialObj = JSON.parse(JSON.stringify(this.martialConst));
     let matchMartialObjTemp = JSON.parse(JSON.stringify(this.matchMartialObj)) as MatchMartialObj;
@@ -892,14 +869,11 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     this.combatArrangeHeader = ['STT', 'NỘI DUNG', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
     this.setState({ data: this.martialStandardArray });
 
-    console.log("arrangeMartial End");
   }
 
   downloadMartial = () => {
-    console.log("downloadMartial Start");
     this.martialArrangeHeader = ['STT', 'NỘI DUNG', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
     this.exportExcel(this.martialArrangeHeader, this.state.data, "Thong tin THI QUYEN");
-    console.log("downloadMartial End");
   }
 
   inputPw = (value: string) => {
@@ -911,7 +885,6 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
   }
 
   handleimportMartialStandardFile = (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("handleimportMartialStandardFile Start");
     this.martialObj = JSON.parse(JSON.stringify(this.martialConst));
     let matchMartialObjTemp = JSON.parse(JSON.stringify(this.matchMartialObj)) as MatchMartialObj;
     let fighterMartialObjTemp = JSON.parse(JSON.stringify(this.fighterMartialObj)) as FighterMartialObj;
@@ -966,11 +939,9 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
       this.setState({ data: this.martialStandardArray });
     };
     reader.readAsArrayBuffer(file);
-    console.log("handleimportMartialStandardFile End");
   }
 
   handleimportCombatStandFile = (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("handleimportCombatStandFile Start");
     this.combatObj = JSON.parse(JSON.stringify(this.combatConst));
 
     const file = event.target.files?.[0];
@@ -1018,27 +989,22 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
       this.setState({ data: this.combatStandardArray });
     };
     reader.readAsArrayBuffer(file);
-    console.log("handleimportCombatStandFile End");
   }
 
   importCombatStandard = () => {
-    console.log("importCombatStandard Start");
     if (this.combatObj) {
       update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/'), this.combatObj as any).then(() => {
         toast.success("Cập nhập thông tin giải đấu thành công!");
       });
     }
-    console.log("importCombatStandard End");
   }
 
   importMartialStandard = () => {
-    console.log("importMartialStandard Start");
     if (this.martialObj) {
       update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/'), this.martialObj as any).then(() => {
         toast.success("Cập nhập thông tin giải đấu thành công!");
       });
     }
-    console.log("importMartialStandard End");
   }
 
   showPasswordModal = () => {

@@ -39,17 +39,14 @@ export function sendScoreFromGiamDinh(
   // 1. Gửi qua Bridge nếu có kết nối
   if (bridgeService.isConnected) {
     bridgeService.sendScore(refereeIndex, color, score);
-    console.log('[ScoreSync] Đã gửi qua Bridge:', { refereeIndex, color, score });
   }
 
   // 2. Gửi lên Firebase
   const updateData = color === 'red' ? { redScore: score } : { blueScore: score };
   update(ref(db, path), updateData)
     .then(() => {
-      console.log('[ScoreSync] Đã gửi lên Firebase:', { path, updateData });
     })
     .catch((err) => {
-      console.error('[ScoreSync] Lỗi gửi Firebase:', err);
     });
 }
 
@@ -69,7 +66,6 @@ export function subscribeScoreForGiamSat(
   // 1. Subscribe từ Bridge
   if (bridgeService.isConnected) {
     const unsubscribeBridge = bridgeService.onScoreUpdate((scoreMsg) => {
-      console.log('[ScoreSync] Nhận từ Bridge:', scoreMsg);
       const score = scoreMsg.color === 'red' 
         ? { red: scoreMsg.score, blue: 0 }
         : { red: 0, blue: scoreMsg.score };
@@ -117,7 +113,6 @@ export async function connectBridgeAsGiamDinh(
     bridgeService.register('giam_dinh', displayName, arena, tournament);
     return true;
   } catch (err) {
-    console.error('[ScoreSync] Lỗi kết nối Bridge:', err);
     return false;
   }
 }
@@ -137,7 +132,6 @@ export async function connectBridgeAsGiamSat(
     bridgeService.register('giam_sat', displayName, arena, tournament);
     return true;
   } catch (err) {
-    console.error('[ScoreSync] Lỗi kết nối Bridge:', err);
     return false;
   }
 }
@@ -161,4 +155,18 @@ export function disconnectBridge(): void {
  */
 export function onBridgeConnectionChange(callback: (connected: boolean) => void): () => void {
   return bridgeService.onConnectionChange(callback);
+}
+
+/**
+ * Đăng ký callback khi danh sách clients thay đổi (cho Giám Sát)
+ */
+export function onBridgeClientsChange(callback: (clients: any[]) => void): () => void {
+  return bridgeService.onClientsListChange(callback);
+}
+
+/**
+ * Lấy danh sách clients đã kết nối qua Bridge
+ */
+export function getBridgeClients(): any[] {
+  return bridgeService.getConnectedClients();
 }

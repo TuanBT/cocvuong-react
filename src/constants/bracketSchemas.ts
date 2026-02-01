@@ -98,7 +98,6 @@ export const BRACKET_SCHEMAS: MatchData[][] = [
  */
 export const getBracketSchema = (fighterCount: number): MatchData[] => {
   if (fighterCount < 2 || fighterCount > 22) {
-    console.warn(`Số lượng vận động viên ${fighterCount} không hợp lệ. Phải từ 2-22.`);
     return [];
   }
   // Deep clone to avoid mutation

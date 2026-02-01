@@ -10,6 +10,9 @@ import { REFEREE_COUNT } from '../constants/rounds';
 // Import Bridge utilities
 import { sendScoreFromGiamDinh, connectBridgeAsGiamDinh, isBridgeConnected, onBridgeConnectionChange, disconnectBridge } from '../utils/scoreSync';
 
+// Import Firebase presence
+import { setGiamDinhPresence, removeGiamDinhPresence } from '../services/firebaseService';
+
 interface GiamDinhDoiKhangContainerProps {}
 
 interface GiamDinhDoiKhangContainerState {
@@ -59,6 +62,9 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
 
   // Bridge cleanup function
   bridgeCleanup: (() => void) | null = null;
+  
+  // Presence cleanup function
+  presenceCleanup: (() => void) | null = null;
 
   constructor(props: GiamDinhDoiKhangContainerProps) {
     super(props);
@@ -121,6 +127,11 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
     // Cleanup Bridge listener
     if (this.bridgeCleanup) {
       this.bridgeCleanup();
+    }
+    
+    // Cleanup Firebase presence
+    if (this.presenceCleanup) {
+      this.presenceCleanup();
     }
   }
 
@@ -284,8 +295,25 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
         this.setState({ isInternetConnected: snapshot.val() === true });
       });
 
+      // Thiết lập Firebase presence (online status)
+      this.setupPresence();
+
       // Auto-connect Bridge nếu đã có URL lưu sẵn
       this.autoConnectBridge();
+    }
+  }
+
+  setupPresence = async () => {
+    const arena = this.combatArenaNoIndex === 0 ? 'A' : 'B';
+    try {
+      this.presenceCleanup = await setGiamDinhPresence(
+        arena,
+        this.tournamentNoIndex,
+        this.referreIndex,
+        this.refereeName
+      );
+    } catch (err) {
+      // Silent fail - presence là tính năng phụ
     }
   }
 
@@ -300,7 +328,6 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
           toast.success('Đã tự động kết nối LAN Bridge!', { autoClose: 2000 });
         }
       } catch (err) {
-        console.log('[AutoConnect] Không thể kết nối Bridge:', err);
         // Silent fail - không cần thông báo lỗi vì Bridge có thể không chạy
       }
     }

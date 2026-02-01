@@ -76,7 +76,6 @@ async function generateQRCode(text) {
       }
     });
   } catch (err) {
-    console.error('QR Code generation error:', err);
     return null;
   }
 }
@@ -104,6 +103,35 @@ function updateClientsList() {
     }));
     mainWindow.webContents.send('clients-update', clientsList);
   }
+  
+  // Broadcast danh sách clients tới tất cả Giám Sát
+  broadcastClientsListToGiamSat();
+}
+
+/**
+ * Broadcast danh sách clients tới các Giám Sát
+ */
+function broadcastClientsListToGiamSat() {
+  const clientsList = Array.from(clients.values()).map(c => ({
+    id: c.id,
+    type: c.type,
+    name: c.name,
+    arena: c.arena || '',
+    connected: c.ws.readyState === WebSocket.OPEN,
+    tournament: c.tournament || 0
+  }));
+  
+  const message = JSON.stringify({
+    type: 'clients_list',
+    clients: clientsList
+  });
+  
+  // Gửi tới tất cả Giám Sát
+  clients.forEach((client) => {
+    if (client.type === 'giam_sat' && client.ws.readyState === WebSocket.OPEN) {
+      client.ws.send(message);
+    }
+  });
 }
 
 /**
@@ -135,28 +163,22 @@ function sendToType(type, message) {
  */
 async function initWebSocketServer() {
   try {
-    console.log('[DEBUG] Starting initWebSocketServer...');
-    
     // Tìm port khả dụng
     WS_PORT = await findAvailablePort(DEFAULT_WS_PORT);
-    console.log('[DEBUG] Found port:', WS_PORT);
     
     if (WS_PORT !== DEFAULT_WS_PORT) {
       sendLog('warning', `Port ${DEFAULT_WS_PORT} đã được sử dụng, chuyển sang port ${WS_PORT}`);
     }
     
     wss = new WebSocketServer({ port: WS_PORT });
-    console.log('[DEBUG] WebSocketServer created');
     
     wss.on('listening', async () => {
-      console.log('[DEBUG] Server is listening!');
       const localIP = getLocalIP();
       const address = `${localIP}:${WS_PORT}`;
       sendLog('success', `Đang chạy tại ${address}`);
       
       // Gửi thông tin server cho renderer (event "init")
       if (mainWindow && !mainWindow.isDestroyed()) {
-        console.log('[DEBUG] Sending init event to renderer...');
         const qrCode = await generateQRCode(`ws://${localIP}:${WS_PORT}`);
         mainWindow.webContents.send('init', {
           localIP: localIP,
@@ -164,14 +186,10 @@ async function initWebSocketServer() {
           wsUrl: `ws://${localIP}:${WS_PORT}`,
           qrCode: qrCode
         });
-        console.log('[DEBUG] init event sent');
-      } else {
-        console.log('[DEBUG] mainWindow not ready');
       }
     });
     
     wss.on('error', (error) => {
-      console.error('[DEBUG] WebSocket Server error:', error);
       sendLog('error', `Lỗi server: ${error.message}`);
     });
 
@@ -204,7 +222,6 @@ async function initWebSocketServer() {
         const message = JSON.parse(data.toString());
         handleMessage(clientId, message);
       } catch (err) {
-        console.error('Parse error:', err);
         sendLog('error', `Lỗi parse message từ ${clientId}`);
       }
     });
@@ -226,18 +243,15 @@ async function initWebSocketServer() {
     });
 
     ws.on('error', (error) => {
-      console.error('WebSocket error:', error);
       sendLog('error', `Lỗi kết nối: ${error.message}`);
     });
   });
 
   wss.on('error', (error) => {
-    console.error('Server error:', error);
     sendLog('error', `Lỗi server: ${error.message}`);
   });
   
   } catch (err) {
-    console.error('Lỗi khởi tạo WebSocket Server:', err);
     sendLog('error', `Lỗi khởi tạo server: ${err.message}`);
   }
 }
@@ -260,6 +274,22 @@ function handleMessage(clientId, message) {
       
       sendLog('success', `${client.name} (Sân ${client.arena}) đã đăng ký`);
       updateClientsList();
+      
+      // Nếu là Giám Sát, gửi ngay danh sách clients hiện tại
+      if (client.type === 'giam_sat') {
+        const clientsList = Array.from(clients.values()).map(c => ({
+          id: c.id,
+          type: c.type,
+          name: c.name,
+          arena: c.arena || '',
+          connected: c.ws.readyState === WebSocket.OPEN,
+          tournament: c.tournament || 0
+        }));
+        client.ws.send(JSON.stringify({
+          type: 'clients_list',
+          clients: clientsList
+        }));
+      }
       
       // Thông báo cho các client khác
       broadcast({

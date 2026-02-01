@@ -41,14 +41,13 @@ async function init() {
   // Fallback: Nếu sau 3 giây chưa nhận init event, tự lấy info
   setTimeout(async () => {
     if (!serverInfo) {
-      console.log('Fallback: getting server info manually...');
       try {
         const data = await window.bridgeAPI.getServerInfo();
         if (data && data.localIP) {
           handleInit(data);
         }
       } catch (err) {
-        console.error('Failed to get server info:', err);
+        // Silent fail - server may not be ready yet
       }
     }
   }, 3000);

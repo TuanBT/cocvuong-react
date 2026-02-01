@@ -200,10 +200,8 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
   }
 
   resetTournament = () => {
-    console.log("resetSetting Start");
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/')).then((snapshot) => {
       const tournamentData = snapshot.val();
-      console.log(tournamentData);
       
       if (tournamentData) {
         for (let i = 0; i < tournamentData.combat.length; i++) {
@@ -253,11 +251,9 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
         });
       }
     });
-    console.log("resetSetting End");
   }
 
   resetSetting = () => {
-    console.log("resetSetting Start");
     this.settingObj = JSON.parse(JSON.stringify(this.settingConst));
 
     update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/setting'), this.settingObj.setting).then(() => {
@@ -281,11 +277,9 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
 
       toast.success("Cài lại thiết đặt thành công!");
     });
-    console.log("resetSetting End");
   }
 
   resetPassword = () => {
-    console.log("resetPassword Start");
     this.commonSettingObj = JSON.parse(JSON.stringify(this.commonSettingConst));
     update(ref(this.db, 'commonSetting'), this.commonSettingObj).then(() => {
       get(ref(this.db, 'commonSetting')).then((snapshot) => {
@@ -301,11 +295,9 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
 
       toast.success("Cài lại thiết đặt mật khẩu thành công!");
     });
-    console.log("resetPassword End");
   }
 
   updateSetting = () => {
-    console.log("updateSetting Start");
     const { timeRound, timeBreak, timeExtra, timeExtraBreak, tournamentName, 
             flexSwitchCountryFlagCombat, showCautionBoxCombat, quantityRefereeCombat, prioritizeUnitNameCombat,
             flexSwitchCountryFlagMartial, quantityRefereeMartial } = this.state;
@@ -326,11 +318,9 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/setting'), this.settingObj).then(() => {
       toast.success("Cập nhập thông tin giải đấu thành công!");
     });
-    console.log("updateSetting End");
   }
 
   updatePassword = () => {
-    console.log("updatePassword Start");
     const { passwordSetting, passwordGiamDinh, passwordGiamSat } = this.state;
     
     this.commonSettingObj = {
@@ -341,7 +331,6 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     update(ref(this.db, 'commonSetting'), this.commonSettingObj).then(() => {
       toast.success("Cập nhập thông tin mật khẩu thành công!");
     });
-    console.log("updatePassword End");
   }
 
   chooseTournament = (tournamentNoIndex: number) => {
