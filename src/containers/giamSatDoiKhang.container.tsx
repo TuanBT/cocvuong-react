@@ -14,6 +14,9 @@ import { DEFAULT_COMBAT_CONST, DEFAULT_MATCH_OBJ } from '../constants/settings';
 // Import utils
 import { convertWinLoseFormat, getModes, resizeTextToFit } from '../utils/helpers';
 
+// Import Bridge utilities
+import { subscribeScoreForGiamSat, connectBridgeAsGiamSat, isBridgeConnected, onBridgeConnectionChange, disconnectBridge } from '../utils/scoreSync';
+
 // Import components
 import FighterInfoModal from '../components/combat/FighterInfoModal';
 
@@ -105,6 +108,11 @@ interface GiamSatDoiKhangState {
     showRedCaution: boolean;
     showBlueCaution: boolean;
     showInternetStatus: boolean;
+    // Bridge connection
+    isBridgeConnected: boolean;
+    showBridgeModal: boolean;
+    bridgeUrl: string;
+    bridgeConnecting: boolean;
 }
 
 // Tournament info tuple type
@@ -129,6 +137,10 @@ interface MatchObjType {
 class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDoiKhangState> {
     // Firebase listener references for cleanup
     firebaseListeners: DatabaseReference[] = [];
+
+    // Bridge cleanup function
+    bridgeCleanup: (() => void) | null = null;
+    bridgeScoreCleanup: (() => void) | null = null;
 
     // Firebase database reference
     db: Database;
@@ -275,6 +287,10 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             showRedCaution: false,
             showBlueCaution: false,
             showInternetStatus: false,
+            isBridgeConnected: isBridgeConnected(),
+            showBridgeModal: false,
+            bridgeUrl: localStorage.getItem('bridgeUrl') || '',
+            bridgeConnecting: false,
         };
 
         // Use constants instead of hardcoded values
@@ -329,6 +345,14 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         document.addEventListener("keydown", this._handleKeyDown);
         window.onresize = () => resizeTextToFit('referee-score-area-top', 'tournamentName');
         
+        // Subscribe to Bridge connection changes
+        this.bridgeCleanup = onBridgeConnectionChange((connected) => {
+            this.setState({ isBridgeConnected: connected });
+            if (connected) {
+                toast.success("Đã kết nối Bridge LAN", { autoClose: 2000 });
+            }
+        });
+
         // Check for saved password in localStorage (valid for 6 hours)
         const savedPassword = localStorage.getItem('giamSatPassword');
         const savedTime = localStorage.getItem('giamSatPasswordTime');
@@ -371,6 +395,14 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             off(listenerRef);
         });
         this.firebaseListeners = [];
+
+        // Cleanup Bridge listeners
+        if (this.bridgeCleanup) {
+            this.bridgeCleanup();
+        }
+        if (this.bridgeScoreCleanup) {
+            this.bridgeScoreCleanup();
+        }
     }
 
     autoVerifyPassword = (savedPassword: string): void => {
@@ -511,13 +543,57 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 this.showValue();
             });
 
+            // Subscribe to Bridge score updates (for LAN mode)
+            // This will receive scores from Giám Định via WebSocket
+            this.bridgeScoreCleanup = subscribeScoreForGiamSat(
+                {
+                    db: this.db,
+                    tournamentNoIndex: this.tournamentNoIndex,
+                    combatArenaNoIndex: this.combatArenaNoIndex,
+                    arena: this.combatArenaNoIndex === 0 ? 'A' : 'B'
+                },
+                this.numReferee,
+                (refereeIndex: number, redScore: number, blueScore: number) => {
+                    // Update referee object when receiving score from Bridge
+                    if (this.refereeObj && this.refereeObj[refereeIndex]) {
+                        if (redScore > 0) {
+                            this.refereeObj[refereeIndex].redScore = redScore;
+                        }
+                        if (blueScore > 0) {
+                            this.refereeObj[refereeIndex].blueScore = blueScore;
+                        }
+                        this.showValue();
+                    }
+                }
+            );
+
             //Kiểm tra kết nối internet
             const connectedRef = ref(this.db, '.info/connected');
             this.firebaseListeners.push(connectedRef);
             onValue(connectedRef, (snapshot) => {
                 this.setState({ showInternetStatus: !snapshot.val() });
             });
+
+            // Auto-connect Bridge nếu đã có URL lưu sẵn
+            this.autoConnectBridge();
         });
+    }
+
+    autoConnectBridge = async (): Promise<void> => {
+        const savedUrl = localStorage.getItem('bridgeUrl');
+        if (savedUrl && !isBridgeConnected()) {
+            try {
+                const arena = this.combatArenaNoIndex === 0 ? 'A' : 'B';
+                const name = `Giám Sát Sân ${arena}`;
+                const success = await connectBridgeAsGiamSat(savedUrl, arena, this.tournamentNoIndex, name);
+                if (success) {
+                    toast.success('Đã tự động kết nối LAN Bridge!', { autoClose: 2000 });
+                }
+            } catch (err) {
+                console.log('[AutoConnect] Không thể kết nối Bridge:', err);
+                // Silent fail - không cần thông báo lỗi vì Bridge có thể không chạy
+            }
+        }
     }
 
     chooseTournament = (tournamentNoIndex: number): void => {
@@ -1395,6 +1471,69 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         }
     }
 
+    // Bridge connection methods
+    showBridgeSettings = (): void => {
+        this.setState({ showBridgeModal: true });
+    }
+
+    hideBridgeModal = (): void => {
+        this.setState({ showBridgeModal: false });
+    }
+
+    connectToBridge = async (): Promise<void> => {
+        const { bridgeUrl } = this.state;
+        if (!bridgeUrl.trim()) {
+            toast.error('Vui lòng nhập địa chỉ Bridge');
+            return;
+        }
+
+        this.setState({ bridgeConnecting: true });
+        
+        try {
+            // Format URL properly
+            let url = bridgeUrl.trim();
+            if (!url.startsWith('ws://')) {
+                url = 'ws://' + url;
+            }
+            if (!url.includes(':')) {
+                url = url + ':9765';
+            }
+
+            // Save for next time
+            localStorage.setItem('bridgeUrl', url);
+            this.setState({ bridgeUrl: url });
+
+            // Connect as Giám Sát
+            const arena = this.combatArenaNoIndex === 0 ? 'A' : 'B';
+            const name = `Giám Sát Sân ${arena}`;
+            
+            const success = await connectBridgeAsGiamSat(url, arena, this.tournamentNoIndex, name);
+            
+            if (success) {
+                toast.success('Đã kết nối Bridge LAN!');
+                this.setState({ showBridgeModal: false });
+                
+                // Subscribe to score updates from Bridge - but it's already subscribed in chooseArenaNo
+                // Just mark as connected
+            } else {
+                toast.error('Không thể kết nối Bridge');
+            }
+        } catch (err: any) {
+            toast.error('Lỗi kết nối: ' + err.message);
+        } finally {
+            this.setState({ bridgeConnecting: false });
+        }
+    }
+
+    disconnectFromBridge = (): void => {
+        disconnectBridge();
+        if (this.bridgeScoreCleanup) {
+            this.bridgeScoreCleanup();
+            this.bridgeScoreCleanup = null;
+        }
+        toast.info('Đã ngắt kết nối Bridge');
+    }
+
     handleConfirmOK = (): void => {
         if (this.confirmCallback) {
             this.confirmCallback();
@@ -1428,7 +1567,11 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             isShowFiveReferee,
             isPrioritizeUnitName,
             showQuickMenu,
-            showModalFighterInfo
+            showModalFighterInfo,
+            isBridgeConnected: bridgeConnected,
+            showBridgeModal,
+            bridgeUrl,
+            bridgeConnecting
         } = this.state;
 
         // Calculate referee count for grid
@@ -1586,6 +1729,16 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                                         Thông tin
                                     </button>
                                     <div className="border-t border-slate-200 my-1"></div>
+                                    <button 
+                                        onClick={() => { this.setState({ showQuickMenu: false, showBridgeModal: true }); }}
+                                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                                    >
+                                        <i className={`fa fa-wifi ${bridgeConnected ? 'text-green-500' : 'text-slate-400'}`}></i>
+                                        Kết nối LAN
+                                        {bridgeConnected && (
+                                            <span className="ml-auto w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                                        )}
+                                    </button>
                                     <button 
                                         onClick={() => { this.setState({ showQuickMenu: false }); window.open('/#/thiet-dat', '_blank'); }}
                                         className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
@@ -2001,6 +2154,93 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                     tournamentName={tournamentName}
                     arenaName={arenaName}
                 />
+
+                {/* Bridge Connection Modal */}
+                {showBridgeModal && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                            <div className="bg-gradient-to-r from-cyan-500 to-blue-500 p-4">
+                                <h5 className="text-white font-bold text-lg flex items-center gap-2">
+                                    <i className="fa-solid fa-network-wired"></i>
+                                    Kết nối LAN
+                                </h5>
+                            </div>
+                            
+                            <div className="p-5 space-y-4">
+                                {/* Connection Status */}
+                                <div className={`flex items-center gap-3 p-4 rounded-xl ${
+                                    bridgeConnected 
+                                        ? 'bg-green-50 border border-green-200' 
+                                        : 'bg-slate-50 border border-slate-200'
+                                }`}>
+                                    <span className={`w-4 h-4 rounded-full ${bridgeConnected ? 'bg-green-500 animate-pulse' : 'bg-slate-400'}`}></span>
+                                    <span className={`font-semibold ${bridgeConnected ? 'text-green-700' : 'text-slate-600'}`}>
+                                        {bridgeConnected ? 'Đã kết nối LAN' : 'Chưa kết nối'}
+                                    </span>
+                                </div>
+
+                                {/* Instructions */}
+                                <div className="text-sm text-slate-600 bg-amber-50 p-4 rounded-xl border border-amber-200">
+                                    <p className="font-semibold text-amber-700 mb-2">
+                                        <i className="fa-solid fa-lightbulb mr-1"></i> Hướng dẫn:
+                                    </p>
+                                    <ol className="list-decimal list-inside space-y-1 text-slate-600">
+                                        <li>Mở app <strong>CocVuong Kết Nối</strong> trên máy này</li>
+                                        <li>Nhập địa chỉ hiện trên app vào bên dưới</li>
+                                        <li>Các Giám Định cũng nhập địa chỉ này để kết nối</li>
+                                    </ol>
+                                </div>
+
+                                {/* URL Input */}
+                                <div>
+                                    <label className="text-sm font-semibold text-slate-600 mb-2 block">
+                                        Địa chỉ kết nối (IP:Port)
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-white text-lg"
+                                        placeholder="192.168.1.100:9765"
+                                        value={bridgeUrl.replace('ws://', '')}
+                                        onChange={(e) => this.setState({ bridgeUrl: e.target.value })}
+                                        disabled={bridgeConnected}
+                                    />
+                                    <p className="text-xs text-slate-400 mt-2">
+                                        Ví dụ: 192.168.1.100:9765
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div className="flex gap-3 p-4 bg-slate-50 border-t">
+                                <button onClick={this.hideBridgeModal}
+                                    className="flex-1 py-3 px-4 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-100 transition-colors">
+                                    Đóng
+                                </button>
+                                {bridgeConnected ? (
+                                    <button onClick={this.disconnectFromBridge}
+                                        className="flex-1 py-3 px-4 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors">
+                                        <i className="fa-solid fa-plug-circle-xmark mr-2"></i>
+                                        Ngắt kết nối
+                                    </button>
+                                ) : (
+                                    <button onClick={this.connectToBridge} disabled={bridgeConnecting}
+                                        className="flex-1 py-3 px-4 rounded-xl bg-cyan-500 text-white font-semibold hover:bg-cyan-600 disabled:opacity-50 transition-colors">
+                                        {bridgeConnecting ? (
+                                            <>
+                                                <i className="fa-solid fa-spinner fa-spin mr-2"></i>
+                                                Đang kết nối...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <i className="fa-solid fa-plug mr-2"></i>
+                                                Kết nối
+                                            </>
+                                        )}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Shortcut Modal */}
                 <div className={`fixed inset-0 z-50 ${showModalShortcut ? 'flex' : 'hidden'} items-center justify-center bg-black/50`}>

@@ -801,7 +801,43 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     });
 
     return (
-      <div className="h-screen w-screen bg-slate-100 flex flex-col overflow-hidden">
+      <div className="h-screen w-screen bg-slate-100 flex flex-col overflow-hidden relative">
+        {/* Loading Skeleton when no match data - covers entire screen */}
+        {(!matchMartialNo || matchMartialNo === '') && (
+          <div className="absolute inset-0 z-30 flex flex-col overflow-hidden bg-slate-100">
+            {/* Skeleton Header */}
+            <div className="bg-white border-b border-slate-200 py-2 px-4 flex items-center justify-between" style={{ minHeight: '5%' }}>
+              <div className="flex items-center gap-3 flex-1">
+                <div className="h-8 w-8 bg-slate-300 rounded"></div>
+                <div className="h-5 w-48 bg-slate-200 rounded"></div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-7 w-20 bg-slate-200 rounded"></div>
+              </div>
+            </div>
+            {/* Skeleton Body */}
+            <div className="flex-1 p-3 flex flex-col gap-2">
+              {/* Skeleton Row 1: Match Name & Timer (12%) */}
+              <div className="flex items-stretch gap-3" style={{ height: '12%' }}>
+                <div className="flex-1 bg-slate-300 rounded-xl"></div>
+                <div className="bg-slate-300 rounded-xl" style={{ width: '12%' }}></div>
+              </div>
+              {/* Skeleton Row 2: Team Code (10%) */}
+              <div className="bg-slate-400 rounded-xl" style={{ height: '10%' }}></div>
+              {/* Skeleton Row 3: Fighter Names (14%) */}
+              <div className="bg-slate-300 rounded-xl" style={{ height: '14%' }}></div>
+              {/* Skeleton Row 4: Main Score (47%) */}
+              <div className="bg-slate-500 rounded-2xl" style={{ height: '47%' }}></div>
+              {/* Skeleton Row 5: Referee Scores (10%) */}
+              <div className="flex items-stretch gap-2" style={{ height: '10%' }}>
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="flex-1 bg-slate-300 rounded-lg"></div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Header - Tournament Info */}
         <div className="bg-white border-b border-slate-200 text-slate-800 px-4 py-2 flex items-center justify-between" style={{ minHeight: '5%' }}>
           <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -822,29 +858,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col p-3 gap-2 relative" style={{ height: '95%' }}>
-          
-          {/* Loading Skeleton when no match data */}
-          {(!matchMartialNo || matchMartialNo === '') && (
-            <div className="absolute inset-0 z-20 p-3 flex flex-col gap-2 bg-slate-100">
-              {/* Skeleton Row 1: Match Name & Timer (12%) */}
-              <div className="flex items-stretch gap-3" style={{ height: '12%' }}>
-                <div className="flex-1 bg-slate-300 rounded-xl"></div>
-                <div className="bg-slate-300 rounded-xl" style={{ width: '12%' }}></div>
-              </div>
-              {/* Skeleton Row 2: Team Code (10%) */}
-              <div className="bg-slate-400 rounded-xl" style={{ height: '10%' }}></div>
-              {/* Skeleton Row 3: Fighter Names (14%) */}
-              <div className="bg-slate-300 rounded-xl" style={{ height: '14%' }}></div>
-              {/* Skeleton Row 4: Main Score (47%) */}
-              <div className="bg-slate-500 rounded-2xl" style={{ height: '47%' }}></div>
-              {/* Skeleton Row 5: Referee Scores (10%) */}
-              <div className="flex items-stretch gap-2" style={{ height: '10%' }}>
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="flex-1 bg-slate-300 rounded-lg"></div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Row 1: Match Name & Timer */}
           <div className="flex items-stretch gap-3" style={{ height: '12%' }}>

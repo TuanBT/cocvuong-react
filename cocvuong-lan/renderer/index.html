@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+  <title>Cóc Vương LAN</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header - Simple tech style -->
+    <header class="header">
+      <div class="logo">⚡</div>
+      <h1>Cóc Vương LAN</h1>
+      <p class="subtitle">Máy chủ chấm điểm nội bộ</p>
+    </header>
+
+    <!-- Server Info Card -->
+    <div class="card status-card">
+      <div class="status-indicator" id="statusIndicator">
+        <span class="status-dot"></span>
+        <span class="status-text" id="statusText">Đang khởi động...</span>
+      </div>
+      <div class="server-address">
+        <span class="label">📡</span>
+        <input type="text" id="wsUrl" readonly value="..." class="address-input">
+        <button class="btn-copy" id="btnCopy" title="Copy địa chỉ">📋</button>
+      </div>
+    </div>
+
+    <!-- Connections Card - Simple list, only show when connected -->
+    <div class="card connections-card">
+      <h2>🔌 Kết nối hiện tại</h2>
+      <div class="connections-list" id="connectionsList">
+        <div class="empty-state">
+          <span class="empty-icon">📱</span>
+          <span class="empty-text">Chưa có thiết bị kết nối</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Log Card - Tall -->
+    <div class="card log-card tall">
+      <h2>📋 Nhật ký hoạt động</h2>
+      <div class="log-container" id="logContainer">
+        <div class="log-entry info">
+          <span class="time">--:--:--</span>
+          <span class="message">Khởi động ứng dụng...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <button class="btn btn-secondary" id="btnRestart">
+        ↻ Khởi động lại
+      </button>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>Cóc Vương LAN v1.0.0</p>
+    </footer>
+  </div>
+
+  <!-- Hidden elements for backward compatibility -->
+  <span id="localIP" style="display:none;">---</span>
+  <span id="wsPort" style="display:none;">---</span>
+  <img id="qrCode" style="display:none;" src="" alt="">
+  <div id="qrLoading" style="display:none;"></div>
+  <div id="gsListA" style="display:none;"></div>
+  <div id="gdListA" style="display:none;"></div>
+  <div id="gsListB" style="display:none;"></div>
+  <div id="gdListB" style="display:none;"></div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

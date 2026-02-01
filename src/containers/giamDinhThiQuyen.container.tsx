@@ -344,7 +344,34 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
     } = this.state;
 
     return (
-      <div className="fixed inset-0 flex flex-col bg-slate-100 overflow-hidden">
+      <div className="fixed inset-0 flex flex-col bg-slate-100 overflow-hidden relative">
+        {/* Loading Skeleton when no match data - covers entire screen */}
+        {!matchMartialName && (
+          <div className="absolute inset-0 z-30 flex flex-col overflow-hidden bg-slate-100">
+            {/* Skeleton Header */}
+            <div className="bg-white shadow-md px-3 py-2 border-b border-slate-200">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="h-6 w-16 bg-slate-300 rounded-lg"></div>
+                  <div className="h-5 w-20 bg-slate-200 rounded"></div>
+                </div>
+                <div className="h-6 w-32 bg-slate-300 rounded-lg"></div>
+              </div>
+            </div>
+            {/* Skeleton Body */}
+            <div className="flex-1 flex flex-col p-2">
+              {/* Score Display Skeleton */}
+              <div className="bg-slate-400 rounded-2xl h-32 mb-2 flex-shrink-0"></div>
+              {/* Numpad Skeleton */}
+              <div className="flex-1 grid grid-cols-3 gap-2">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(i => (
+                  <div key={i} className="bg-slate-300 rounded-xl"></div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Keyboard Hint Overlay - shows for 4 seconds after login */}
         {showKeyboardHint && (
           <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 animate-fade-in">
@@ -404,21 +431,7 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
         </header>
 
         {/* Full-screen Calculator - takes all remaining space */}
-        <div className="flex-1 flex flex-col p-2 min-h-0 relative">
-          {/* Loading Skeleton when no match data */}
-          {!matchMartialName && (
-            <div className="absolute inset-0 z-20 flex flex-col p-2 bg-slate-100">
-              {/* Score Display Skeleton */}
-              <div className="bg-slate-400 rounded-2xl h-32 mb-2 flex-shrink-0"></div>
-              {/* Numpad Skeleton */}
-              <div className="flex-1 grid grid-cols-3 gap-2">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(i => (
-                  <div key={i} className="bg-slate-300 rounded-xl"></div>
-                ))}
-              </div>
-            </div>
-          )}
-          
+        <div className="flex-1 flex flex-col p-2 min-h-0">
           {/* Score Display - adaptive height */}
           <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl shadow-lg p-3 mb-2 flex-shrink-0">
             <div className="bg-white/20 backdrop-blur-sm rounded-xl py-3 px-4">
@@ -586,17 +599,17 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
                     <label className="relative cursor-pointer">
                       <input type="radio" name="optionsArena" value="0" checked={selectedArena === 0}
                         onChange={() => this.handleArenaChange(0)} className="peer sr-only" />
-                      <div className="p-3 border-2 border-slate-200 rounded-xl text-center peer-checked:border-amber-500 peer-checked:bg-amber-50">
+                      <div className="p-3 border-2 border-slate-200 rounded-xl text-center peer-checked:border-amber-500 peer-checked:bg-amber-50 flex flex-col items-center justify-center min-h-[60px]">
                         <i className="fa-solid fa-chess-board text-xl text-amber-500"></i>
-                        <p className="font-bold text-sm text-slate-700 mt-1">Sân A</p>
+                        <span className="font-bold text-sm text-slate-700 mt-1">Sân A</span>
                       </div>
                     </label>
                     <label className="relative cursor-pointer">
                       <input type="radio" name="optionsArena" value="1" checked={selectedArena === 1}
                         onChange={() => this.handleArenaChange(1)} className="peer sr-only" />
-                      <div className="p-3 border-2 border-slate-200 rounded-xl text-center peer-checked:border-amber-500 peer-checked:bg-amber-50">
+                      <div className="p-3 border-2 border-slate-200 rounded-xl text-center peer-checked:border-amber-500 peer-checked:bg-amber-50 flex flex-col items-center justify-center min-h-[60px]">
                         <i className="fa-solid fa-chess-board text-xl text-amber-500"></i>
-                        <p className="font-bold text-sm text-slate-700 mt-1">Sân B</p>
+                        <span className="font-bold text-sm text-slate-700 mt-1">Sân B</span>
                       </div>
                     </label>
                   </div>
@@ -610,8 +623,8 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
                       <label key={num} className="relative cursor-pointer">
                         <input type="radio" name="optionsReferee" value={num} checked={selectedReferee === num}
                           onChange={() => this.handleRefereeChange(num)} className="peer sr-only" />
-                        <div className="p-2 border-2 border-slate-200 rounded-xl text-center peer-checked:border-amber-500 peer-checked:bg-amber-50">
-                          <p className="font-bold text-sm text-slate-700">GĐ{num}</p>
+                        <div className="p-2 border-2 border-slate-200 rounded-xl text-center peer-checked:border-amber-500 peer-checked:bg-amber-50 flex items-center justify-center min-h-[40px]">
+                          <span className="font-bold text-sm text-slate-700">GĐ{num}</span>
                         </div>
                       </label>
                     ))}
@@ -619,8 +632,8 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
                       <label key={num} className="relative cursor-pointer">
                         <input type="radio" name="optionsReferee" value={num} checked={selectedReferee === num}
                           onChange={() => this.handleRefereeChange(num)} className="peer sr-only" />
-                        <div className="p-2 border-2 border-slate-200 rounded-xl text-center peer-checked:border-amber-500 peer-checked:bg-amber-50">
-                          <p className="font-bold text-sm text-slate-700">GĐ{num}</p>
+                        <div className="p-2 border-2 border-slate-200 rounded-xl text-center peer-checked:border-amber-500 peer-checked:bg-amber-50 flex items-center justify-center min-h-[40px]">
+                          <span className="font-bold text-sm text-slate-700">GĐ{num}</span>
                         </div>
                       </label>
                     ))}
