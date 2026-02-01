@@ -1,0 +1,188 @@
+/**
+ * ===========================================
+ * BRACKET CSS SCHEMA (0-22 VĐV)
+ * ===========================================
+ * 
+ * File này chứa tất cả CSS điều chỉnh spacing cho bracket.
+ * Bạn có thể chỉnh sửa các giá trị trong file này,
+ * sau đó copy vào src/assets/css/style.css
+ * 
+ * CẤU TRÚC BRACKET:
+ * - group2: Dùng cho 2 VĐV (r1 + r2 + final)
+ * - group3: Dùng cho 3-4 VĐV (r1 + r2 + r3)
+ * - group4: Dùng cho 5-8 VĐV (r1 + r2 + r3 + r4)
+ * - group5: Dùng cho 9-16 VĐV (r1 + r2 + r3 + r4 + r5)
+ * - group6: Dùng cho 17-22 VĐV (r1 + r2 + r3 + r4 + r5 + r6)
+ * 
+ * CÔNG THỨC TÍNH:
+ * - height của round n = height của round (n-1) * 2
+ * - margin-top của round n = margin-top của round (n-1) * 2
+ * - margin-bottom của round n = height của round n + gap
+ * 
+ * VỊ TRÍ TEXT VĐV:
+ * - teama (đỏ): position từ border-top (giá trị âm để nổi lên trên)
+ * - teamb (xanh): position từ border-bottom (giá trị âm để nổi xuống dưới)
+ * ===========================================
+ */
+
+/* =============================================
+   PHẦN 1: VỊ TRÍ TÊN VĐV (teama, teamb)
+   ============================================= */
+
+/* VĐV Đỏ (Team A) - Nằm phía trên border-top */
+.brackets div.bracketbox>span.teama {
+    top: -32px;         /* Điều chỉnh: số âm lớn hơn = lên cao hơn */
+    right: auto;
+    color: #991b1b;
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border: 1px solid #fecaca;
+    box-shadow: 0 1px 2px rgba(239, 68, 68, 0.1);
+}
+
+/* VĐV Xanh (Team B) - Nằm phía dưới border-bottom */
+.brackets div.bracketbox>span.teamb {
+    bottom: -32px;      /* Điều chỉnh: số âm lớn hơn = xuống thấp hơn */
+    right: auto;
+    color: #1e40af;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border: 1px solid #bfdbfe;
+    box-shadow: 0 1px 2px rgba(59, 130, 246, 0.1);
+}
+
+/* =============================================
+   PHẦN 2: CHIỀU CAO TỔNG THỂ CỦA MỖI GROUP
+   ============================================= */
+
+/* Group 2 - Dùng cho bracket 2 VĐV */
+.brackets>.group2 {
+    height: 138px;      /* Điều chỉnh tăng/giảm theo tổng height các round */
+}
+
+/* Group 3 - Dùng cho bracket 3-4 VĐV */
+.brackets>.group3 {
+    height: 170px;      /* Điều chỉnh tăng/giảm theo tổng height các round */
+}
+
+/* Group 6 - Dùng cho bracket 17-22 VĐV (group4, group5 không có height cố định) */
+.brackets>.group6 {
+    height: 1060px;     /* Điều chỉnh tăng/giảm theo tổng height các round */
+}
+
+/* =============================================
+   PHẦN 3: MARGIN VÀ HEIGHT MẶC ĐỊNH
+   ============================================= */
+
+/* Margin mặc định cho tất cả các ô trong round */
+.brackets>div>div>div {
+    margin: 24px 0 61px 0;   /* margin: top 0 bottom 0 */
+}
+
+/* =============================================
+   PHẦN 4: CÁC ROUND (r1 đến r6)
+   
+   Quy tắc:
+   - Round sau thường = Round trước x 2 (về height và margin-top)
+   - margin-bottom = height + khoảng cách để chừa cho tên VĐV trận tiếp theo
+   ============================================= */
+
+/* ROUND 1 - Vòng đầu tiên (vòng loại) */
+.brackets>div>.r1>div {
+    height: 30px;           /* Chiều cao của bracketbox */
+}
+
+/* ROUND 2 - Vòng 2 */
+.brackets>div>.r2>div {
+    margin: 38px 0 88px 0;  /* margin: top 0 bottom 0 */
+    height: 92px;           /* Chiều cao của bracketbox */
+}
+
+/* ROUND 3 - Vòng 3 */
+.brackets>div>.r3>div {
+    margin: 68px 0 180px 0; /* margin: top 0 bottom 0 */
+    height: 182px;          /* Chiều cao của bracketbox */
+}
+
+/* ROUND 4 - Vòng 4 */
+.brackets>div>.r4>div {
+    margin: 170px 0 363px 0; /* margin: top 0 bottom 0 */
+    height: 366px;           /* Chiều cao của bracketbox */
+}
+
+/* ROUND 5 - Vòng 5 */
+.brackets>div>.r5>div {
+    margin: 337px 0 0 0;    /* margin: top 0 bottom 0 (bottom=0 vì là round cuối) */
+    height: 730px;          /* Chiều cao của bracketbox */
+}
+
+/* ROUND 6 - Vòng 6 (chỉ dùng cho 17-22 VĐV) */
+.brackets>div>.r6>div {
+    margin: 660px 0 0 0;    /* margin: top 0 bottom 0 */
+}
+
+/* =============================================
+   PHẦN 5: CÁC CLASS ĐẶC BIỆT (drop, final)
+   ============================================= */
+
+/* Drop trong r4 - điều chỉnh khi có VĐV miễn thi đấu vòng đầu */
+.brackets>div>.r4>div.drop {
+    height: 323px;
+    margin-bottom: 0px;
+}
+
+/* Final drop trong r5 - vị trí của đường nối đến vô địch */
+.brackets>div>.r5>div.final.drop {
+    margin-top: 580px;      /* Điều chỉnh để đường nối vào đúng vị trí vô địch */
+    margin-bottom: 0px;
+    height: 1px;
+}
+
+/* Xóa margin-bottom của phần tử cuối trong mỗi round */
+.brackets>div>div>div:last-of-type {
+    margin-bottom: 0px;
+}
+
+/* =============================================
+   PHẦN 6: VĐV VÔ ĐỊCH (FINAL)
+   ============================================= */
+
+/* Styling cho ô vô địch */
+.brackets div.final>div.bracketbox {
+    border-top: none;
+    border-right: none;
+    border-bottom: 3px solid #22c55e;  /* Màu xanh lá cho vô địch */
+    border-radius: 0;
+    height: auto;
+    min-height: 10px;
+    padding-bottom: 15px;
+    overflow: visible;
+    position: relative;
+}
+
+/* Ẩn số trận trong ô vô địch */
+.brackets div.final>div.bracketbox>span.info {
+    display: none;
+}
+
+/* Vị trí tên vô địch */
+.brackets div.final>div.bracketbox>span.teamc {
+    bottom: 5px;            /* Điều chỉnh vị trí tên vô địch */
+    top: auto;
+    overflow: visible;
+}
+
+/* =============================================
+   BẢNG THAM KHẢO GIÁ TRỊ GỐC (TRƯỚC KHI ĐIỀU CHỈNH)
+   
+   Round  | margin-top | height   | margin-bottom
+   -------|------------|----------|---------------
+   r1     | default    | 21.112px | default
+   r2     | 27.261px   | 66.417px | 64.116px
+   r3     | 61.425px   | 131.3px  | 130.52px
+   r4     | 122.85px   | 264.888px| 263.354px
+   r5     | 254.15px   | 528px    | 0
+   r6     | 517.4px    | -        | 0
+   
+   group2 height: 99.814px
+   group3 height: 122.85px
+   group6 height: 767.8125px
+   ============================================= */

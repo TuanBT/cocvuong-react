@@ -1071,13 +1071,22 @@ html {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: calc(100% - 40px);
+    max-width: calc(100% - 20px);
     border-radius: 4px;
+    line-height: 1.3;
+}
+
+/* Unit/Code display on new line */
+.brackets div.bracketbox>span .unit {
+    display: block;
+    font-size: 0.9em;
+    font-weight: 400;
+    opacity: 0.8;
 }
 
 /* Red Fighter (Team A) - Top */
 .brackets div.bracketbox>span.teama {
-    top: -16px;
+    top: -32px;
     right: auto;
     color: #991b1b;
     background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
@@ -1087,7 +1096,7 @@ html {
 
 /* Blue Fighter (Team B) - Bottom */
 .brackets div.bracketbox>span.teamb {
-    bottom: -16px;
+    bottom: -32px;
     right: auto;
     color: #1e40af;
     background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
@@ -1120,7 +1129,7 @@ html {
 
 /* Group/Round Widths */
 .brackets>.group2 {
-    height: 99.814px;
+    height: 138px;
 }
 
 .brackets>.group2>div {
@@ -1186,13 +1195,11 @@ html {
 
 /* Final Match Styling - Champion display */
 .brackets div.final>div.bracketbox {
-    border-top: none;
-    border-right: none;
+    border-top: 0px;
+    border-right: 0px;
+    height: 0px;
     border-bottom: 3px solid #22c55e;
     border-radius: 0;
-    height: auto;
-    min-height: 10px;
-    padding-bottom: 15px;
     overflow: visible;
     position: relative;
 }

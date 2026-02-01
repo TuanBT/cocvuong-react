@@ -93,9 +93,11 @@ export function trackFighterMatches(combats: CombatInfo[]): { [key: string]: num
   return matches;
 }
 
-// Format fighter display with unit/country
-export function formatFighterDisplay(fighter: FighterInfo): string {
-  return fighter.country ? `${fighter.name} (${fighter.country})` : fighter.name;
+// Format fighter display with unit (code field)
+// Unit is displayed on a new line below the name
+export function formatFighterDisplay(fighter: FighterInfo, useLineBreak: boolean = true): string {
+  if (!fighter.code) return fighter.name;
+  return useLineBreak ? `${fighter.name}<br><span class="unit">${fighter.code}</span>` : `${fighter.name} (${fighter.code})`;
 }
 
 // Get unique fighter key
@@ -133,10 +135,10 @@ export function updateBracketMatchInfo(
     // Track winner
     if (combat.match.win === 'red') {
       nameWin = combat.fighters.redFighter.name;
-      countryWin = combat.fighters.redFighter.country || '';
+      countryWin = combat.fighters.redFighter.code || '';
     } else if (combat.match.win === 'blue') {
       nameWin = combat.fighters.blueFighter.name;
-      countryWin = combat.fighters.blueFighter.country || '';
+      countryWin = combat.fighters.blueFighter.code || '';
     }
     
     matchNo++;
@@ -158,14 +160,14 @@ export function updateBracketMatchInfo(
     
     // Update red fighter
     if (teamaEl) {
-      teamaEl.textContent = redDisplay;
+      teamaEl.innerHTML = redDisplay;
       teamaEl.setAttribute('data-fighter', redKey);
       teamaEl.setAttribute('data-matches', (fighterMatches[redKey] || []).join(','));
     }
     
     // Update blue fighter
     if (teambEl) {
-      teambEl.textContent = blueDisplay;
+      teambEl.innerHTML = blueDisplay;
       teambEl.setAttribute('data-fighter', blueKey);
       teambEl.setAttribute('data-matches', (fighterMatches[blueKey] || []).join(','));
     }
@@ -181,7 +183,7 @@ export function updateBracketMatchInfo(
   // Update final winner
   const finalEl = bracketRef.querySelector('.final .teamc') as HTMLElement;
   if (finalEl && nameWin) {
-    finalEl.textContent = showUnit && countryWin ? `${nameWin} (${countryWin})` : nameWin;
+    finalEl.innerHTML = showUnit && countryWin ? `${nameWin}<br><span class="unit">${countryWin}</span>` : nameWin;
     
     // Find winner's fighter key by looking at the last match winner
     const lastCombat = filteredCombats[filteredCombats.length - 1];
