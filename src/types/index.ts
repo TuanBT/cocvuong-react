@@ -20,6 +20,7 @@ export interface CombatSettings {
   isShowCautionBox: boolean;
   isShowCountryFlag: boolean;
   isShowFiveReferee: boolean;
+  isPrioritizeUnitName?: boolean;
   timeBreak: number;
   timeExtra: number;
   timeExtraBreak: number;

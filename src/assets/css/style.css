@@ -979,9 +979,17 @@ html {
 
 /* ---------End Giám định---------------- */
 
-/* --------Schema----------------- */
+/* ============ Tournament Bracket Styles ============ */
+/* Traditional bracket style with clear connector lines - Enhanced Design */
 
-#schema-bracket {
+/* Main Container */
+#schema-bracket,
+#schema-bracket-modal {
+    padding: 30px;
+    font-family: "Inter", "Roboto", -apple-system, BlinkMacSystemFont, sans-serif;
+    background: linear-gradient(135deg, #fafbfc 0%, #f3f4f6 100%);
+    border-radius: 12px;
+    overflow-x: auto;
     margin: 20px;
 }
 
@@ -995,6 +1003,7 @@ html {
     cursor: pointer;
 }
 
+/* Bracket Structure */
 .brackets>div {
     vertical-align: top;
     clear: both;
@@ -1002,59 +1011,114 @@ html {
 
 .brackets>div>div {
     float: left;
-    /* height: 100%; */
+    position: relative;
 }
 
+/* Match Box - Traditional bracket line style with modern touch */
 .brackets div.bracketbox {
     position: relative;
     width: 100%;
     height: 100%;
-    border-top: 2px solid red;
-    border-right: 1px solid black;
-    border-bottom: 2px solid blue;
+    background: transparent;
+    border: none;
+    border-top: 2px solid #ef4444;
+    border-right: 2px solid #9ca3af;
+    border-bottom: 2px solid #3b82f6;
+    border-radius: 0 4px 4px 0;
+    transition: all 0.2s ease;
+    overflow: visible;
 }
 
+.brackets div.bracketbox:hover {
+    border-top-color: #f87171;
+    border-bottom-color: #60a5fa;
+    border-right-color: #6b7280;
+}
+
+/* Match Number Badge - CENTER of bracket box */
 .brackets div.bracketbox>span.info {
-    font-size: 1.5em;
-    color: #BBB;
-    position: relative;
-    float: left;
+    position: absolute;
     top: 50%;
-    left: 70%;
+    left: 50%;
     transform: translate(-50%, -50%);
-    font-weight: bold;
-    background: rgb(0 0 0 / 5%);
-    border-radius: 20px;
-    padding: 0px 0.5em;
-    z-index: 1;
+    font-size: 0.85em;
+    font-weight: 700;
+    color: #6b7280;
+    background: #f3f4f6;
+    border: 2px solid #e5e7eb;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    float: none;
+    right: auto;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
+/* Base span positioning */
 .brackets div.bracketbox>span {
     position: absolute;
-    left: 5px;
-    font-size: 0.875em;
+    left: 6px;
+    font-size: 0.73em;
+    font-weight: 500;
+    text-align: left;
+    padding: 3px 8px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: calc(100% - 40px);
+    border-radius: 4px;
 }
 
+/* Red Fighter (Team A) - Top */
 .brackets div.bracketbox>span.teama {
-    top: -13px;
-    color: white;
-    background: #ff0000;
-    padding: 0px 0.5em;
-    border-radius: 5px 5px 0px 0px;
+    top: -16px;
+    right: auto;
+    color: #991b1b;
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border: 1px solid #fecaca;
+    box-shadow: 0 1px 2px rgba(239, 68, 68, 0.1);
 }
 
+/* Blue Fighter (Team B) - Bottom */
 .brackets div.bracketbox>span.teamb {
-    bottom: -13px;
-    color: white;
-    background: blue;
-    padding: 0px 0.5em;
-    border-radius: 0px 0px 5px 5px;
+    bottom: -16px;
+    right: auto;
+    color: #1e40af;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border: 1px solid #bfdbfe;
+    box-shadow: 0 1px 2px rgba(59, 130, 246, 0.1);
 }
 
+/* Winner (Final) */
 .brackets div.bracketbox>span.teamc {
-    bottom: 1px;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #166534;
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.78em;
+    border: 1px solid #86efac;
+    position: absolute;
+    display: inline-block;
+    width: auto;
+    max-width: none;
+    box-shadow: 0 2px 4px rgba(34, 197, 94, 0.15);
 }
 
+.brackets div.bracketbox>span.teamc:not(:empty):before {
+    content: "🏆 ";
+}
+
+/* Group/Round Widths */
 .brackets>.group2 {
     height: 99.814px;
 }
@@ -1087,6 +1151,7 @@ html {
     width: 16.3%;
 }
 
+/* Round Spacing */
 .brackets>div>div>div {
     margin: 17.29px 0 44.148px 0;
 }
@@ -1119,12 +1184,30 @@ html {
     margin: 517.4px 0 0 0;
 }
 
+/* Final Match Styling - Champion display */
 .brackets div.final>div.bracketbox {
-    border-top: 0px;
-    border-right: 0px;
-    height: 0px;
-    border-bottom: 3px solid green;
+    border-top: none;
+    border-right: none;
+    border-bottom: 3px solid #22c55e;
+    border-radius: 0;
+    height: auto;
+    min-height: 10px;
+    padding-bottom: 15px;
+    overflow: visible;
+    position: relative;
 }
+
+.brackets div.final>div.bracketbox>span.info {
+    display: none;
+}
+
+.brackets div.final>div.bracketbox>span.teamc {
+    bottom: 5px;
+    top: auto;
+    overflow: visible;
+}
+
+
 
 .brackets>div>.r4>div.drop {
     height: 234px;
@@ -1141,6 +1224,136 @@ html {
     margin-bottom: 0px;
 }
 
+/* Current Match Highlight */
+.brackets div.bracketbox.current-match {
+    border-top: 3px solid #f59e0b !important;
+    border-bottom: 3px solid #f59e0b !important;
+    border-right: 3px solid #f59e0b !important;
+    border-radius: 0 6px 6px 0 !important;
+    background: linear-gradient(90deg, rgba(251, 191, 36, 0.12) 0%, rgba(251, 191, 36, 0.03) 100%);
+    z-index: 10;
+}
+
+.brackets div.bracketbox.current-match>span.info {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+    color: white !important;
+    border-color: #f59e0b !important;
+    font-weight: 700;
+    width: 30px;
+    height: 30px;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
+}
+
+.brackets div.bracketbox.current-match>span.teama {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
+    border-color: #fcd34d !important;
+    color: #92400e !important;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(251, 191, 36, 0.2);
+}
+
+.brackets div.bracketbox.current-match>span.teamb {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
+    border-color: #fcd34d !important;
+    color: #92400e !important;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(251, 191, 36, 0.2);
+}
+
+/* Hover Path Highlight - khi hover vào tên VĐV */
+.brackets div.bracketbox span.teama,
+.brackets div.bracketbox span.teamb {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.brackets div.bracketbox span.teamc {
+    cursor: pointer;
+}
+
+.brackets div.bracketbox span.teama:hover,
+.brackets div.bracketbox span.teamb:hover {
+    transform: scale(1.02);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+}
+
+/* Path Highlight - match trong lộ trình */
+.brackets div.bracketbox.path-highlight {
+    border-color: #06b6d4 !important;
+    z-index: 50;
+    box-shadow: 0 0 10px rgba(6, 182, 212, 0.4);
+}
+
+.brackets div.bracketbox.path-highlight span.teama.fighter-highlight,
+.brackets div.bracketbox.path-highlight span.teamb.fighter-highlight,
+.brackets span.teamc.fighter-highlight {
+    background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%) !important;
+    border-color: #22d3ee !important;
+    color: #0e7490 !important;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
+}
+
+/* Làm mờ các match KHÔNG được highlight khi hover */
+.brackets.has-hover div.bracketbox:not(.path-highlight) {
+    opacity: 0.35;
+    filter: grayscale(0.4);
+}
+
+/* Khi hover winner, làm mờ TẤT CẢ matches */
+.brackets.winner-hover div.bracketbox {
+    opacity: 0.35;
+    filter: grayscale(0.4);
+}
+
+/* Final box (chứa teamc) giữ nguyên sáng khi hover winner */
+.brackets.winner-hover div.final .bracketbox {
+    opacity: 1;
+    filter: none;
+}
+
+/* Các trận trong đường đi (path-highlight) cũng giữ sáng khi hover winner */
+.brackets.winner-hover div.bracketbox.path-highlight {
+    opacity: 1;
+    filter: none;
+}
+
+/* Completed Match Styling */
+.brackets div.bracketbox.match-completed>span.info {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    color: white;
+    border-color: #16a34a;
+}
+
+/* Winner/Loser Highlight */
+.brackets div.bracketbox .teama.winner,
+.brackets div.bracketbox .teamb.winner {
+    font-weight: 700;
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%) !important;
+    border-color: #86efac !important;
+    color: #166534 !important;
+}
+
+.brackets div.bracketbox .teama.loser,
+.brackets div.bracketbox .teamb.loser {
+    opacity: 0.5;
+    text-decoration: line-through;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .brackets div.bracketbox>span.teama,
+    .brackets div.bracketbox>span.teamb {
+        font-size: 0.62em;
+        padding: 2px 5px;
+    }
+    
+    .brackets div.bracketbox>span.info {
+        font-size: 0.7em;
+        width: 22px;
+        height: 22px;
+    }
+}
 
 /* ---------End schema---------------- */
 
@@ -1820,4 +2033,14 @@ textarea {
     width: 100%;
     height: 1%;
     top: 99%;
+}
+
+/* Subtraction Button - Hidden by default, shows on direct hover */
+.subtract-btn {
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.subtract-btn:hover {
+    opacity: 1;
 }

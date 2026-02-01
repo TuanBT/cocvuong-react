@@ -14,6 +14,9 @@ import { DEFAULT_COMBAT_CONST, DEFAULT_MATCH_OBJ } from '../constants/settings';
 // Import utils
 import { convertWinLoseFormat, getModes, resizeTextToFit } from '../utils/helpers';
 
+// Import components
+import FighterInfoModal from '../components/combat/FighterInfoModal';
+
 // Import types
 import {
     Tournament,
@@ -33,6 +36,7 @@ interface GiamSatDoiKhangProps {
 interface GiamSatDoiKhangState {
     data: any[];
     isShowFiveReferee: boolean;
+    isPrioritizeUnitName: boolean;
     // Password modal
     showPasswordModal: boolean;
     password: string;
@@ -48,6 +52,10 @@ interface GiamSatDoiKhangState {
     confirmWinnerColor: 'red' | 'blue' | null;
     // Shortcut modal
     showModalShortcut: boolean;
+    // Quick menu dropdown
+    showQuickMenu: boolean;
+    // Fighter info modal
+    showModalFighterInfo: boolean;
     // Display values
     tournamentName: string;
     arenaName: string;
@@ -212,6 +220,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         this.state = {
             data: [],
             isShowFiveReferee: false,
+            isPrioritizeUnitName: false,
             showPasswordModal: true,
             password: '',
             showChooseArenaNoModal: false,
@@ -222,6 +231,8 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             confirmBody: '',
             confirmWinnerColor: null,
             showModalShortcut: false,
+            showQuickMenu: false,
+            showModalFighterInfo: false,
             tournamentName: '',
             arenaName: '',
             matchNo: 0,
@@ -454,7 +465,10 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 this.setState({ showRedCaution: true, showBlueCaution: true });
             }
             this.numReferee = this.settingObj.combat.isShowFiveReferee === true ? REFEREE_COUNT.FIVE : REFEREE_COUNT.DEFAULT;
-            this.setState({ isShowFiveReferee: this.settingObj.combat.isShowFiveReferee || false });
+            this.setState({ 
+                isShowFiveReferee: this.settingObj.combat.isShowFiveReferee || false,
+                isPrioritizeUnitName: this.settingObj.combat.isPrioritizeUnitName || false
+            });
 
             this.startEffectTimer();
 
@@ -1411,7 +1425,10 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             showRedFlag, showBlueFlag,
             showRedCaution, showBlueCaution,
             showInternetStatus,
-            isShowFiveReferee
+            isShowFiveReferee,
+            isPrioritizeUnitName,
+            showQuickMenu,
+            showModalFighterInfo
         } = this.state;
 
         // Calculate referee count for grid
@@ -1443,7 +1460,84 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         });
 
         return (
-            <div className="h-screen w-screen bg-slate-100 flex flex-col overflow-hidden">
+            <div className="h-screen w-screen bg-slate-100 flex flex-col overflow-hidden relative">
+                {/* Loading Skeleton when no match data - covers entire screen */}
+                {(!matchNo || matchNo === 0) && (
+                    <div className="absolute inset-0 z-30 flex flex-col overflow-hidden bg-slate-100">
+                        {/* Skeleton Header */}
+                        <div className="bg-white border-b border-slate-200 py-2 px-4 flex items-center justify-between" style={{ minHeight: '5%' }}>
+                            <div className="flex items-center gap-4 flex-1">
+                                <div className="h-8 w-8 bg-slate-300 rounded"></div>
+                                <div className="h-5 w-48 bg-slate-200 rounded"></div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="h-8 w-20 bg-slate-200 rounded"></div>
+                                <div className="h-8 w-28 bg-slate-200 rounded"></div>
+                                <div className="h-8 w-24 bg-slate-200 rounded"></div>
+                                <div className="h-8 w-8 bg-slate-300 rounded-full"></div>
+                            </div>
+                        </div>
+                        {/* Skeleton Top Section */}
+                        <div className="flex items-stretch" style={{ height: '35%' }}>
+                            {/* Left Fighter Skeleton */}
+                            <div className="bg-slate-400 flex flex-col justify-center items-center relative" style={{ width: '35%' }}>
+                                <div className="absolute top-2 left-2 h-10 w-14 bg-slate-500 rounded"></div>
+                                <div className="absolute top-2 right-2 h-10 w-10 bg-slate-500 rounded"></div>
+                                <div className="text-center">
+                                    <div className="h-10 w-48 bg-slate-500 rounded mb-3 mx-auto"></div>
+                                    <div className="h-6 w-32 bg-slate-500 rounded mx-auto"></div>
+                                </div>
+                                <div className="absolute bottom-2 w-full px-2 flex justify-center gap-2">
+                                    {[1, 2, 3, 4].map(i => (
+                                        <div key={i} className="flex-1 max-w-[80px] h-16 bg-slate-500 rounded-lg"></div>
+                                    ))}
+                                </div>
+                            </div>
+                            {/* Timer Section Skeleton */}
+                            <div className="flex flex-col justify-between items-center py-3 px-2 bg-slate-200" style={{ width: '30%' }}>
+                                <div className="flex items-center gap-1">
+                                    <div className="h-6 w-6 bg-slate-300 rounded-full"></div>
+                                    <div className="h-5 w-20 bg-slate-300 rounded"></div>
+                                    <div className="h-6 w-6 bg-slate-300 rounded-full"></div>
+                                </div>
+                                <div className="h-[16vh] w-[80%] bg-slate-400 rounded-2xl"></div>
+                                <div className="h-6 w-24 bg-slate-300 rounded"></div>
+                            </div>
+                            {/* Right Fighter Skeleton */}
+                            <div className="bg-slate-400 flex flex-col justify-center items-center relative" style={{ width: '35%' }}>
+                                <div className="absolute top-2 left-2 h-10 w-14 bg-slate-500 rounded"></div>
+                                <div className="absolute top-2 right-2 h-10 w-10 bg-slate-500 rounded"></div>
+                                <div className="text-center">
+                                    <div className="h-10 w-48 bg-slate-500 rounded mb-3 mx-auto"></div>
+                                    <div className="h-6 w-32 bg-slate-500 rounded mx-auto"></div>
+                                </div>
+                                <div className="absolute bottom-2 w-full px-2 flex justify-center gap-2">
+                                    {[1, 2, 3, 4].map(i => (
+                                        <div key={i} className="flex-1 max-w-[80px] h-16 bg-slate-500 rounded-lg"></div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        {/* Skeleton Bottom Section */}
+                        <div className="flex-1 flex items-stretch">
+                            {/* Left Score Skeleton */}
+                            <div className="flex-1 bg-slate-500 flex items-center justify-center">
+                                <div className="h-[40vh] w-[30vh] bg-slate-600 rounded-xl"></div>
+                            </div>
+                            {/* Referee Score Skeleton */}
+                            <div className="flex flex-col justify-center gap-2 px-4 py-4 bg-slate-200" style={{ width: '12%' }}>
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className="bg-slate-300 rounded-xl h-16 w-full"></div>
+                                ))}
+                            </div>
+                            {/* Right Score Skeleton */}
+                            <div className="flex-1 bg-slate-500 flex items-center justify-center">
+                                <div className="h-[40vh] w-[30vh] bg-slate-600 rounded-xl"></div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Header - Tournament Info */}
                 <div className="bg-white border-b border-slate-200 text-slate-800 py-2 px-4 flex items-center justify-between" style={{ minHeight: '5%' }}>
                     <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -1453,59 +1547,59 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                         <span className="text-[2vh] font-bold whitespace-pre-line leading-tight" id="tournamentName">{processedTournamentName}</span>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
-                        <span className="bg-slate-200 px-3 py-1 rounded font-semibold text-sm" id="arena-name">{arenaName}</span>
-                        <span className={`font-semibold text-sm px-2 py-1 rounded ${matchType?.toLowerCase().includes('chung kết') ? 'bg-yellow-400 text-yellow-900' : matchType?.toLowerCase().includes('bán kết') ? 'bg-orange-400 text-orange-900' : ''}`} id="match-type">{matchType}</span>
-                        <span className="font-medium text-sm" id="match-category">{matchCategory}</span>
+                        <span className="bg-slate-200 px-4 py-1.5 rounded font-bold text-base" id="arena-name">{arenaName}</span>
+                        <span className={`font-bold text-base px-3 py-1.5 rounded ${matchType?.toLowerCase().includes('chung kết') ? 'bg-yellow-400 text-yellow-900' : matchType?.toLowerCase().includes('bán kết') ? 'bg-orange-400 text-orange-900' : ''}`} id="match-type">{matchType}</span>
+                        <span className="font-semibold text-base" id="match-category">{matchCategory}</span>
                         {showInternetStatus && (
                             <span className="bg-red-500 text-white px-3 py-1 rounded text-sm" id="internet-status">
                                 <i className="fa-solid fa-wifi mr-1"></i>Mất kết nối
                             </span>
                         )}
+                        {/* Quick Menu Button */}
+                        <div className="relative">
+                            <button 
+                                onClick={() => this.setState({ showQuickMenu: !showQuickMenu })}
+                                className="w-8 h-8 rounded-full bg-slate-600 hover:bg-slate-700 text-white flex items-center justify-center transition-colors"
+                            >
+                                <i className="fa fa-cog text-sm"></i>
+                            </button>
+                            {showQuickMenu && (
+                                <div className="absolute right-0 top-10 bg-white rounded-lg shadow-xl border border-slate-200 py-2 min-w-[200px] z-50">
+                                    <button 
+                                        onClick={() => { this.setState({ showQuickMenu: false, showModalFighterInfo: true }); }}
+                                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                                    >
+                                        <i className="fa fa-user text-slate-400"></i>
+                                        Thông tin VĐV
+                                    </button>
+                                    <button 
+                                        onClick={() => { this.setState({ showQuickMenu: false, showModalChooseMatch: true }); }}
+                                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                                    >
+                                        <i className="fa fa-list text-slate-400"></i>
+                                        Chọn trận
+                                    </button>
+                                    <div className="border-t border-slate-200 my-1"></div>
+                                    <button 
+                                        onClick={() => { this.setState({ showQuickMenu: false }); window.open('/#/thiet-dat', '_blank'); }}
+                                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                                    >
+                                        <i className="fa fa-sliders text-slate-400"></i>
+                                        Cài đặt
+                                        <i className="fa fa-external-link text-slate-300 text-xs ml-auto"></i>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
                 {/* Main Content */}
                 <div className="flex-1 flex flex-col relative" style={{ height: '95%' }}>
-                    {/* Loading Skeleton when no match data */}
-                    {(!matchNo || matchNo === 0) && (
-                        <div className="absolute inset-0 z-20 flex flex-col overflow-hidden">
-                            {/* Skeleton Top Section */}
-                            <div className="flex items-stretch" style={{ height: '30%' }}>
-                                <div className="flex-1 bg-slate-400 flex flex-col justify-center items-center">
-                                    <div className="h-8 w-48 bg-slate-500 rounded mb-2"></div>
-                                    <div className="h-6 w-24 bg-slate-500 rounded"></div>
-                                </div>
-                                <div className="flex flex-col justify-center items-center px-6 bg-slate-300" style={{ width: '20%' }}>
-                                    <div className="h-6 w-32 bg-slate-400 rounded mb-3"></div>
-                                    <div className="h-20 w-36 bg-slate-400 rounded-2xl mb-2"></div>
-                                    <div className="h-4 w-16 bg-slate-400 rounded"></div>
-                                </div>
-                                <div className="flex-1 bg-slate-400 flex flex-col justify-center items-center">
-                                    <div className="h-8 w-48 bg-slate-500 rounded mb-2"></div>
-                                    <div className="h-6 w-24 bg-slate-500 rounded"></div>
-                                </div>
-                            </div>
-                            {/* Skeleton Bottom Section */}
-                            <div className="flex-1 flex items-stretch" style={{ height: '70%' }}>
-                                <div className="flex-1 bg-slate-500 flex items-center justify-center">
-                                    <div className="h-40 w-32 bg-slate-600 rounded"></div>
-                                </div>
-                                <div className="flex flex-col justify-center gap-2 px-4 py-4 bg-slate-300" style={{ width: '12%' }}>
-                                    {[1, 2, 3].map(i => (
-                                        <div key={i} className="bg-slate-400 rounded-xl h-16 w-full"></div>
-                                    ))}
-                                </div>
-                                <div className="flex-1 bg-slate-500 flex items-center justify-center">
-                                    <div className="h-40 w-32 bg-slate-600 rounded"></div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
                     {/* Top Section - Fighter Info & Timer */}
-                    <div className="flex items-stretch" style={{ height: '30%' }}>
+                    <div className="flex items-stretch" style={{ height: '35%' }}>
                         {/* Red Fighter */}
-                        <div className="flex-1 bg-gradient-to-br from-red-500 to-red-600 flex flex-col justify-start items-center relative cursor-pointer pt-4" onClick={this.redWin}>
+                        <div className="bg-gradient-to-br from-red-500 to-red-600 flex flex-col justify-start items-center relative cursor-pointer pt-4" style={{ width: '35%' }} onClick={this.redWin}>
                             {showRedFlag && (
                                 <div className="absolute top-2 left-2">
                                     <img className="h-12 rounded shadow-lg" src={require('../assets/flag/' + this.countryRed + '.jpg')} alt="red flag" />
@@ -1528,71 +1622,68 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                                 </div>
                             )}
                             <div className="text-white text-center flex-1 flex flex-col justify-center">
-                                <div className="text-[5vh] font-bold drop-shadow-lg leading-tight" id="red-fighter">{redFighterName}</div>
-                                <div className="text-[3vh] font-medium opacity-90" id="red-code">{redCode}</div>
+                                <div className={`font-bold drop-shadow-lg leading-tight ${isPrioritizeUnitName ? 'text-[3.5vh]' : 'text-[5vh]'}`} id="red-fighter">{redFighterName}</div>
+                                <div className={`font-semibold opacity-95 ${isPrioritizeUnitName ? 'text-[5vh]' : 'text-[3.5vh]'}`} id="red-code">{redCode}</div>
                             </div>
                             {/* Cautions */}
                             {showRedCaution && (
                                 <div className="w-full px-2 pb-2 flex justify-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-1 pb-3 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.remindRedIncrease}>
-                                        <div className="text-xs truncate">Nhắc nhở</div>
-                                        <div className="text-2xl font-bold" id="remind-red">{remindRed}</div>
-                                        <div className="absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.remindRedDecrease(); }}></div>
+                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-2 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.remindRedIncrease}>
+                                        <div className="text-xs truncate mb-0.5">Nhắc nhở</div>
+                                        <div className="text-2xl font-bold leading-tight" id="remind-red">{remindRed}</div>
+                                        <div className="subtract-btn absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.remindRedDecrease(); }}></div>
                                     </div>
-                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-1 pb-3 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.warningRedIncrease}>
-                                        <div className="text-xs truncate">Cảnh cáo</div>
-                                        <div className="text-2xl font-bold" id="warning-red">{warningRed}</div>
-                                        <div className="absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.warningRedDecrease(); }}></div>
+                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-2 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.warningRedIncrease}>
+                                        <div className="text-xs truncate mb-0.5">Cảnh cáo</div>
+                                        <div className="text-2xl font-bold leading-tight" id="warning-red">{warningRed}</div>
+                                        <div className="subtract-btn absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.warningRedDecrease(); }}></div>
                                     </div>
-                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-1 pb-3 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.fallRedIncrease}>
-                                        <div className="text-xs truncate">Ngã</div>
-                                        <div className="text-2xl font-bold" id="fall-red">{fallRed}</div>
-                                        <div className="absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.fallRedDecrease(); }}></div>
+                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-2 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.fallRedIncrease}>
+                                        <div className="text-xs truncate mb-0.5">Ngã</div>
+                                        <div className="text-2xl font-bold leading-tight" id="fall-red">{fallRed}</div>
+                                        <div className="subtract-btn absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.fallRedDecrease(); }}></div>
                                     </div>
-                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-1 pb-3 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.boundRedIncrease}>
-                                        <div className="text-xs truncate">Biên</div>
-                                        <div className="text-2xl font-bold" id="bound-red">{boundRed}</div>
-                                        <div className="absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.boundRedDecrease(); }}></div>
+                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-2 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.boundRedIncrease}>
+                                        <div className="text-xs truncate mb-0.5">Biên</div>
+                                        <div className="text-2xl font-bold leading-tight" id="bound-red">{boundRed}</div>
+                                        <div className="subtract-btn absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.boundRedDecrease(); }}></div>
                                     </div>
                                 </div>
                             )}
                         </div>
 
                         {/* Timer & Match Info */}
-                        <div className="flex flex-col justify-center items-center px-6" style={{ width: '20%', background: 'linear-gradient(to bottom, #f8fafc, #e2e8f0)' }}>
-                            {/* Match Navigation */}
-                            <div className="flex items-center gap-2 mb-2">
+                        <div className="flex flex-col justify-between items-center py-3 px-2" style={{ width: '30%', background: 'linear-gradient(to bottom, #f8fafc, #e2e8f0)' }}>
+                            {/* Match Navigation - Top */}
+                            <div className="flex items-center gap-1">
                                 {showMatchPrev && (
-                                    <button onClick={this.prevMatch} className="w-10 h-10 rounded-full bg-slate-300 hover:bg-slate-400 text-slate-700 flex items-center justify-center text-2xl transition-colors">
+                                    <button onClick={this.prevMatch} className="w-6 h-6 rounded-full bg-slate-300 hover:bg-slate-400 text-slate-600 flex items-center justify-center text-lg transition-colors">
                                         <i className="fa fa-caret-left"></i>
                                     </button>
                                 )}
-                                <div className="text-[3vh] font-bold text-slate-700" id="match-no">Trận {matchNo}</div>
-                                <button onClick={() => this.setState({ showModalChooseMatch: true })} className="w-8 h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center transition-colors">
-                                    <i className="fa fa-list text-sm"></i>
-                                </button>
+                                <div className="text-[2vh] font-semibold text-slate-600 px-1" id="match-no">Trận {matchNo}</div>
                                 {showMatchNext && (
-                                    <button onClick={this.nextMatch} className="w-10 h-10 rounded-full bg-slate-300 hover:bg-slate-400 text-slate-700 flex items-center justify-center text-2xl transition-colors">
+                                    <button onClick={this.nextMatch} className="w-6 h-6 rounded-full bg-slate-300 hover:bg-slate-400 text-slate-600 flex items-center justify-center text-lg transition-colors">
                                         <i className="fa fa-caret-right"></i>
                                     </button>
                                 )}
                             </div>
-                            {/* Timer */}
+                            {/* Timer - Center and largest */}
                             <div 
                                 onClick={this.startTimer} 
-                                className="rounded-2xl shadow-xl cursor-pointer transition-transform hover:scale-105 hover:z-10 px-8 py-4 relative"
+                                className="rounded-2xl shadow-xl cursor-pointer transition-transform hover:scale-105 hover:z-10 px-4 py-1 relative"
                                 style={{ backgroundColor: timerBgColor || '#1e293b' }}
                             >
-                                <div className="text-[10vh] font-bold text-white font-mono leading-none" id="match-time" style={{ fontFamily: 'clockicons, monospace' }}>
+                                <div className="text-[16vh] font-bold text-white font-mono leading-none" id="match-time" style={{ fontFamily: 'clockicons, monospace' }}>
                                     {matchTime}
                                 </div>
                             </div>
-                            {/* Round */}
-                            <div className="mt-2 text-[2.5vh] font-semibold text-slate-600" id="match-round">{matchRound}</div>
+                            {/* Round - Bottom */}
+                            <div className="text-[3.5vh] font-bold text-slate-700" id="match-round">{matchRound}</div>
                         </div>
 
                         {/* Blue Fighter */}
-                        <div className="flex-1 bg-gradient-to-br from-blue-500 to-blue-600 flex flex-col justify-start items-center relative cursor-pointer pt-4" onClick={this.blueWin}>
+                        <div className="bg-gradient-to-br from-blue-500 to-blue-600 flex flex-col justify-start items-center relative cursor-pointer pt-4" style={{ width: '35%' }} onClick={this.blueWin}>
                             {showBlueFlag && (
                                 <div className="absolute top-2 right-2">
                                     <img className="h-12 rounded shadow-lg" src={require('../assets/flag/' + this.countryBlue + '.jpg')} alt="blue flag" />
@@ -1615,31 +1706,31 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                                 </div>
                             )}
                             <div className="text-white text-center flex-1 flex flex-col justify-center">
-                                <div className="text-[5vh] font-bold drop-shadow-lg leading-tight" id="blue-fighter">{blueFighterName}</div>
-                                <div className="text-[3vh] font-medium opacity-90" id="blue-code">{blueCode}</div>
+                                <div className={`font-bold drop-shadow-lg leading-tight ${isPrioritizeUnitName ? 'text-[3.5vh]' : 'text-[5vh]'}`} id="blue-fighter">{blueFighterName}</div>
+                                <div className={`font-semibold opacity-95 ${isPrioritizeUnitName ? 'text-[5vh]' : 'text-[3.5vh]'}`} id="blue-code">{blueCode}</div>
                             </div>
                             {/* Cautions */}
                             {showBlueCaution && (
                                 <div className="w-full px-2 pb-2 flex justify-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-1 pb-3 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.remindBlueIncrease}>
-                                        <div className="text-xs truncate">Nhắc nhở</div>
-                                        <div className="text-2xl font-bold" id="remind-blue">{remindBlue}</div>
-                                        <div className="absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.remindBlueDecrease(); }}></div>
+                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-2 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.remindBlueIncrease}>
+                                        <div className="text-xs truncate mb-0.5">Nhắc nhở</div>
+                                        <div className="text-2xl font-bold leading-tight" id="remind-blue">{remindBlue}</div>
+                                        <div className="subtract-btn absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.remindBlueDecrease(); }}></div>
                                     </div>
-                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-1 pb-3 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.warningBlueIncrease}>
-                                        <div className="text-xs truncate">Cảnh cáo</div>
-                                        <div className="text-2xl font-bold" id="warning-blue">{warningBlue}</div>
-                                        <div className="absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.warningBlueDecrease(); }}></div>
+                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-2 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.warningBlueIncrease}>
+                                        <div className="text-xs truncate mb-0.5">Cảnh cáo</div>
+                                        <div className="text-2xl font-bold leading-tight" id="warning-blue">{warningBlue}</div>
+                                        <div className="subtract-btn absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.warningBlueDecrease(); }}></div>
                                     </div>
-                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-1 pb-3 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.fallBlueIncrease}>
-                                        <div className="text-xs truncate">Ngã</div>
-                                        <div className="text-2xl font-bold" id="fall-blue">{fallBlue}</div>
-                                        <div className="absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.fallBlueDecrease(); }}></div>
+                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-2 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.fallBlueIncrease}>
+                                        <div className="text-xs truncate mb-0.5">Ngã</div>
+                                        <div className="text-2xl font-bold leading-tight" id="fall-blue">{fallBlue}</div>
+                                        <div className="subtract-btn absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.fallBlueDecrease(); }}></div>
                                     </div>
-                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-1 pb-3 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.boundBlueIncrease}>
-                                        <div className="text-xs truncate">Biên</div>
-                                        <div className="text-2xl font-bold" id="bound-blue">{boundBlue}</div>
-                                        <div className="absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.boundBlueDecrease(); }}></div>
+                                    <div className="flex-1 max-w-[80px] bg-white/20 backdrop-blur-sm rounded-lg px-2 py-2 text-white text-center cursor-pointer hover:bg-white/40 transition-colors overflow-hidden relative" onClick={this.boundBlueIncrease}>
+                                        <div className="text-xs truncate mb-0.5">Biên</div>
+                                        <div className="text-2xl font-bold leading-tight" id="bound-blue">{boundBlue}</div>
+                                        <div className="subtract-btn absolute bottom-0 left-1 right-1 h-2.5 bg-white/40 hover:bg-white/60 rounded-t-lg transition-colors" onClick={(e) => { e.stopPropagation(); this.boundBlueDecrease(); }}></div>
                                     </div>
                                 </div>
                             )}
@@ -1647,16 +1738,15 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                     </div>
 
                     {/* Bottom Section - Scores */}
-                    <div className="flex-1 flex items-stretch" style={{ height: '70%' }}>
+                    <div className="flex-1 flex items-stretch" style={{ height: '65%' }}>
                         {/* Red Score */}
                         <div 
                             className="flex-1 flex flex-col justify-center items-center relative cursor-pointer transition-all"
                             style={{ backgroundColor: redScoreBgColor || '#dc2626', color: redScoreColor || 'white' }}
                             onClick={this.redAddition}
                         >
-                            <div className="absolute inset-x-0 top-0 h-[80%] cursor-pointer" onClick={this.redAddition}></div>
-                            <div className="absolute inset-x-0 bottom-0 h-[15%] cursor-pointer bg-black/10" onClick={(e) => { e.stopPropagation(); this.redSubtraction(); }}></div>
                             <div className="text-[45vh] font-bold leading-none drop-shadow-2xl" id="red-score">{redScore}</div>
+                            <div className="subtract-btn absolute inset-x-0 bottom-0 h-[15%] cursor-pointer bg-black/30" onClick={(e) => { e.stopPropagation(); this.redSubtraction(); }}></div>
                         </div>
 
                         {/* Referee Scores */}
@@ -1711,9 +1801,8 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                             style={{ backgroundColor: blueScoreBgColor || '#2563eb', color: blueScoreColor || 'white' }}
                             onClick={this.blueAddition}
                         >
-                            <div className="absolute inset-x-0 top-0 h-[80%] cursor-pointer" onClick={this.blueAddition}></div>
-                            <div className="absolute inset-x-0 bottom-0 h-[15%] cursor-pointer bg-black/10" onClick={(e) => { e.stopPropagation(); this.blueSubtraction(); }}></div>
                             <div className="text-[45vh] font-bold leading-none drop-shadow-2xl" id="blue-score">{blueScore}</div>
+                            <div className="subtract-btn absolute inset-x-0 bottom-0 h-[15%] cursor-pointer bg-black/30" onClick={(e) => { e.stopPropagation(); this.blueSubtraction(); }}></div>
                         </div>
                     </div>
                 </div>
@@ -1894,6 +1983,17 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                         </div>
                     </div>
                 </div>
+
+                {/* Fighter Info Modal - Using Component */}
+                <FighterInfoModal
+                    isOpen={showModalFighterInfo}
+                    onClose={() => this.setState({ showModalFighterInfo: false })}
+                    combatObj={this.combatObj}
+                    currentMatchNo={matchNo}
+                    currentCategory={matchCategory}
+                    tournamentName={tournamentName}
+                    arenaName={arenaName}
+                />
 
                 {/* Shortcut Modal */}
                 <div className={`fixed inset-0 z-50 ${showModalShortcut ? 'flex' : 'hidden'} items-center justify-center bg-black/50`}>

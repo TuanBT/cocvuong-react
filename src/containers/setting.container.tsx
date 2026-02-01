@@ -45,6 +45,7 @@ interface SettingContainerState {
   flexSwitchCountryFlagCombat: boolean;
   showCautionBoxCombat: boolean;
   quantityRefereeCombat: boolean;
+  prioritizeUnitNameCombat: boolean;
   flexSwitchCountryFlagMartial: boolean;
   quantityRefereeMartial: boolean;
   passwordSetting: string;
@@ -81,6 +82,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
       flexSwitchCountryFlagCombat: false,
       showCautionBoxCombat: false,
       quantityRefereeCombat: false,
+      prioritizeUnitNameCombat: false,
       flexSwitchCountryFlagMartial: false,
       quantityRefereeMartial: false,
       passwordSetting: '',
@@ -178,6 +180,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
           flexSwitchCountryFlagCombat: this.settingObj.combat.isShowCountryFlag,
           showCautionBoxCombat: this.settingObj.combat.isShowCautionBox,
           quantityRefereeCombat: this.settingObj.combat.isShowFiveReferee,
+          prioritizeUnitNameCombat: this.settingObj.combat.isPrioritizeUnitName || false,
           flexSwitchCountryFlagMartial: this.settingObj.martial.isShowCountryFlag,
           quantityRefereeMartial: this.settingObj.martial.isShowFiveReferee
         });
@@ -269,6 +272,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
             flexSwitchCountryFlagCombat: this.settingObj.combat.isShowCountryFlag,
             showCautionBoxCombat: this.settingObj.combat.isShowCautionBox,
             quantityRefereeCombat: this.settingObj.combat.isShowFiveReferee,
+            prioritizeUnitNameCombat: this.settingObj.combat.isPrioritizeUnitName || false,
             flexSwitchCountryFlagMartial: this.settingObj.martial.isShowCountryFlag,
             quantityRefereeMartial: this.settingObj.martial.isShowFiveReferee
           });
@@ -303,7 +307,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
   updateSetting = () => {
     console.log("updateSetting Start");
     const { timeRound, timeBreak, timeExtra, timeExtraBreak, tournamentName, 
-            flexSwitchCountryFlagCombat, showCautionBoxCombat, quantityRefereeCombat,
+            flexSwitchCountryFlagCombat, showCautionBoxCombat, quantityRefereeCombat, prioritizeUnitNameCombat,
             flexSwitchCountryFlagMartial, quantityRefereeMartial } = this.state;
     
     this.settingObj = {
@@ -315,6 +319,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
       "combat/isShowCountryFlag": flexSwitchCountryFlagCombat,
       "combat/isShowCautionBox": showCautionBoxCombat,
       "combat/isShowFiveReferee": quantityRefereeCombat,
+      "combat/isPrioritizeUnitName": prioritizeUnitNameCombat,
       "martial/isShowCountryFlag": flexSwitchCountryFlagMartial,
       "martial/isShowFiveReferee": quantityRefereeMartial,
     };
@@ -399,7 +404,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
   render() {
     const { 
       password, tournamentName, timeRound, timeBreak, timeExtra, timeExtraBreak,
-      flexSwitchCountryFlagCombat, showCautionBoxCombat, quantityRefereeCombat,
+      flexSwitchCountryFlagCombat, showCautionBoxCombat, quantityRefereeCombat, prioritizeUnitNameCombat,
       flexSwitchCountryFlagMartial, quantityRefereeMartial,
       passwordSetting, passwordGiamDinh, passwordGiamSat,
       showPasswordModal, selectedTournament
@@ -549,6 +554,16 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
                       className="w-5 h-5 rounded text-emerald-500"
                     />
                     <span className="text-sm text-slate-700">Hiển thị 5 giám định</span>
+                  </label>
+                  <label className="flex items-center gap-3 p-3 bg-white rounded-lg cursor-pointer hover:shadow-md transition-shadow">
+                    <input 
+                      type="checkbox"
+                      name="prioritizeUnitNameCombat"
+                      checked={prioritizeUnitNameCombat}
+                      onChange={this.handleInputChange}
+                      className="w-5 h-5 rounded text-emerald-500"
+                    />
+                    <span className="text-sm text-slate-700">Ưu tiên hiển thị đơn vị</span>
                   </label>
                 </div>
 
