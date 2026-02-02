@@ -184,7 +184,7 @@ class BridgeService {
   }
 
   /**
-   * Gửi điểm (dùng cho Giám Định)
+   * Gửi điểm (dùng cho Giám Định Đối Kháng)
    */
   sendScore(gdIndex: number, color: 'red' | 'blue', score: number): void {
     this.send({
@@ -192,6 +192,19 @@ class BridgeService {
       gdIndex: gdIndex,
       color: color,
       score: score
+    });
+  }
+
+  /**
+   * Gửi điểm thi quyền (dùng cho Giám Định Thi Quyền)
+   */
+  sendMartialScore(gdIndex: number, score: number, matchNo: number, teamNo: number): void {
+    this.send({
+      type: 'martial_score',
+      gdIndex: gdIndex,
+      score: score,
+      matchNo: matchNo,
+      teamNo: teamNo
     });
   }
 

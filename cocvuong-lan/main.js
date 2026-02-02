@@ -331,6 +331,37 @@ function handleMessage(clientId, message) {
       }, clientId);
       break;
 
+    case 'martial_score':
+      // Giám Định Thi Quyền gửi điểm
+      sendLog('info', `${client.name}: Chấm ${message.score} điểm`);
+      
+      // Chuyển tiếp tới tất cả Giám Sát cùng sân
+      const martialScoreMessage = {
+        type: 'martial_score_update',
+        from: client.name,
+        fromId: clientId,
+        gdIndex: message.gdIndex,
+        score: message.score,
+        matchNo: message.matchNo,
+        teamNo: message.teamNo,
+        arena: client.arena,
+        timestamp: Date.now()
+      };
+      
+      // Gửi tới Giám Sát cùng sân
+      clients.forEach((c) => {
+        if (c.type === 'giam_sat' && c.arena === client.arena && c.ws.readyState === WebSocket.OPEN) {
+          c.ws.send(JSON.stringify(martialScoreMessage));
+        }
+      });
+      
+      // Broadcast để các GĐ khác biết (optional, cho sync UI)
+      broadcast({
+        type: 'martial_score_broadcast',
+        ...martialScoreMessage
+      }, clientId);
+      break;
+
     case 'reset_score':
       // Giám Sát reset điểm
       sendLog('warning', `${client.name} đã reset điểm`);

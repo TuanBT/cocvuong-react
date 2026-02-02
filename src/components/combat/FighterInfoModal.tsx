@@ -151,14 +151,15 @@ class FighterInfoModal extends Component<FighterInfoModalProps, FighterInfoModal
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl mx-4 max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-slate-700 to-slate-800 text-white">
-            <h5 className="text-lg font-semibold">
-              <i className="fa-solid fa-info-circle mr-2"></i>
-              Thông tin trận đấu - {currentCategory}
-            </h5>
-            <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
-              <i className="fa-solid fa-times text-white"></i>
-            </button>
+          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
+            <div className="flex items-center justify-between">
+              <h5 className="text-white font-bold text-lg flex items-center gap-2">
+                <i className="fa-solid fa-info-circle"></i>Thông tin trận đấu - {currentCategory}
+              </h5>
+              <button onClick={onClose} className="text-white/80 hover:text-white transition-colors">
+                <i className="fa-solid fa-xmark text-xl"></i>
+              </button>
+            </div>
           </div>
 
           {/* Content */}

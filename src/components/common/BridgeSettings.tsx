@@ -1,6 +1,6 @@
 /**
  * Bridge Settings Component
- * Hiển thị trong Settings để cấu hình kết nối LAN Bridge
+ * Hiển thị trong Settings để cấu hình kết nối LAN
  */
 
 import React, { useState, useEffect } from 'react';

@@ -340,6 +340,113 @@ body {
   color: #7b1fa2;
 }
 
+/* Arena Group Layout */
+.arena-group {
+  margin-bottom: 16px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.arena-group:last-child {
+  margin-bottom: 0;
+}
+
+.arena-header {
+  margin-bottom: 10px;
+}
+
+.arena-badge {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.arena-badge.arena-a {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+}
+
+.arena-badge.arena-b {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: #fff;
+}
+
+.arena-badge.arena-unknown {
+  background: linear-gradient(135deg, #868e96 0%, #495057 100%);
+  color: #fff;
+}
+
+.arena-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.role-column {
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.role-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 6px 10px;
+  border-radius: 5px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.role-header.gs {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.role-header.gd {
+  background: #fce4ec;
+  color: #c2185b;
+}
+
+.role-column .connections-list {
+  max-height: 120px;
+  min-height: 40px;
+}
+
+.role-column .connection-item {
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  border-left-width: 2px;
+}
+
+.role-column .connection-item .dot {
+  width: 8px;
+  height: 8px;
+}
+
+.role-column .connection-item .name {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.role-column .connection-item.empty {
+  background: #f1f3f4;
+  border-left-color: #ccc;
+  color: #999;
+}
+
+.role-column .connection-item.empty .dot {
+  background: #ccc;
+  box-shadow: none;
+}
+
 /* Log Card - Tall */
 .log-card h2 {
   display: flex;

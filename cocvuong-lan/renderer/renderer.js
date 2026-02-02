@@ -128,43 +128,75 @@ function renderLogs() {
 }
 
 /**
- * Cập nhật danh sách kết nối - Hiển thị rõ role và sân
+ * Cập nhật danh sách kết nối - Gom nhóm theo SÂN → Giám Sát → Giám Định
  */
 function handleClientsUpdate(clients) {
-  const container = elements.connectionsList;
-  if (!container) return;
+  // Lấy các container theo nhóm
+  const gsListA = document.getElementById('gsListA');
+  const gdListA = document.getElementById('gdListA');
+  const gsListB = document.getElementById('gsListB');
+  const gdListB = document.getElementById('gdListB');
+  const unknownList = document.getElementById('unknownList');
+  const arenaGroupUnknown = document.getElementById('arenaGroupUnknown');
 
-  // Nếu không có client nào
-  if (!clients || clients.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <span class="empty-icon">📱</span>
-        <span class="empty-text">Chưa có thiết bị kết nối</span>
-      </div>
-    `;
-    return;
+  // Nhóm clients theo sân và role
+  const grouped = {
+    A: { gs: [], gd: [] },
+    B: { gs: [], gd: [] },
+    unknown: []
+  };
+
+  if (clients && clients.length > 0) {
+    clients.forEach(client => {
+      const arena = client.arena ? client.arena.toUpperCase() : null;
+      const isGiamSat = client.type === 'giam_sat';
+
+      if (arena === 'A') {
+        if (isGiamSat) {
+          grouped.A.gs.push(client);
+        } else {
+          grouped.A.gd.push(client);
+        }
+      } else if (arena === 'B') {
+        if (isGiamSat) {
+          grouped.B.gs.push(client);
+        } else {
+          grouped.B.gd.push(client);
+        }
+      } else {
+        grouped.unknown.push(client);
+      }
+    });
   }
 
-  // Render danh sách với badge role và arena
-  container.innerHTML = clients.map(client => {
-    const isGiamSat = client.type === 'giam_sat';
-    const roleClass = isGiamSat ? 'role-gs' : 'role-gd';
-    const roleLabel = isGiamSat ? 'Giám Sát' : 'Giám Định';
-    const arenaLabel = client.arena ? `Sân ${client.arena}` : '';
-    
-    return `
-      <div class="connection-item connected">
-        <span class="dot"></span>
-        <div class="conn-info">
-          <span class="name">${client.name}</span>
-          <div class="badges">
-            <span class="badge ${roleClass}">${roleLabel}</span>
-            ${arenaLabel ? `<span class="badge arena">${arenaLabel}</span>` : ''}
+  // Render từng nhóm
+  renderConnectionList(gsListA, grouped.A.gs);
+  renderConnectionList(gdListA, grouped.A.gd);
+  renderConnectionList(gsListB, grouped.B.gs);
+  renderConnectionList(gdListB, grouped.B.gd);
+
+  // Xử lý nhóm unknown
+  if (grouped.unknown.length > 0) {
+    arenaGroupUnknown.style.display = 'block';
+    unknownList.innerHTML = grouped.unknown.map(client => {
+      const isGiamSat = client.type === 'giam_sat';
+      const roleClass = isGiamSat ? 'role-gs' : 'role-gd';
+      const roleLabel = isGiamSat ? 'Giám Sát' : 'Giám Định';
+      return `
+        <div class="connection-item connected">
+          <span class="dot"></span>
+          <div class="conn-info">
+            <span class="name">${client.name}</span>
+            <div class="badges">
+              <span class="badge ${roleClass}">${roleLabel}</span>
+            </div>
           </div>
         </div>
-      </div>
-    `;
-  }).join('');
+      `;
+    }).join('');
+  } else {
+    arenaGroupUnknown.style.display = 'none';
+  }
 }
 
 /**

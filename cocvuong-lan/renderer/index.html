@@ -29,14 +29,58 @@
       </div>
     </div>
 
-    <!-- Connections Card - Simple list, only show when connected -->
+    <!-- Connections Card - Grouped by Arena -->
     <div class="card connections-card">
       <h2>🔌 Kết nối hiện tại</h2>
-      <div class="connections-list" id="connectionsList">
-        <div class="empty-state">
-          <span class="empty-icon">📱</span>
-          <span class="empty-text">Chưa có thiết bị kết nối</span>
+      
+      <!-- Sân A -->
+      <div class="arena-group" id="arenaGroupA">
+        <div class="arena-header">
+          <span class="arena-badge arena-a">Sân A</span>
         </div>
+        <div class="arena-grid">
+          <div class="role-column">
+            <div class="role-header gs">Giám Sát</div>
+            <div class="connections-list" id="gsListA">
+              <div class="connection-item empty"><span class="dot"></span><span class="name">Chưa kết nối</span></div>
+            </div>
+          </div>
+          <div class="role-column">
+            <div class="role-header gd">Giám Định</div>
+            <div class="connections-list" id="gdListA">
+              <div class="connection-item empty"><span class="dot"></span><span class="name">Chưa kết nối</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sân B -->
+      <div class="arena-group" id="arenaGroupB">
+        <div class="arena-header">
+          <span class="arena-badge arena-b">Sân B</span>
+        </div>
+        <div class="arena-grid">
+          <div class="role-column">
+            <div class="role-header gs">Giám Sát</div>
+            <div class="connections-list" id="gsListB">
+              <div class="connection-item empty"><span class="dot"></span><span class="name">Chưa kết nối</span></div>
+            </div>
+          </div>
+          <div class="role-column">
+            <div class="role-header gd">Giám Định</div>
+            <div class="connections-list" id="gdListB">
+              <div class="connection-item empty"><span class="dot"></span><span class="name">Chưa kết nối</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Không xác định sân -->
+      <div class="arena-group" id="arenaGroupUnknown" style="display:none;">
+        <div class="arena-header">
+          <span class="arena-badge arena-unknown">Khác</span>
+        </div>
+        <div class="connections-list" id="unknownList"></div>
       </div>
     </div>
 
@@ -69,10 +113,7 @@
   <span id="wsPort" style="display:none;">---</span>
   <img id="qrCode" style="display:none;" src="" alt="">
   <div id="qrLoading" style="display:none;"></div>
-  <div id="gsListA" style="display:none;"></div>
-  <div id="gdListA" style="display:none;"></div>
-  <div id="gsListB" style="display:none;"></div>
-  <div id="gdListB" style="display:none;"></div>
+  <div id="connectionsList" style="display:none;"></div>
 
   <script src="renderer.js"></script>
 </body>

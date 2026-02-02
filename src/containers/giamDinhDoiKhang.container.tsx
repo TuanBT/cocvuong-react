@@ -26,12 +26,12 @@ interface GiamDinhDoiKhangContainerState {
   isBridgeConnected: boolean;
   showPasswordModal: boolean;
   showChooseRefereeNoModal: boolean;
-  showShortcutModal: boolean;
   showBridgeModal: boolean;
   bridgeUrl: string;
   bridgeConnecting: boolean;
   isShowFiveReferee: boolean;
-  showKeyboardHint: boolean;
+  showSettingsMenu: boolean;
+  showHelpModal: boolean;
 }
 
 interface TournamentSetting {
@@ -54,7 +54,6 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
   path: string = "";
   combatArenaNoIndex: number = 0;
   tournamentNoIndex: number = 0;
-  hintTimeout: NodeJS.Timeout | null = null;
 
   // Refs for radio inputs
   arenaRadioRefs: RefObject<HTMLInputElement>[] = [createRef(), createRef()];
@@ -81,12 +80,12 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
       isBridgeConnected: isBridgeConnected(),
       showPasswordModal: true,
       showChooseRefereeNoModal: false,
-      showShortcutModal: false,
       showBridgeModal: false,
       bridgeUrl: localStorage.getItem('bridgeUrl') || '',
       bridgeConnecting: false,
       isShowFiveReferee: false,
-      showKeyboardHint: false
+      showSettingsMenu: false,
+      showHelpModal: false
     };
     
     this.db = database;
@@ -118,11 +117,6 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
       off(listenerRef);
     });
     this.firebaseListeners = [];
-    
-    // Cleanup hint timeout
-    if (this.hintTimeout) {
-      clearTimeout(this.hintTimeout);
-    }
 
     // Cleanup Bridge listener
     if (this.bridgeCleanup) {
@@ -156,14 +150,6 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
   cachePassword = () => {
     localStorage.setItem('giamDinh_password_valid', 'true');
     localStorage.setItem('giamDinh_password_timestamp', Date.now().toString());
-  }
-  
-  showKeyboardHintTemporarily = () => {
-    // Show hint for 4 seconds after successful login
-    this.setState({ showKeyboardHint: true });
-    this.hintTimeout = setTimeout(() => {
-      this.setState({ showKeyboardHint: false });
-    }, 4000);
   }
 
   verifyPassword = () => {
@@ -220,6 +206,21 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
   }
 
   _handleKeyDown = (e: KeyboardEvent) => {
+    // ESC - Đóng modal đang mở
+    if (e.which === 27) {
+      const { showPasswordModal, showChooseRefereeNoModal, showBridgeModal, showHelpModal } = this.state;
+      if (showPasswordModal) {
+        this.hidePasswordModal();
+      } else if (showChooseRefereeNoModal) {
+        this.hideChooseRefereeNoModal();
+      } else if (showBridgeModal) {
+        this.hideBridgeModal();
+      } else if (showHelpModal) {
+        this.setState({ showHelpModal: false });
+      }
+      return;
+    }
+    
     // Left arrow
     if (e.which === 37) {
       this.redAddition(2);
@@ -267,13 +268,10 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
     const refereeNo = this.getSelectedRefereeNo();
     if (refereeNo != null && refereeNo !== "") {
       this.setState({ showChooseRefereeNoModal: false });
-      
-      // Show keyboard hint for 4 seconds on desktop
-      this.showKeyboardHintTemporarily();
 
       for (let i = 1; i <= this.numReferee; i++) {
         if (refereeNo === i + "") {
-          this.refereeName = "Giám định " + i;
+          this.refereeName = "Giám Định " + i;
           this.referreIndex = i - 1;
         }
       }
@@ -322,10 +320,10 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
     if (savedUrl && !isBridgeConnected()) {
       try {
         const arena = this.combatArenaNoIndex === 0 ? 'A' : 'B';
-        const name = this.refereeName || 'Giám Định';
+        const name = (this.refereeName || `Giám Định ${this.referreIndex + 1}`) + ' DK';
         const success = await connectBridgeAsGiamDinh(savedUrl, this.referreIndex, arena, this.tournamentNoIndex, name);
         if (success) {
-          toast.success('Đã tự động kết nối LAN Bridge!', { autoClose: 2000 });
+          toast.success('Đã tự động kết nối LAN!', { autoClose: 2000 });
         }
       } catch (err) {
         // Silent fail - không cần thông báo lỗi vì Bridge có thể không chạy
@@ -377,11 +375,6 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
     });
   }
 
-  showShortcut = () => {
-    document.addEventListener("keydown", this._handleKeyDown);
-    this.setState({ showShortcutModal: true });
-  }
-
   // Bridge connection methods
   showBridgeSettings = () => {
     this.setState({ showBridgeModal: true });
@@ -420,15 +413,15 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
 
       // Connect with proper info
       const arena = this.combatArenaNoIndex === 0 ? 'A' : 'B';
-      const name = this.refereeName || `Giám Định`;
+      const name = (this.refereeName || `Giám Định ${this.referreIndex + 1}`) + ' DK';
       
       const success = await connectBridgeAsGiamDinh(url, this.referreIndex, arena, this.tournamentNoIndex, name);
       
       if (success) {
-        toast.success('Đã kết nối Bridge LAN!');
+        toast.success('Đã kết nối LAN!');
         this.setState({ showBridgeModal: false });
       } else {
-        toast.error('Không thể kết nối Bridge');
+        toast.error('Không thể kết nối LAN');
       }
     } catch (err) {
       toast.error('Lỗi kết nối: ' + (err as Error).message);
@@ -458,10 +451,6 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
     this.setState({ showChooseRefereeNoModal: false });
   };
 
-  hideShortcutModal = () => {
-    this.setState({ showShortcutModal: false });
-  };
-
   render() {
     const { 
       password, 
@@ -472,12 +461,12 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
       isBridgeConnected: bridgeConnected,
       showPasswordModal,
       showChooseRefereeNoModal,
-      showShortcutModal,
       showBridgeModal,
       bridgeUrl,
       bridgeConnecting,
       isShowFiveReferee,
-      showKeyboardHint
+      showSettingsMenu,
+      showHelpModal
     } = this.state;
 
     return (
@@ -510,83 +499,69 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
           </div>
         )}
 
-        {/* Keyboard Hint Overlay - shows for 4 seconds after login */}
-        {showKeyboardHint && (
-          <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 animate-fade-in">
-            <div className="bg-white rounded-2xl p-6 mx-4 shadow-2xl border border-slate-200 max-w-md relative">
-              <button 
-                onClick={() => this.setState({ showKeyboardHint: false })}
-                className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors"
-              >
-                <i className="fa-solid fa-xmark text-lg"></i>
-              </button>
-              <h3 className="text-slate-800 font-bold text-lg mb-4 text-center">
-                <i className="fa-solid fa-keyboard mr-2 text-slate-600"></i>
-                Phím tắt
-              </h3>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="flex items-center gap-2 bg-red-50 p-2 rounded-lg border border-red-100">
-                  <span className="bg-red-500 text-white px-2 py-1 rounded font-bold">←</span>
-                  <span className="text-red-600 font-medium">+2 ĐỎ</span>
-                </div>
-                <div className="flex items-center gap-2 bg-red-50 p-2 rounded-lg border border-red-100">
-                  <span className="bg-red-400 text-white px-2 py-1 rounded font-bold">↑</span>
-                  <span className="text-red-600 font-medium">+1 ĐỎ</span>
-                </div>
-                <div className="flex items-center gap-2 bg-blue-50 p-2 rounded-lg border border-blue-100">
-                  <span className="bg-blue-400 text-white px-2 py-1 rounded font-bold">↓</span>
-                  <span className="text-blue-600 font-medium">+1 XANH</span>
-                </div>
-                <div className="flex items-center gap-2 bg-blue-50 p-2 rounded-lg border border-blue-100">
-                  <span className="bg-blue-500 text-white px-2 py-1 rounded font-bold">→</span>
-                  <span className="text-blue-600 font-medium">+2 XANH</span>
-                </div>
-              </div>
-              <div className="mt-3 flex items-center justify-center gap-2 bg-slate-100 p-2 rounded-lg border border-slate-200">
-                <span className="bg-slate-500 text-white px-2 py-1 rounded text-xs font-bold">Space</span>
-                <span className="text-slate-600 text-sm font-medium">Hủy điểm vừa chấm</span>
-              </div>
-              <p className="text-slate-400 text-xs text-center mt-3">Tự động ẩn sau vài giây...</p>
-            </div>
-          </div>
-        )}
-
-        {/* Internet connection warning - compact */}
-        {!isInternetConnected && (
-          <div className="bg-red-500 text-white py-1 px-2 text-center text-sm font-medium animate-pulse flex-shrink-0">
-            <i className="fa-solid fa-wifi-slash mr-1"></i>
-            Mất kết nối
-          </div>
-        )}
-
-        {/* Header - More prominent match info */}
+        {/* Header - status dot LEFT, settings RIGHT */}
         <header className="bg-white shadow-md px-3 py-2 flex-shrink-0 border-b border-slate-200">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2 min-w-0">
-              <span className="bg-emerald-500 text-white text-xs font-bold px-2 py-1 rounded-lg">
+          <div className="flex items-center justify-between gap-2">
+            {/* LEFT: Status dot + Arena, GĐ name, Match */}
+            <div className="flex items-center gap-2 min-w-0">
+              {/* Connection Status Dot - 4 colors */}
+              <span 
+                className={`w-3 h-3 rounded-full block flex-shrink-0 ${
+                  isInternetConnected && bridgeConnected ? 'bg-green-500' :
+                  isInternetConnected ? 'bg-blue-500' :
+                  bridgeConnected ? 'bg-yellow-500' :
+                  'bg-gray-400'
+                }`}
+              ></span>
+              <span className="bg-emerald-500 text-white text-xs font-bold px-2 py-1 rounded-lg whitespace-nowrap">
                 {arenaName || '...'}
               </span>
-              <span className="text-slate-700 font-semibold text-sm">
+              <span className="text-slate-700 font-semibold text-sm truncate">
                 {gdName || '...'}
               </span>
-              {/* Bridge Status Indicator */}
-              <button 
-                onClick={this.showBridgeSettings}
-                className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors ${
-                  bridgeConnected 
-                    ? 'bg-green-100 text-green-700 border border-green-300' 
-                    : 'bg-slate-100 text-slate-500 border border-slate-300'
-                }`}
-              >
-                <i className={`fa-solid ${bridgeConnected ? 'fa-wifi' : 'fa-wifi'}`}></i>
-                <span>{bridgeConnected ? 'LAN' : 'LAN'}</span>
-                <span className={`w-2 h-2 rounded-full ${bridgeConnected ? 'bg-green-500' : 'bg-slate-400'}`}></span>
-              </button>
+              <span className="bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded-lg whitespace-nowrap">
+                {gdMatch || '...'}
+              </span>
             </div>
-            <span className="bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded-lg">
-              {gdMatch || '...'}
-            </span>
+            {/* RIGHT: Settings menu */}
+            <div className="relative flex-shrink-0">
+              <button 
+                onClick={() => this.setState({ showSettingsMenu: !showSettingsMenu })}
+                className="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center"
+              >
+                <i className="fa fa-cog text-sm"></i>
+              </button>
+              {/* Dropdown Menu */}
+              {showSettingsMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => this.setState({ showSettingsMenu: false })}></div>
+                  <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-50 min-w-[160px]">
+                    <button 
+                      onClick={() => this.setState({ showSettingsMenu: false, showBridgeModal: true })}
+                      className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                    >
+                      <i className="fa-solid fa-network-wired text-slate-500"></i>
+                      Kết nối LAN
+                    </button>
+                    <button 
+                      onClick={() => this.setState({ showSettingsMenu: false, showHelpModal: true })}
+                      className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                    >
+                      <i className="fa-solid fa-circle-question text-slate-500"></i>
+                      Giúp đỡ
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
+          {/* Warning when both disconnected */}
+          {!isInternetConnected && !bridgeConnected && (
+            <div className="mt-2 bg-red-100 text-red-700 py-1 px-2 text-center text-xs font-medium rounded-lg border border-red-200">
+              <i className="fa-solid fa-exclamation-triangle mr-1"></i>
+              Không có kết nối - Không thể chấm điểm
+            </div>
+          )}
         </header>
 
         {/* Full-screen Scoring Area - takes all remaining space */}
@@ -632,11 +607,15 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
         {showPasswordModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-emerald-500 to-teal-500 p-3">
-                <h5 className="text-white font-bold text-base flex items-center gap-2">
-                  <i className="fa-solid fa-lock"></i>
-                  Nhập mật khẩu
-                </h5>
+              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
+                <div className="flex items-center justify-between">
+                  <h5 className="text-white font-bold text-lg flex items-center gap-2">
+                    <i className="fa-solid fa-lock"></i>Nhập mật khẩu
+                  </h5>
+                  <button onClick={this.hidePasswordModal} className="text-white/80 hover:text-white transition-colors">
+                    <i className="fa-solid fa-xmark text-xl"></i>
+                  </button>
+                </div>
               </div>
               
               <div className="p-4">
@@ -674,7 +653,7 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
                 <button onClick={this.hidePasswordModal}
                   className="flex-1 py-2 px-3 rounded-xl border border-slate-200 text-slate-600 font-medium">Hủy</button>
                 <button onClick={this.verifyPassword}
-                  className="flex-1 py-2 px-3 rounded-xl bg-emerald-500 text-white font-medium">OK</button>
+                  className="flex-1 py-2 px-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700">OK</button>
               </div>
             </div>
           </div>
@@ -684,11 +663,15 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
         {showChooseRefereeNoModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden max-h-[85vh] overflow-y-auto">
-              <div className="bg-gradient-to-r from-emerald-500 to-teal-500 p-3 sticky top-0">
-                <h5 className="text-white font-bold text-base">
-                  <i className="fa-solid fa-id-badge mr-2"></i>
-                  Chọn thông tin
-                </h5>
+              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4 sticky top-0">
+                <div className="flex items-center justify-between">
+                  <h5 className="text-white font-bold text-lg flex items-center gap-2">
+                    <i className="fa-solid fa-id-badge"></i>Chọn thông tin
+                  </h5>
+                  <button onClick={this.hideChooseRefereeNoModal} className="text-white/80 hover:text-white transition-colors">
+                    <i className="fa-solid fa-xmark text-xl"></i>
+                  </button>
+                </div>
               </div>
               
               <div className="p-4 space-y-4">
@@ -698,8 +681,8 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
                   <div className="space-y-1.5 max-h-32 overflow-y-auto">
                     {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
                       <label key={i} onClick={() => this.chooseTournament(i)}
-                        className="flex items-center gap-2 p-2 border border-slate-200 rounded-lg cursor-pointer hover:bg-emerald-50">
-                        <input type="radio" name="tournamentRadio" defaultChecked={i === 0} className="w-4 h-4 text-emerald-500" />
+                        className="flex items-center gap-2 p-2 border border-slate-200 rounded-lg cursor-pointer hover:bg-blue-50">
+                        <input type="radio" name="tournamentRadio" defaultChecked={i === 0} className="w-4 h-4 text-blue-500" />
                         <span className="text-sm text-slate-700">{tournament[1]}</span>
                       </label>
                     )) : <p className="text-slate-400 italic text-sm">Không có giải đấu</p>}
@@ -712,15 +695,15 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
                   <div className="grid grid-cols-2 gap-2">
                     <label className="relative">
                       <input type="radio" name="optionsArena" value="0" defaultChecked ref={this.arenaRadioRefs[0]} className="peer sr-only" />
-                      <div className="p-3 border-2 border-slate-200 rounded-xl text-center peer-checked:border-emerald-500 peer-checked:bg-emerald-50 flex flex-col items-center justify-center min-h-[60px]">
-                        <i className="fa-solid fa-chess-board text-xl text-emerald-500"></i>
+                      <div className="p-3 border-2 border-slate-200 rounded-xl text-center peer-checked:border-blue-500 peer-checked:bg-blue-50 flex flex-col items-center justify-center min-h-[60px]">
+                        <i className="fa-solid fa-chess-board text-xl text-blue-500"></i>
                         <span className="font-bold text-sm text-slate-700 mt-1">Sân A</span>
                       </div>
                     </label>
                     <label className="relative">
                       <input type="radio" name="optionsArena" value="1" ref={this.arenaRadioRefs[1]} className="peer sr-only" />
-                      <div className="p-3 border-2 border-slate-200 rounded-xl text-center peer-checked:border-emerald-500 peer-checked:bg-emerald-50 flex flex-col items-center justify-center min-h-[60px]">
-                        <i className="fa-solid fa-chess-board text-xl text-emerald-500"></i>
+                      <div className="p-3 border-2 border-slate-200 rounded-xl text-center peer-checked:border-blue-500 peer-checked:bg-blue-50 flex flex-col items-center justify-center min-h-[60px]">
+                        <i className="fa-solid fa-chess-board text-xl text-blue-500"></i>
                         <span className="font-bold text-sm text-slate-700 mt-1">Sân B</span>
                       </div>
                     </label>
@@ -734,7 +717,7 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
                     {[1, 2, 3].map((num, i) => (
                       <label key={num} className="relative">
                         <input type="radio" name="optionsReferee" value={num} defaultChecked={i === 0} ref={this.refereeRadioRefs[i]} className="peer sr-only" />
-                        <div className="p-2 border-2 border-slate-200 rounded-xl text-center peer-checked:border-emerald-500 peer-checked:bg-emerald-50 flex items-center justify-center min-h-[40px]">
+                        <div className="p-2 border-2 border-slate-200 rounded-xl text-center peer-checked:border-blue-500 peer-checked:bg-blue-50 flex items-center justify-center min-h-[40px]">
                           <span className="font-bold text-sm text-slate-700">GĐ{num}</span>
                         </div>
                       </label>
@@ -742,7 +725,7 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
                     {isShowFiveReferee && [4, 5].map((num, i) => (
                       <label key={num} className="relative">
                         <input type="radio" name="optionsReferee" value={num} ref={this.refereeRadioRefs[i + 3]} className="peer sr-only" />
-                        <div className="p-2 border-2 border-slate-200 rounded-xl text-center peer-checked:border-emerald-500 peer-checked:bg-emerald-50 flex items-center justify-center min-h-[40px]">
+                        <div className="p-2 border-2 border-slate-200 rounded-xl text-center peer-checked:border-blue-500 peer-checked:bg-blue-50 flex items-center justify-center min-h-[40px]">
                           <span className="font-bold text-sm text-slate-700">GĐ{num}</span>
                         </div>
                       </label>
@@ -755,48 +738,7 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
                 <button onClick={this.hideChooseRefereeNoModal}
                   className="flex-1 py-2 px-3 rounded-xl border border-slate-200 text-slate-600 font-medium">Hủy</button>
                 <button onClick={this.chooseRefereeNo}
-                  className="flex-1 py-2 px-3 rounded-xl bg-emerald-500 text-white font-medium">OK</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Shortcut Modal */}
-        {showShortcutModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-              <div className="bg-slate-700 p-3">
-                <h5 className="text-white font-bold text-base">
-                  <i className="fa-solid fa-keyboard mr-2"></i>Phím tắt
-                </h5>
-              </div>
-              
-              <div className="p-3 space-y-2 text-sm">
-                <div className="flex items-center gap-3 p-2 bg-red-50 rounded-lg">
-                  <span className="w-8 h-8 bg-red-500 text-white rounded flex items-center justify-center font-bold">←</span>
-                  <span className="text-red-600">+2 ĐỎ</span>
-                </div>
-                <div className="flex items-center gap-3 p-2 bg-red-50 rounded-lg">
-                  <span className="w-8 h-8 bg-red-400 text-white rounded flex items-center justify-center font-bold">↑</span>
-                  <span className="text-red-600">+1 ĐỎ</span>
-                </div>
-                <div className="flex items-center gap-3 p-2 bg-blue-50 rounded-lg">
-                  <span className="w-8 h-8 bg-blue-500 text-white rounded flex items-center justify-center font-bold">→</span>
-                  <span className="text-blue-600">+2 XANH</span>
-                </div>
-                <div className="flex items-center gap-3 p-2 bg-blue-50 rounded-lg">
-                  <span className="w-8 h-8 bg-blue-400 text-white rounded flex items-center justify-center font-bold">↓</span>
-                  <span className="text-blue-600">+1 XANH</span>
-                </div>
-                <div className="flex items-center gap-3 p-2 bg-slate-100 rounded-lg">
-                  <span className="w-8 h-8 bg-slate-500 text-white rounded flex items-center justify-center text-xs font-bold">SPC</span>
-                  <span className="text-slate-600">Hủy điểm</span>
-                </div>
-              </div>
-              
-              <div className="p-3 bg-slate-50 border-t">
-                <button onClick={this.hideShortcutModal}
-                  className="w-full py-2 rounded-xl bg-slate-700 text-white font-medium">Đóng</button>
+                  className="flex-1 py-2 px-3 rounded-xl bg-blue-500 text-white font-medium">OK</button>
               </div>
             </div>
           </div>
@@ -806,42 +748,20 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
         {showBridgeModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-cyan-500 to-blue-500 p-3">
-                <h5 className="text-white font-bold text-base flex items-center gap-2">
-                  <i className="fa-solid fa-network-wired"></i>
-                  Kết nối LAN
-                </h5>
+              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
+                <div className="flex items-center justify-between">
+                  <h5 className="text-white font-bold text-lg flex items-center gap-2">
+                    <i className="fa-solid fa-network-wired"></i>Kết nối LAN
+                  </h5>
+                  <button onClick={this.hideBridgeModal} className="text-white/80 hover:text-white transition-colors">
+                    <i className="fa-solid fa-xmark text-xl"></i>
+                  </button>
+                </div>
               </div>
               
-              <div className="p-4 space-y-4">
-                {/* Connection Status */}
-                <div className={`flex items-center gap-2 p-3 rounded-xl ${
-                  bridgeConnected 
-                    ? 'bg-green-50 border border-green-200' 
-                    : 'bg-slate-50 border border-slate-200'
-                }`}>
-                  <span className={`w-3 h-3 rounded-full ${bridgeConnected ? 'bg-green-500 animate-pulse' : 'bg-slate-400'}`}></span>
-                  <span className={`font-medium ${bridgeConnected ? 'text-green-700' : 'text-slate-600'}`}>
-                    {bridgeConnected ? 'Đã kết nối LAN' : 'Chưa kết nối'}
-                  </span>
-                </div>
-
-                {/* Instructions */}
-                <div className="text-sm text-slate-600 bg-amber-50 p-3 rounded-xl border border-amber-200">
-                  <p className="font-semibold text-amber-700 mb-1">
-                    <i className="fa-solid fa-lightbulb mr-1"></i> Hướng dẫn:
-                  </p>
-                  <ol className="list-decimal list-inside space-y-1 text-slate-600">
-                    <li>Mở app <strong>CocVuong Kết Nối</strong> trên máy Giám Sát</li>
-                    <li>Nhập địa chỉ hiện trên app vào bên dưới</li>
-                  </ol>
-                </div>
-
-                {/* URL Input */}
+              <div className="p-4 space-y-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-500 uppercase mb-1 block">
-                    Địa chỉ kết nối (IP:Port)
-                  </label>
+                  <label className="text-xs font-semibold text-slate-500 uppercase mb-1 block">IP:Port</label>
                   <input 
                     type="text" 
                     className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white text-base"
@@ -850,39 +770,121 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
                     onChange={(e) => this.setState({ bridgeUrl: e.target.value })}
                     disabled={bridgeConnected}
                   />
-                  <p className="text-xs text-slate-400 mt-1">
-                    Ví dụ: 192.168.1.100:9765
-                  </p>
                 </div>
+
+                {bridgeConnected && (
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-green-50 border border-green-200">
+                    <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
+                    <span className="text-sm font-medium text-green-700">Đã kết nối</span>
+                  </div>
+                )}
               </div>
               
               <div className="flex gap-2 p-3 bg-slate-50 border-t">
                 <button onClick={this.hideBridgeModal}
-                  className="flex-1 py-2 px-3 rounded-xl border border-slate-200 text-slate-600 font-medium">
-                  Đóng
-                </button>
+                  className="flex-1 py-2 px-3 rounded-xl border border-slate-200 text-slate-600 font-medium">Đóng</button>
                 {bridgeConnected ? (
                   <button onClick={this.disconnectFromBridge}
-                    className="flex-1 py-2 px-3 rounded-xl bg-red-500 text-white font-medium">
-                    <i className="fa-solid fa-plug-circle-xmark mr-1"></i>
-                    Ngắt kết nối
-                  </button>
+                    className="flex-1 py-2 px-3 rounded-xl bg-red-500 text-white font-medium">Ngắt kết nối</button>
                 ) : (
                   <button onClick={this.connectToBridge} disabled={bridgeConnecting}
-                    className="flex-1 py-2 px-3 rounded-xl bg-cyan-500 text-white font-medium disabled:opacity-50">
-                    {bridgeConnecting ? (
-                      <>
-                        <i className="fa-solid fa-spinner fa-spin mr-1"></i>
-                        Đang kết nối...
-                      </>
-                    ) : (
-                      <>
-                        <i className="fa-solid fa-plug mr-1"></i>
-                        Kết nối
-                      </>
-                    )}
+                    className="flex-1 py-2 px-3 rounded-xl bg-blue-500 text-white font-medium disabled:opacity-50">
+                    {bridgeConnecting ? 'Đang kết nối...' : 'Kết nối'}
                   </button>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Help Modal */}
+        {showHelpModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => this.setState({ showHelpModal: false })}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              {/* Header */}
+              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
+                <div className="flex items-center justify-between">
+                  <h5 className="text-white font-bold text-lg flex items-center gap-2">
+                    <i className="fa-solid fa-circle-question"></i>Hướng dẫn sử dụng
+                  </h5>
+                  <button onClick={() => this.setState({ showHelpModal: false })} className="text-white/80 hover:text-white transition-colors">
+                    <i className="fa-solid fa-xmark text-xl"></i>
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-5">
+                {/* Keyboard Shortcuts Section */}
+                <div className="mb-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <i className="fa-solid fa-keyboard text-slate-400"></i>
+                    <span className="font-semibold text-slate-700">Phím tắt chấm điểm</span>
+                  </div>
+                  {/* Arrow keys visual */}
+                  <div className="flex justify-center mb-3">
+                    <div className="grid grid-cols-3 gap-1">
+                      <div></div>
+                      <div className="w-10 h-10 bg-red-100 rounded flex items-center justify-center">
+                        <span className="text-red-600 font-bold">↑</span>
+                      </div>
+                      <div></div>
+                      <div className="w-10 h-10 bg-red-200 rounded flex items-center justify-center">
+                        <span className="text-red-700 font-bold">←</span>
+                      </div>
+                      <div className="w-10 h-10 bg-blue-100 rounded flex items-center justify-center">
+                        <span className="text-blue-600 font-bold">↓</span>
+                      </div>
+                      <div className="w-10 h-10 bg-blue-200 rounded flex items-center justify-center">
+                        <span className="text-blue-700 font-bold">→</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="text-center p-2 bg-red-50 rounded-lg border border-red-100">
+                      <span className="text-red-700 font-medium">← +2 Đỏ | ↑ +1 Đỏ</span>
+                    </div>
+                    <div className="text-center p-2 bg-blue-50 rounded-lg border border-blue-100">
+                      <span className="text-blue-700 font-medium">→ +2 Xanh | ↓ +1 Xanh</span>
+                    </div>
+                  </div>
+                  <div className="mt-2 text-center p-2 bg-slate-100 rounded-lg text-sm">
+                    <span className="text-slate-600"><strong>Esc</strong> = Đóng cửa sổ đang mở</span>
+                  </div>
+                </div>
+                
+                {/* Divider */}
+                <div className="border-t border-slate-200 my-4"></div>
+
+                {/* Status Dot Section */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <i className="fa-solid fa-signal text-slate-400"></i>
+                    <span className="font-semibold text-slate-700">Trạng thái kết nối</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
+                      <span className="w-3 h-3 rounded-full bg-green-500 shadow-sm"></span>
+                      <span className="text-slate-600">Internet + LAN</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
+                      <span className="w-3 h-3 rounded-full bg-blue-500 shadow-sm"></span>
+                      <span className="text-slate-600">Chỉ Internet</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
+                      <span className="w-3 h-3 rounded-full bg-yellow-500 shadow-sm"></span>
+                      <span className="text-slate-600">Chỉ LAN</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
+                      <span className="w-3 h-3 rounded-full bg-gray-400 shadow-sm"></span>
+                      <span className="text-slate-600">Mất kết nối</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="px-5 py-3 bg-slate-50 border-t">
+                <button onClick={() => this.setState({ showHelpModal: false })}
+                  className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">Đã hiểu</button>
               </div>
             </div>
           </div>

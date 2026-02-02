@@ -501,7 +501,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
                   value={tournamentName}
                   onChange={this.handleInputChange}
                   rows={2}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all resize-none"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all resize-none text-slate-800 bg-white placeholder:text-slate-400"
                   placeholder="Nhập tên giải đấu... (Enter để xuống dòng)"
                 />
               </div>

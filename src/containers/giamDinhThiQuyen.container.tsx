@@ -3,6 +3,8 @@ import { database } from '../firebase';
 import { ref, get, update, child, onValue, off, DatabaseReference, Database } from "firebase/database";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { bridgeService } from '../services/bridgeService';
+import { isBridgeConnected, onBridgeConnectionChange, disconnectBridge } from '../utils/scoreSync';
 
 interface GiamDinhThiQuyenContainerProps {}
 
@@ -15,14 +17,18 @@ interface GiamDinhThiQuyenContainerState {
   matchMartialNo: string;
   refereeResultBox: string;
   isInternetConnected: boolean;
+  isBridgeConnected: boolean;
   showPasswordModal: boolean;
   showChooseRefereeNoModal: boolean;
-  showShortcutModal: boolean;
   isShowFiveReferee: boolean;
   selectedTournament: number;
   selectedArena: number;
   selectedReferee: number;
-  showKeyboardHint: boolean;
+  showBridgeModal: boolean;
+  bridgeUrl: string;
+  bridgeConnecting: boolean;
+  showSettingsMenu: boolean;
+  showHelpModal: boolean;
 }
 
 interface TournamentSetting {
@@ -48,7 +54,7 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
   teamNoCurrentIndex: number = 0;
   martialArenaNoIndex: number = 0;
   tournamentNoIndex: number = 0;
-  hintTimeout: NodeJS.Timeout | null = null;
+  bridgeCleanup: (() => void) | null = null;
 
   constructor(props: GiamDinhThiQuyenContainerProps) {
     super(props);
@@ -63,14 +69,18 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
       matchMartialNo: '',
       refereeResultBox: '00',
       isInternetConnected: true,
+      isBridgeConnected: isBridgeConnected(),
       showPasswordModal: true,
       showChooseRefereeNoModal: false,
-      showShortcutModal: false,
       isShowFiveReferee: false,
       selectedTournament: 0,
       selectedArena: 0,
       selectedReferee: 1,
-      showKeyboardHint: false
+      showBridgeModal: false,
+      bridgeUrl: localStorage.getItem('bridgeUrl') || '',
+      bridgeConnecting: false,
+      showSettingsMenu: false,
+      showHelpModal: false
     };
     
     this.db = database;
@@ -79,6 +89,11 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
   componentDidMount() {
     // Check for cached password
     this.checkCachedPassword();
+    
+    // Subscribe to Bridge connection changes
+    this.bridgeCleanup = onBridgeConnectionChange((connected) => {
+      this.setState({ isBridgeConnected: connected });
+    });
   }
 
   componentWillUnmount() {
@@ -87,8 +102,9 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
       off(listenerRef);
     });
     this.firebaseListeners = [];
-    if (this.hintTimeout) {
-      clearTimeout(this.hintTimeout);
+    // Cleanup Bridge listener
+    if (this.bridgeCleanup) {
+      this.bridgeCleanup();
     }
   }
 
@@ -114,14 +130,6 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
   cachePassword = () => {
     localStorage.setItem('giamDinh_password_valid', 'true');
     localStorage.setItem('giamDinh_password_timestamp', Date.now().toString());
-  }
-
-  showKeyboardHintTemporarily = () => {
-    // Show hint for 4 seconds after successful login
-    this.setState({ showKeyboardHint: true });
-    this.hintTimeout = setTimeout(() => {
-      this.setState({ showKeyboardHint: false });
-    }, 4000);
   }
 
   verifyPassword = () => {
@@ -186,17 +194,42 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
   }
 
   _handleKeyDown = (e: KeyboardEvent) => {
-    // Space
-    if (e.which === 32) {
-      this.submitInput();
-    }
-    // ESC
+    // ESC - Xóa input hoặc đóng modal
     if (e.which === 27) {
-      this.clearInput();
+      const { showPasswordModal, showChooseRefereeNoModal, showBridgeModal, showHelpModal, refereeResultBox } = this.state;
+      // Nếu có input, xóa input trước
+      if (refereeResultBox && refereeResultBox !== '') {
+        this.clearInput();
+        return;
+      }
+      // Nếu không có input, đóng modal
+      if (showPasswordModal) {
+        this.setState({ showPasswordModal: false });
+      } else if (showChooseRefereeNoModal) {
+        this.setState({ showChooseRefereeNoModal: false });
+      } else if (showBridgeModal) {
+        this.hideBridgeModal();
+      } else if (showHelpModal) {
+        this.setState({ showHelpModal: false });
+      }
+      return;
     }
-    // 0-9
+    // Enter - Gửi điểm
+    if (e.which === 13) {
+      this.submitInput();
+      return;
+    }
+    // . (Chấm) - Nhập dấu thập phân (keyCode 190 hoặc 110 cho numpad)
+    if (e.which === 190 || e.which === 110) {
+      this.input('.');
+      return;
+    }
+    // 0-9 (keyboard và numpad)
     if (e.which >= 48 && e.which <= 57) {
       this.input(e.which - 48);
+    } else if (e.which >= 96 && e.which <= 105) {
+      // Numpad 0-9
+      this.input(e.which - 96);
     }
   }
 
@@ -210,11 +243,8 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
     
     if (selectedReferee != null) {
       this.setState({ showChooseRefereeNoModal: false });
-      
-      // Show keyboard hint for 4 seconds on desktop
-      this.showKeyboardHintTemporarily();
 
-      this.refereeName = "Giám định " + selectedReferee;
+      this.refereeName = "Giám Định " + selectedReferee;
       this.referreIndex = selectedReferee - 1;
       this.setState({ gdName: this.refereeName });
 
@@ -244,11 +274,26 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
 
         this.pathMartial = "tournament/" + this.tournamentNoIndex + "/martial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex + "/refereeMartial/" + this.referreIndex;
       });
+      
+      // Auto-connect Bridge nếu đã có URL lưu sẵn
+      this.autoConnectBridge();
     }
   }
 
-  input = (score: number) => {
-    if (this.refereeMartialScore.length === 2) {
+  input = (score: number | string) => {
+    // Xử lý dấu thập phân
+    if (score === '.') {
+      if (this.refereeMartialScore.includes('.')) {
+        return; // Đã có dấu thập phân rồi
+      }
+      this.refereeMartialScore += '.';
+      this.setState({ refereeResultBox: this.refereeMartialScore || '00' });
+      return;
+    }
+    
+    // Kiểm tra độ dài (cho phép thêm 1 ký tự nếu có dấu thập phân)
+    const maxLength = this.refereeMartialScore.includes('.') ? 4 : 2; // Ví dụ: 9.5 hoặc 99
+    if (this.refereeMartialScore.replace('.', '').length >= 2) {
       toast.error("Chỉ nhập điểm từ 0 đến 99");
       return;
     }
@@ -265,7 +310,21 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
     if (parseInt(this.refereeMartialScore) > 99) {
       this.refereeMartialScore = "";
     }
-    update(ref(this.db, this.pathMartial), { "score": parseInt(this.refereeMartialScore) || 0 });
+    
+    const scoreValue = parseInt(this.refereeMartialScore) || 0;
+    
+    // 1. Gửi qua Bridge nếu có kết nối
+    if (bridgeService.isConnected) {
+      bridgeService.sendMartialScore(
+        this.referreIndex,
+        scoreValue,
+        this.matchNoCurrentIndex,
+        this.teamNoCurrentIndex
+      );
+    }
+    
+    // 2. Gửi lên Firebase
+    update(ref(this.db, this.pathMartial), { "score": scoreValue });
 
     this.pathMartialScore = "tournament/" + this.tournamentNoIndex + "/martial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex;
     get(ref(this.db, this.pathMartialScore)).then((snapshot) => {
@@ -298,8 +357,65 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
     toast.success("Chấm điểm thành công!");
   }
 
-  showShortcut = () => {
-    this.setState({ showShortcutModal: true });
+  // Bridge connection methods
+  showBridgeSettings = () => {
+    this.setState({ showBridgeModal: true });
+  }
+
+  hideBridgeModal = () => {
+    this.setState({ showBridgeModal: false });
+  }
+
+  handleBridgeUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({ bridgeUrl: e.target.value });
+  }
+
+  connectToBridge = async () => {
+    const { bridgeUrl } = this.state;
+    if (!bridgeUrl.trim()) {
+      toast.error('Vui lòng nhập địa chỉ Bridge');
+      return;
+    }
+
+    this.setState({ bridgeConnecting: true });
+    try {
+      const url = bridgeUrl.startsWith('ws://') ? bridgeUrl : `ws://${bridgeUrl}`;
+      await bridgeService.connect(url);
+      
+      // Register as giam_dinh
+      const arena = this.martialArenaNoIndex === 0 ? 'A' : 'B';
+      const name = (this.refereeName || `Giám Định ${this.referreIndex + 1}`) + ' TQ';
+      bridgeService.register('giam_dinh', name, arena, this.tournamentNoIndex);
+      
+      // Save URL
+      localStorage.setItem('bridgeUrl', url);
+      
+      toast.success('Đã kết nối LAN');
+      this.setState({ showBridgeModal: false, isBridgeConnected: true });
+    } catch (err) {
+      toast.error('Không thể kết nối LAN');
+    }
+    this.setState({ bridgeConnecting: false });
+  }
+
+  disconnectFromBridge = () => {
+    disconnectBridge();
+    this.setState({ isBridgeConnected: false });
+    toast.info('Đã ngắt kết nối LAN');
+  }
+
+  autoConnectBridge = async () => {
+    const savedUrl = localStorage.getItem('bridgeUrl');
+    if (savedUrl && !bridgeService.isConnected) {
+      try {
+        await bridgeService.connect(savedUrl);
+        const arena = this.martialArenaNoIndex === 0 ? 'A' : 'B';
+        const name = (this.refereeName || `Giám Định ${this.referreIndex + 1}`) + ' TQ';
+        bridgeService.register('giam_dinh', name, arena, this.tournamentNoIndex);
+      } catch (err) {
+        // Silent fail - không cần thông báo lỗi vì Bridge có thể không chạy
+      }
+    }
   }
 
   inputPw = (value: string) => {
@@ -332,15 +448,19 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
       matchMartialName, 
       matchMartialNo, 
       refereeResultBox,
-      isInternetConnected, 
+      isInternetConnected,
+      isBridgeConnected: bridgeConnected,
       showPasswordModal, 
       showChooseRefereeNoModal, 
-      showShortcutModal,
       isShowFiveReferee,
       selectedTournament,
       selectedArena,
       selectedReferee,
-      showKeyboardHint
+      showBridgeModal,
+      bridgeUrl,
+      bridgeConnecting,
+      showSettingsMenu,
+      showHelpModal
     } = this.state;
 
     return (
@@ -372,62 +492,69 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
           </div>
         )}
 
-        {/* Keyboard Hint Overlay - shows for 4 seconds after login */}
-        {showKeyboardHint && (
-          <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 animate-fade-in">
-            <div className="bg-white rounded-2xl p-6 mx-4 shadow-2xl border border-slate-200 max-w-md relative">
-              <button 
-                onClick={() => this.setState({ showKeyboardHint: false })}
-                className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors"
-              >
-                <i className="fa-solid fa-xmark text-lg"></i>
-              </button>
-              <h3 className="text-slate-800 font-bold text-lg mb-4 text-center">
-                <i className="fa-solid fa-keyboard mr-2 text-slate-600"></i>
-                Phím tắt
-              </h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center justify-center gap-3 bg-amber-50 p-3 rounded-lg border border-amber-100">
-                  <span className="bg-amber-500 text-white px-3 py-1 rounded font-bold">0-9</span>
-                  <span className="text-amber-700 font-medium">Nhập điểm số</span>
-                </div>
-                <div className="flex items-center justify-center gap-3 bg-emerald-50 p-3 rounded-lg border border-emerald-100">
-                  <span className="bg-emerald-500 text-white px-3 py-1 rounded font-bold">Space</span>
-                  <span className="text-emerald-700 font-medium">Chấm điểm</span>
-                </div>
-                <div className="flex items-center justify-center gap-3 bg-red-50 p-3 rounded-lg border border-red-100">
-                  <span className="bg-red-500 text-white px-3 py-1 rounded font-bold">Esc</span>
-                  <span className="text-red-700 font-medium">Xóa điểm</span>
-                </div>
-              </div>
-              <p className="text-slate-400 text-xs text-center mt-4">Tự động ẩn sau vài giây...</p>
-            </div>
-          </div>
-        )}
-
-        {/* Internet connection warning - compact */}
-        {!isInternetConnected && (
-          <div className="bg-red-500 text-white py-1 px-2 text-center text-sm font-medium animate-pulse flex-shrink-0">
-            <i className="fa-solid fa-wifi-slash mr-1"></i>
-            Mất kết nối
-          </div>
-        )}
-
-        {/* Header - More prominent match info */}
+        {/* Header - status dot LEFT, settings RIGHT */}
         <header className="bg-white shadow-md px-3 py-2 flex-shrink-0 border-b border-slate-200">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2 min-w-0">
-              <span className="bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded-lg">
+          <div className="flex items-center justify-between gap-2">
+            {/* LEFT: Status dot + Arena, GĐ name, Match */}
+            <div className="flex items-center gap-2 min-w-0">
+              {/* Connection Status Dot - 4 colors */}
+              <span 
+                className={`w-3 h-3 rounded-full block flex-shrink-0 ${
+                  isInternetConnected && bridgeConnected ? 'bg-green-500' :
+                  isInternetConnected ? 'bg-blue-500' :
+                  bridgeConnected ? 'bg-yellow-500' :
+                  'bg-gray-400'
+                }`}
+              ></span>
+              <span className="bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded-lg whitespace-nowrap">
                 {arenaName || '...'}
               </span>
-              <span className="text-slate-700 font-semibold text-sm">
+              <span className="text-slate-700 font-semibold text-sm truncate">
                 {gdName || '...'}
               </span>
+              <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-lg whitespace-nowrap">
+                {matchMartialName || '...'}{matchMartialNo ? ` - L${matchMartialNo}` : ''}
+              </span>
             </div>
-            <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-lg">
-              {matchMartialName || '...'}{matchMartialNo ? ` - Lượt ${matchMartialNo}` : ''}
-            </span>
+            {/* RIGHT: Settings menu */}
+            <div className="relative flex-shrink-0">
+              <button 
+                onClick={() => this.setState({ showSettingsMenu: !showSettingsMenu })}
+                className="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center"
+              >
+                <i className="fa fa-cog text-sm"></i>
+              </button>
+              {/* Dropdown Menu */}
+              {showSettingsMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => this.setState({ showSettingsMenu: false })}></div>
+                  <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-50 min-w-[160px]">
+                    <button 
+                      onClick={() => this.setState({ showSettingsMenu: false, showBridgeModal: true })}
+                      className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                    >
+                      <i className="fa-solid fa-network-wired text-slate-500"></i>
+                      Kết nối LAN
+                    </button>
+                    <button 
+                      onClick={() => this.setState({ showSettingsMenu: false, showHelpModal: true })}
+                      className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                    >
+                      <i className="fa-solid fa-circle-question text-slate-500"></i>
+                      Giúp đỡ
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
+          {/* Warning when both disconnected */}
+          {!isInternetConnected && !bridgeConnected && (
+            <div className="mt-2 bg-red-100 text-red-700 py-1 px-2 text-center text-xs font-medium rounded-lg border border-red-200">
+              <i className="fa-solid fa-exclamation-triangle mr-1"></i>
+              Không có kết nối - Không thể chấm điểm
+            </div>
+          )}
         </header>
 
         {/* Full-screen Calculator - takes all remaining space */}
@@ -517,11 +644,15 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
         {showPasswordModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-3">
-                <h5 className="text-white font-bold text-base flex items-center gap-2">
-                  <i className="fa-solid fa-lock"></i>
-                  Nhập mật khẩu
-                </h5>
+              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
+                <div className="flex items-center justify-between">
+                  <h5 className="text-white font-bold text-lg flex items-center gap-2">
+                    <i className="fa-solid fa-lock"></i>Nhập mật khẩu
+                  </h5>
+                  <button onClick={() => this.setState({ showPasswordModal: false })} className="text-white/80 hover:text-white transition-colors">
+                    <i className="fa-solid fa-xmark text-xl"></i>
+                  </button>
+                </div>
               </div>
               
               <div className="p-4">
@@ -559,7 +690,7 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
                 <button onClick={() => this.setState({ showPasswordModal: false })}
                   className="flex-1 py-2 px-3 rounded-xl border border-slate-200 text-slate-600 font-medium">Hủy</button>
                 <button onClick={this.verifyPassword}
-                  className="flex-1 py-2 px-3 rounded-xl bg-amber-500 text-white font-medium">OK</button>
+                  className="flex-1 py-2 px-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700">OK</button>
               </div>
             </div>
           </div>
@@ -569,11 +700,15 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
         {showChooseRefereeNoModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden max-h-[85vh] overflow-y-auto">
-              <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-3 sticky top-0">
-                <h5 className="text-white font-bold text-base">
-                  <i className="fa-solid fa-id-badge mr-2"></i>
-                  Chọn thông tin
-                </h5>
+              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4 sticky top-0">
+                <div className="flex items-center justify-between">
+                  <h5 className="text-white font-bold text-lg flex items-center gap-2">
+                    <i className="fa-solid fa-id-badge"></i>Chọn thông tin
+                  </h5>
+                  <button onClick={() => this.setState({ showChooseRefereeNoModal: false })} className="text-white/80 hover:text-white transition-colors">
+                    <i className="fa-solid fa-xmark text-xl"></i>
+                  </button>
+                </div>
               </div>
               
               <div className="p-4 space-y-4">
@@ -583,9 +718,9 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
                   <div className="space-y-1.5 max-h-32 overflow-y-auto">
                     {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
                       <label key={i} onClick={() => this.chooseTournament(i)}
-                        className="flex items-center gap-2 p-2 border border-slate-200 rounded-lg cursor-pointer hover:bg-amber-50">
+                        className="flex items-center gap-2 p-2 border border-slate-200 rounded-lg cursor-pointer hover:bg-blue-50">
                         <input type="radio" name="tournamentRadio" checked={selectedTournament === i}
-                          onChange={() => this.chooseTournament(i)} className="w-4 h-4 text-amber-500" />
+                          onChange={() => this.chooseTournament(i)} className="w-4 h-4 text-blue-500" />
                         <span className="text-sm text-slate-700">{tournament[1]}</span>
                       </label>
                     )) : <p className="text-slate-400 italic text-sm">Không có giải đấu</p>}
@@ -599,16 +734,16 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
                     <label className="relative cursor-pointer">
                       <input type="radio" name="optionsArena" value="0" checked={selectedArena === 0}
                         onChange={() => this.handleArenaChange(0)} className="peer sr-only" />
-                      <div className="p-3 border-2 border-slate-200 rounded-xl text-center peer-checked:border-amber-500 peer-checked:bg-amber-50 flex flex-col items-center justify-center min-h-[60px]">
-                        <i className="fa-solid fa-chess-board text-xl text-amber-500"></i>
+                      <div className="p-3 border-2 border-slate-200 rounded-xl text-center peer-checked:border-blue-500 peer-checked:bg-blue-50 flex flex-col items-center justify-center min-h-[60px]">
+                        <i className="fa-solid fa-chess-board text-xl text-blue-500"></i>
                         <span className="font-bold text-sm text-slate-700 mt-1">Sân A</span>
                       </div>
                     </label>
                     <label className="relative cursor-pointer">
                       <input type="radio" name="optionsArena" value="1" checked={selectedArena === 1}
                         onChange={() => this.handleArenaChange(1)} className="peer sr-only" />
-                      <div className="p-3 border-2 border-slate-200 rounded-xl text-center peer-checked:border-amber-500 peer-checked:bg-amber-50 flex flex-col items-center justify-center min-h-[60px]">
-                        <i className="fa-solid fa-chess-board text-xl text-amber-500"></i>
+                      <div className="p-3 border-2 border-slate-200 rounded-xl text-center peer-checked:border-blue-500 peer-checked:bg-blue-50 flex flex-col items-center justify-center min-h-[60px]">
+                        <i className="fa-solid fa-chess-board text-xl text-blue-500"></i>
                         <span className="font-bold text-sm text-slate-700 mt-1">Sân B</span>
                       </div>
                     </label>
@@ -623,7 +758,7 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
                       <label key={num} className="relative cursor-pointer">
                         <input type="radio" name="optionsReferee" value={num} checked={selectedReferee === num}
                           onChange={() => this.handleRefereeChange(num)} className="peer sr-only" />
-                        <div className="p-2 border-2 border-slate-200 rounded-xl text-center peer-checked:border-amber-500 peer-checked:bg-amber-50 flex items-center justify-center min-h-[40px]">
+                        <div className="p-2 border-2 border-slate-200 rounded-xl text-center peer-checked:border-blue-500 peer-checked:bg-blue-50 flex items-center justify-center min-h-[40px]">
                           <span className="font-bold text-sm text-slate-700">GĐ{num}</span>
                         </div>
                       </label>
@@ -632,7 +767,7 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
                       <label key={num} className="relative cursor-pointer">
                         <input type="radio" name="optionsReferee" value={num} checked={selectedReferee === num}
                           onChange={() => this.handleRefereeChange(num)} className="peer sr-only" />
-                        <div className="p-2 border-2 border-slate-200 rounded-xl text-center peer-checked:border-amber-500 peer-checked:bg-amber-50 flex items-center justify-center min-h-[40px]">
+                        <div className="p-2 border-2 border-slate-200 rounded-xl text-center peer-checked:border-blue-500 peer-checked:bg-blue-50 flex items-center justify-center min-h-[40px]">
                           <span className="font-bold text-sm text-slate-700">GĐ{num}</span>
                         </div>
                       </label>
@@ -645,40 +780,146 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
                 <button onClick={() => this.setState({ showChooseRefereeNoModal: false })}
                   className="flex-1 py-2 px-3 rounded-xl border border-slate-200 text-slate-600 font-medium">Hủy</button>
                 <button onClick={this.chooseRefereeNo}
-                  className="flex-1 py-2 px-3 rounded-xl bg-amber-500 text-white font-medium">OK</button>
+                  className="flex-1 py-2 px-3 rounded-xl bg-blue-500 text-white font-medium">OK</button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Shortcut Modal */}
-        {showShortcutModal && (
+        {/* Bridge Connection Modal */}
+        {showBridgeModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-              <div className="bg-slate-700 p-3">
-                <h5 className="text-white font-bold text-base">
-                  <i className="fa-solid fa-keyboard mr-2"></i>Phím tắt
-                </h5>
-              </div>
-              
-              <div className="p-3 space-y-2 text-sm">
-                <div className="flex items-center gap-3 p-2 bg-slate-100 rounded-lg">
-                  <span className="w-8 h-8 bg-slate-500 text-white rounded flex items-center justify-center font-bold text-xs">0-9</span>
-                  <span className="text-slate-600">Nhập điểm</span>
-                </div>
-                <div className="flex items-center gap-3 p-2 bg-emerald-50 rounded-lg">
-                  <span className="w-8 h-8 bg-emerald-500 text-white rounded flex items-center justify-center text-xs font-bold">SPC</span>
-                  <span className="text-emerald-600">Chấm điểm</span>
-                </div>
-                <div className="flex items-center gap-3 p-2 bg-red-50 rounded-lg">
-                  <span className="w-8 h-8 bg-red-500 text-white rounded flex items-center justify-center text-xs font-bold">ESC</span>
-                  <span className="text-red-600">Xóa điểm</span>
+              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
+                <div className="flex items-center justify-between">
+                  <h5 className="text-white font-bold text-lg flex items-center gap-2">
+                    <i className="fa-solid fa-network-wired"></i>Kết nối LAN
+                  </h5>
+                  <button onClick={this.hideBridgeModal} className="text-white/80 hover:text-white transition-colors">
+                    <i className="fa-solid fa-xmark text-xl"></i>
+                  </button>
                 </div>
               </div>
               
-              <div className="p-3 bg-slate-50 border-t">
-                <button onClick={() => this.setState({ showShortcutModal: false })}
-                  className="w-full py-2 rounded-xl bg-slate-700 text-white font-medium">Đóng</button>
+              <div className="p-4 space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 uppercase mb-1 block">IP:Port</label>
+                  <input
+                    type="text"
+                    value={bridgeUrl}
+                    onChange={this.handleBridgeUrlChange}
+                    placeholder="192.168.1.100:9765"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl"
+                    disabled={bridgeConnected}
+                  />
+                </div>
+                
+                {bridgeConnected && (
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-green-50 border border-green-200">
+                    <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
+                    <span className="text-sm font-medium text-green-700">Đã kết nối</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex gap-2 p-3 bg-slate-50 border-t">
+                <button onClick={this.hideBridgeModal}
+                  className="flex-1 py-2 px-3 rounded-xl border border-slate-200 text-slate-600 font-medium">Đóng</button>
+                {bridgeConnected ? (
+                  <button onClick={this.disconnectFromBridge}
+                    className="flex-1 py-2 px-3 rounded-xl bg-red-500 text-white font-medium">Ngắt kết nối</button>
+                ) : (
+                  <button onClick={this.connectToBridge} disabled={bridgeConnecting}
+                    className="flex-1 py-2 px-3 rounded-xl bg-blue-500 text-white font-medium disabled:opacity-50">
+                    {bridgeConnecting ? 'Đang kết nối...' : 'Kết nối'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Help Modal */}
+        {showHelpModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => this.setState({ showHelpModal: false })}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              {/* Header */}
+              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
+                <div className="flex items-center justify-between">
+                  <h5 className="text-white font-bold text-lg flex items-center gap-2">
+                    <i className="fa-solid fa-circle-question"></i>Hướng dẫn sử dụng
+                  </h5>
+                  <button onClick={() => this.setState({ showHelpModal: false })} className="text-white/80 hover:text-white transition-colors">
+                    <i className="fa-solid fa-xmark text-xl"></i>
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-5">
+                {/* Keyboard Shortcuts Section */}
+                <div className="mb-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <i className="fa-solid fa-keyboard text-slate-400"></i>
+                    <span className="font-semibold text-slate-700">Phím tắt chấm điểm</span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                      <div className="flex gap-1">
+                        {['0','1','2','3'].map(n => (
+                          <span key={n} className="w-8 h-8 bg-slate-200 rounded flex items-center justify-center text-sm font-bold text-slate-600">{n}</span>
+                        ))}
+                        <span className="w-8 h-8 flex items-center justify-center text-slate-400">...</span>
+                        <span className="w-8 h-8 bg-slate-200 rounded flex items-center justify-center text-sm font-bold text-slate-600">9</span>
+                        <span className="w-8 h-8 bg-slate-200 rounded flex items-center justify-center text-sm font-bold text-slate-600">.</span>
+                      </div>
+                      <span className="text-slate-600 text-sm">Nhập điểm số</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                        <span className="px-3 py-1.5 bg-blue-500 text-white rounded text-sm font-bold">Enter</span>
+                        <span className="text-blue-700 text-sm font-medium">Gửi điểm</span>
+                      </div>
+                      <div className="flex items-center gap-2 p-3 bg-red-50 rounded-xl border border-red-100">
+                        <span className="px-3 py-1.5 bg-red-500 text-white rounded text-sm font-bold">Esc</span>
+                        <span className="text-red-700 text-sm font-medium">Xóa / Đóng</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Divider */}
+                <div className="border-t border-slate-200 my-4"></div>
+
+                {/* Status Dot Section */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <i className="fa-solid fa-signal text-slate-400"></i>
+                    <span className="font-semibold text-slate-700">Trạng thái kết nối</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
+                      <span className="w-3 h-3 rounded-full bg-green-500 shadow-sm"></span>
+                      <span className="text-slate-600">Internet + LAN</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
+                      <span className="w-3 h-3 rounded-full bg-blue-500 shadow-sm"></span>
+                      <span className="text-slate-600">Chỉ Internet</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
+                      <span className="w-3 h-3 rounded-full bg-yellow-500 shadow-sm"></span>
+                      <span className="text-slate-600">Chỉ LAN</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
+                      <span className="w-3 h-3 rounded-full bg-gray-400 shadow-sm"></span>
+                      <span className="text-slate-600">Mất kết nối</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="px-5 py-3 bg-slate-50 border-t">
+                <button onClick={() => this.setState({ showHelpModal: false })}
+                  className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">Đã hiểu</button>
               </div>
             </div>
           </div>
