@@ -2429,7 +2429,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                                             <span className="text-slate-700 text-sm">Thông tin VĐV</span>
                                         </div>
                                     </div>
-                                    <p className="text-xs text-slate-500 mt-2 text-center">Phím <strong>Esc</strong> để đóng cửa sổ | Xem đầy đủ trong menu ⚙️ → Phím tắt</p>
                                 </div>
                                 
                                 {/* Divider */}
