@@ -1871,10 +1871,17 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                                 'Mất kết nối'
                             }
                         ></span>
-                        <a href="#" onClick={this.showShortcut} className="flex-shrink-0">
-                            <img src={logo} alt="logo" className="h-8" />
+                        <a 
+                            href="#" 
+                            onClick={this.showShortcut} 
+                            className="flex-shrink-0 flex items-center p-1.5 bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-lg shadow-sm hover:shadow hover:border-slate-300 transition-all"
+                            title="Phím tắt"
+                        >
+                            <img src={logo} alt="logo" className="h-6" />
                         </a>
-                        <span className="text-[2vh] font-bold whitespace-pre-line leading-tight" id="tournamentName">{processedTournamentName}</span>
+                        <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 rounded-lg px-3 py-1 max-w-[280px]" id="tournamentName">
+                            <span className="text-[1.6vh] font-bold text-slate-700 leading-snug break-words">{processedTournamentName}</span>
+                        </div>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
                         <span className="bg-slate-200 px-4 py-1.5 rounded font-bold text-base" id="arena-name">{arenaName}</span>

@@ -464,7 +464,7 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
                 {arenaName || '...'}
               </span>
               <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-lg whitespace-nowrap">
-                {matchMartialName || '...'}{matchMartialNo ? ` - L${matchMartialNo}` : ''}
+                {matchMartialName || '...'}{matchMartialNo ? ` - ${matchMartialNo}` : ''}
               </span>
             </div>
             {/* RIGHT: Giám Định name (nổi bật) + Settings */}

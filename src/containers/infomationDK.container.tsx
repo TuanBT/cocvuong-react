@@ -213,28 +213,36 @@ class InformationDkContainer extends Component<InformationDkContainerProps, Info
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         {/* Header */}
-        <header className="bg-white/80 backdrop-blur-sm shadow-sm border-b border-slate-100 sticky top-0 z-10">
-          <div className="max-w-7xl mx-auto px-4 py-2">
+        <header className="bg-white/90 backdrop-blur-md shadow-sm border-b border-slate-200 sticky top-0 z-10">
+          <div className="max-w-7xl mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <a 
-                  href="/" 
-                  title="Về Trang chủ" 
-                  className="w-8 h-8 bg-gradient-to-br from-slate-100 to-slate-200 hover:from-amber-500 hover:to-orange-500 rounded-lg flex items-center justify-center shadow-sm hover:shadow transition-all group"
-                >
-                  <i className="fa-solid fa-home text-slate-500 group-hover:text-white text-sm"></i>
-                </a>
-                <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center shadow">
+              {/* Left: Logo as Home button */}
+              <a 
+                href="/" 
+                title="Về Trang chủ" 
+                className="flex items-center p-2 bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-xl shadow-sm hover:shadow hover:border-slate-300 transition-all"
+              >
+                <img src={logo} alt="Logo" className="h-7" />
+              </a>
+              
+              {/* Center: Page Title */}
+              <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center shadow-md">
                   <i className="fa-solid fa-fist-raised text-white text-sm"></i>
                 </div>
-                <div>
-                  <h1 className="text-base font-bold text-slate-800">Thông tin Đối Kháng</h1>
-                  {tournamentName && (
-                    <p className="text-xs text-amber-600 font-medium whitespace-pre-line break-words max-w-[250px] leading-tight">{tournamentName}</p>
-                  )}
-                </div>
+                <h1 className="text-lg font-bold text-slate-800">Thông tin Đối Kháng</h1>
               </div>
-              <img src={logo} alt="Logo" className="h-8 opacity-70" />
+              
+              {/* Right: Tournament name badge */}
+              {tournamentName ? (
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg px-3 py-1.5 max-w-[200px]">
+                  <p className="text-xs text-amber-700 font-medium truncate" title={tournamentName}>
+                    {tournamentName}
+                  </p>
+                </div>
+              ) : (
+                <div className="w-[100px]"></div>
+              )}
             </div>
           </div>
         </header>

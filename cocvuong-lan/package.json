@@ -1,7 +1,7 @@
 {
-  "name": "cocvuong-bridge",
+  "name": "cocvuong-lan",
   "version": "2.0.0",
-  "description": "CocVuong Bridge - Server cho LAN scoring võ thuật",
+  "description": "CocVuong lan - Server cho LAN Cóc Vương",
   "main": "main-combined.js",
   "author": "Bui Tien Tuan",
   "license": "MIT",
@@ -23,8 +23,8 @@
     "electron-builder": "^24.9.1"
   },
   "build": {
-    "appId": "com.cocvuong.bridge",
-    "productName": "CocVuong Bridge",
+    "appId": "com.cocvuong.lan",
+    "productName": "CocVuong Lan",
     "directories": {
       "output": "dist"
     },
