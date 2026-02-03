@@ -1872,15 +1872,13 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                             }
                         ></span>
                         <a 
-                            href="#" 
-                            onClick={this.showShortcut} 
+                            href="/" 
                             className="flex-shrink-0 flex items-center p-1.5 bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-lg shadow-sm hover:shadow hover:border-slate-300 transition-all"
-                            title="Phím tắt"
                         >
                             <img src={logo} alt="logo" className="h-6" />
                         </a>
-                        <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 rounded-lg px-3 py-1 max-w-[280px]" id="tournamentName">
-                            <span className="text-[1.6vh] font-bold text-slate-700 leading-snug break-words">{processedTournamentName}</span>
+                        <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 rounded-lg px-3 py-1 max-w-[380px]" id="tournamentName">
+                            <span className="text-[1.6vh] font-bold text-slate-700 leading-snug whitespace-pre-line">{processedTournamentName}</span>
                         </div>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
