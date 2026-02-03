@@ -147,6 +147,53 @@ export function subscribeScoreForGiamSat(
 }
 
 /**
+ * Kiểm tra xem có đang chạy qua LAN (http://IP:3000) không
+ * Và tự động kết nối Bridge nếu có
+ */
+export function isRunningOnLAN(): boolean {
+  const { hostname, port, protocol } = window.location;
+  return protocol === 'http:' && port === '3000' && hostname !== 'localhost' && hostname !== '127.0.0.1';
+}
+
+/**
+ * Lấy WebSocket URL từ location (khi đang chạy qua LAN)
+ */
+export function getAutoLanUrl(): string | null {
+  if (isRunningOnLAN()) {
+    const { hostname } = window.location;
+    return `ws://${hostname}:9765`;
+  }
+  return null;
+}
+
+/**
+ * Tự động kết nối LAN nếu đang chạy qua http://IP:3000
+ */
+export async function autoConnectLanIfAvailable(
+  clientType: 'giam_sat' | 'giam_dinh',
+  arena: string,
+  tournament: number,
+  name: string,
+  gdIndex?: number
+): Promise<boolean> {
+  const lanUrl = getAutoLanUrl();
+  if (!lanUrl) return false;
+  
+  // Đã connected rồi thì không cần connect lại
+  if (bridgeService.isConnected) return true;
+  
+  try {
+    await bridgeService.connect(lanUrl);
+    bridgeService.register(clientType, name, arena, tournament, gdIndex);
+    console.log(`[LAN] Auto-connected to ${lanUrl} as ${clientType}`);
+    return true;
+  } catch (err) {
+    console.warn('[LAN] Auto-connect failed:', err);
+    return false;
+  }
+}
+
+/**
  * Kết nối Bridge từ Giám Định
  */
 export async function connectBridgeAsGiamDinh(

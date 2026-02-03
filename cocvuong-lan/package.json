@@ -1,12 +1,14 @@
 {
-  "name": "cocvuong-lan",
-  "version": "1.0.0",
-  "description": "Cóc Vương LAN - Chấm điểm qua mạng nội bộ",
-  "main": "main.js",
+  "name": "cocvuong-bridge",
+  "version": "2.0.0",
+  "description": "CocVuong Bridge - Server cho LAN scoring võ thuật",
+  "main": "main-combined.js",
   "author": "Bui Tien Tuan",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
+    "copy-build": "cp -r ../build ./build",
+    "copy-build:win": "xcopy ..\\build .\\build /E /I /Y",
     "build": "electron-builder",
     "build:win": "electron-builder --win",
     "build:mac": "electron-builder --mac",
@@ -21,16 +23,25 @@
     "electron-builder": "^24.9.1"
   },
   "build": {
-    "appId": "com.cocvuong.lan",
-    "productName": "Coc Vuong LAN",
+    "appId": "com.cocvuong.bridge",
+    "productName": "CocVuong Bridge",
     "directories": {
       "output": "dist"
     },
     "files": [
-      "main.js",
+      "main-combined.js",
+      "bridge-server.js",
       "preload.js",
+      "preload-online.js",
       "renderer/**/*",
       "assets/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "build",
+        "to": "build",
+        "filter": ["**/*"]
+      }
     ],
     "win": {
       "target": [

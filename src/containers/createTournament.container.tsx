@@ -2573,7 +2573,14 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
         <header className="bg-white/80 backdrop-blur-sm shadow-sm sticky top-0 z-40 border-b border-slate-100">
           <div className="max-w-7xl mx-auto px-4 py-2">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                <a 
+                  href="/" 
+                  title="Về Trang chủ" 
+                  className="w-8 h-8 bg-gradient-to-br from-slate-100 to-slate-200 hover:from-violet-500 hover:to-purple-600 rounded-lg flex items-center justify-center shadow-sm hover:shadow transition-all group"
+                >
+                  <i className="fa-solid fa-home text-slate-500 group-hover:text-white text-sm"></i>
+                </a>
                 <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center shadow">
                   <i className="fas fa-file-upload text-white text-sm"></i>
                 </div>
@@ -2584,16 +2591,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
                   )}
                 </div>
               </div>
-                            <div className="flex items-center gap-3">
-                <a 
-                  href="/" 
-                  title="Về Trang chủ" 
-                  className="w-8 h-8 bg-gradient-to-br from-slate-100 to-slate-200 hover:from-violet-500 hover:to-purple-600 rounded-lg flex items-center justify-center shadow-sm hover:shadow transition-all group"
-                >
-                  <i className="fa-solid fa-home text-slate-500 group-hover:text-white text-sm"></i>
-                </a>
-                <img src={logo} alt="Logo" className="h-8 opacity-70" />
-              </div>
+              <img src={logo} alt="Logo" className="h-8 opacity-70" />
             </div>
           </div>
         </header>

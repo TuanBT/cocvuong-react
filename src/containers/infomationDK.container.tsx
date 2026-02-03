@@ -216,7 +216,14 @@ class InformationDkContainer extends Component<InformationDkContainerProps, Info
         <header className="bg-white/80 backdrop-blur-sm shadow-sm border-b border-slate-100 sticky top-0 z-10">
           <div className="max-w-7xl mx-auto px-4 py-2">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                <a 
+                  href="/" 
+                  title="Về Trang chủ" 
+                  className="w-8 h-8 bg-gradient-to-br from-slate-100 to-slate-200 hover:from-amber-500 hover:to-orange-500 rounded-lg flex items-center justify-center shadow-sm hover:shadow transition-all group"
+                >
+                  <i className="fa-solid fa-home text-slate-500 group-hover:text-white text-sm"></i>
+                </a>
                 <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center shadow">
                   <i className="fa-solid fa-fist-raised text-white text-sm"></i>
                 </div>
@@ -227,16 +234,7 @@ class InformationDkContainer extends Component<InformationDkContainerProps, Info
                   )}
                 </div>
               </div>
-                            <div className="flex items-center gap-3">
-                <a 
-                  href="/" 
-                  title="Về Trang chủ" 
-                  className="w-8 h-8 bg-gradient-to-br from-slate-100 to-slate-200 hover:from-amber-500 hover:to-orange-500 rounded-lg flex items-center justify-center shadow-sm hover:shadow transition-all group"
-                >
-                  <i className="fa-solid fa-home text-slate-500 group-hover:text-white text-sm"></i>
-                </a>
-                <img src={logo} alt="Logo" className="h-8 opacity-70" />
-              </div>
+              <img src={logo} alt="Logo" className="h-8 opacity-70" />
             </div>
           </div>
         </header>

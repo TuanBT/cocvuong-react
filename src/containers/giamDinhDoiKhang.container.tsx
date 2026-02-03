@@ -26,9 +26,6 @@ interface GiamDinhDoiKhangContainerState {
   isBridgeConnected: boolean;
   showPasswordModal: boolean;
   showChooseRefereeNoModal: boolean;
-  showBridgeModal: boolean;
-  bridgeUrl: string;
-  bridgeConnecting: boolean;
   isShowFiveReferee: boolean;
   showSettingsMenu: boolean;
   showHelpModal: boolean;
@@ -80,9 +77,6 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
       isBridgeConnected: isBridgeConnected(),
       showPasswordModal: true,
       showChooseRefereeNoModal: false,
-      showBridgeModal: false,
-      bridgeUrl: localStorage.getItem('bridgeUrl') || '',
-      bridgeConnecting: false,
       isShowFiveReferee: false,
       showSettingsMenu: false,
       showHelpModal: false
@@ -208,13 +202,11 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
   _handleKeyDown = (e: KeyboardEvent) => {
     // ESC - Đóng modal đang mở
     if (e.which === 27) {
-      const { showPasswordModal, showChooseRefereeNoModal, showBridgeModal, showHelpModal } = this.state;
+      const { showPasswordModal, showChooseRefereeNoModal, showHelpModal } = this.state;
       if (showPasswordModal) {
         this.hidePasswordModal();
       } else if (showChooseRefereeNoModal) {
         this.hideChooseRefereeNoModal();
-      } else if (showBridgeModal) {
-        this.hideBridgeModal();
       } else if (showHelpModal) {
         this.setState({ showHelpModal: false });
       }
@@ -375,66 +367,6 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
     });
   }
 
-  // Bridge connection methods
-  showBridgeSettings = () => {
-    this.setState({ showBridgeModal: true });
-  }
-
-  hideBridgeModal = () => {
-    this.setState({ showBridgeModal: false });
-  }
-
-  handleBridgeUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({ bridgeUrl: e.target.value });
-  }
-
-  connectToBridge = async () => {
-    const { bridgeUrl } = this.state;
-    if (!bridgeUrl.trim()) {
-      toast.error('Vui lòng nhập địa chỉ Bridge');
-      return;
-    }
-
-    this.setState({ bridgeConnecting: true });
-    
-    try {
-      // Format URL properly
-      let url = bridgeUrl.trim();
-      if (!url.startsWith('ws://')) {
-        url = 'ws://' + url;
-      }
-      if (!url.includes(':')) {
-        url = url + ':9765';
-      }
-
-      // Save for next time
-      localStorage.setItem('bridgeUrl', url);
-      this.setState({ bridgeUrl: url });
-
-      // Connect with proper info
-      const arena = this.combatArenaNoIndex === 0 ? 'A' : 'B';
-      const name = (this.refereeName || `Giám Định ${this.referreIndex + 1}`) + ' DK';
-      
-      const success = await connectBridgeAsGiamDinh(url, this.referreIndex, arena, this.tournamentNoIndex, name);
-      
-      if (success) {
-        toast.success('Đã kết nối LAN!');
-        this.setState({ showBridgeModal: false });
-      } else {
-        toast.error('Không thể kết nối LAN');
-      }
-    } catch (err) {
-      toast.error('Lỗi kết nối: ' + (err as Error).message);
-    } finally {
-      this.setState({ bridgeConnecting: false });
-    }
-  }
-
-  disconnectFromBridge = () => {
-    disconnectBridge();
-    toast.info('Đã ngắt kết nối Bridge');
-  }
-
   inputPw = (value: string) => {
     if (value === "-1") {
       this.setState({ password: '' });
@@ -461,28 +393,30 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
       isBridgeConnected: bridgeConnected,
       showPasswordModal,
       showChooseRefereeNoModal,
-      showBridgeModal,
-      bridgeUrl,
-      bridgeConnecting,
       isShowFiveReferee,
       showSettingsMenu,
       showHelpModal
     } = this.state;
 
     return (
-      <div className="fixed inset-0 flex flex-col bg-slate-100 overflow-hidden">
+      <div className="giam-dinh-container bg-slate-100">
         {/* Loading Skeleton - full screen when no match data (z-20 so modals can overlay) */}
         {!gdMatch && (
           <div className="absolute inset-0 z-20 flex flex-col bg-slate-100">
             {/* Skeleton Header */}
             <div className="bg-white shadow-md px-3 py-2 flex-shrink-0 border-b border-slate-200">
               <div className="flex items-center justify-between gap-2">
+                {/* LEFT skeleton - status dot + arena + match */}
                 <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 bg-slate-300 rounded-full animate-pulse"></div>
                   <div className="h-6 w-16 bg-slate-300 rounded-lg animate-pulse"></div>
-                  <div className="h-5 w-24 bg-slate-200 rounded animate-pulse"></div>
                   <div className="h-6 w-14 bg-slate-200 rounded-lg animate-pulse"></div>
                 </div>
-                <div className="h-6 w-20 bg-slate-300 rounded-lg animate-pulse"></div>
+                {/* RIGHT skeleton - Giám Định nổi bật + settings */}
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-24 bg-gradient-to-r from-blue-200 to-indigo-200 rounded-lg animate-pulse"></div>
+                  <div className="h-8 w-8 bg-slate-200 rounded-full animate-pulse"></div>
+                </div>
               </div>
             </div>
             {/* Skeleton Buttons */}
@@ -499,60 +433,61 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
           </div>
         )}
 
-        {/* Header - status dot LEFT, settings RIGHT */}
+        {/* Header - status dot LEFT, Giám Định name RIGHT */}
         <header className="bg-white shadow-md px-3 py-2 flex-shrink-0 border-b border-slate-200">
           <div className="flex items-center justify-between gap-2">
-            {/* LEFT: Status dot + Arena, GĐ name, Match */}
+            {/* LEFT: Status dot + Arena, Match */}
             <div className="flex items-center gap-2 min-w-0">
               {/* Connection Status Dot - 4 colors */}
               <span 
-                className={`w-3 h-3 rounded-full block flex-shrink-0 ${
+                className={`status-dot w-3 h-3 rounded-full block flex-shrink-0 ${
                   isInternetConnected && bridgeConnected ? 'bg-green-500' :
                   isInternetConnected ? 'bg-blue-500' :
                   bridgeConnected ? 'bg-yellow-500' :
                   'bg-gray-400'
                 }`}
+                data-tooltip={
+                  isInternetConnected && bridgeConnected ? 'Internet + LAN' :
+                  isInternetConnected ? 'Chỉ Internet' :
+                  bridgeConnected ? 'Chỉ LAN' :
+                  'Mất kết nối'
+                }
               ></span>
               <span className="bg-emerald-500 text-white text-xs font-bold px-2 py-1 rounded-lg whitespace-nowrap">
                 {arenaName || '...'}
-              </span>
-              <span className="text-slate-700 font-semibold text-sm truncate">
-                {gdName || '...'}
               </span>
               <span className="bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded-lg whitespace-nowrap">
                 {gdMatch || '...'}
               </span>
             </div>
-            {/* RIGHT: Settings menu */}
-            <div className="relative flex-shrink-0">
-              <button 
-                onClick={() => this.setState({ showSettingsMenu: !showSettingsMenu })}
-                className="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center"
-              >
-                <i className="fa fa-cog text-sm"></i>
-              </button>
-              {/* Dropdown Menu */}
-              {showSettingsMenu && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => this.setState({ showSettingsMenu: false })}></div>
-                  <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-50 min-w-[160px]">
-                    <button 
-                      onClick={() => this.setState({ showSettingsMenu: false, showBridgeModal: true })}
-                      className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                    >
-                      <i className="fa-solid fa-network-wired text-slate-500"></i>
-                      Kết nối LAN
-                    </button>
-                    <button 
-                      onClick={() => this.setState({ showSettingsMenu: false, showHelpModal: true })}
-                      className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                    >
-                      <i className="fa-solid fa-circle-question text-slate-500"></i>
-                      Giúp đỡ
-                    </button>
-                  </div>
-                </>
-              )}
+            {/* RIGHT: Giám Định name (nổi bật) + Settings */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm px-3 py-1.5 rounded-lg shadow-md">
+                {gdName || '...'}
+              </span>
+              <div className="relative">
+                <button 
+                  onClick={() => this.setState({ showSettingsMenu: !showSettingsMenu })}
+                  className="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center"
+                >
+                  <i className="fa fa-cog text-sm"></i>
+                </button>
+                {/* Dropdown Menu */}
+                {showSettingsMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => this.setState({ showSettingsMenu: false })}></div>
+                    <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-50 min-w-[160px]">
+                      <button 
+                        onClick={() => this.setState({ showSettingsMenu: false, showHelpModal: true })}
+                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                      >
+                        <i className="fa-solid fa-circle-question text-slate-500"></i>
+                        Giúp đỡ
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
           {/* Warning when both disconnected */}
@@ -565,7 +500,7 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
         </header>
 
         {/* Full-screen Scoring Area - takes all remaining space */}
-        <div className="flex-1 grid grid-cols-2 gap-2 p-2 min-h-0 relative">
+        <div className="flex-1 grid grid-cols-2 gap-2 p-2 min-h-0 h-full overflow-hidden">
           {/* Red Team - Left Column */}
           <div className="flex flex-col gap-2 min-h-0">
             <button 
@@ -739,59 +674,6 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
                   className="flex-1 py-2 px-3 rounded-xl border border-slate-200 text-slate-600 font-medium">Hủy</button>
                 <button onClick={this.chooseRefereeNo}
                   className="flex-1 py-2 px-3 rounded-xl bg-blue-500 text-white font-medium">OK</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Bridge Connection Modal */}
-        {showBridgeModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
-                <div className="flex items-center justify-between">
-                  <h5 className="text-white font-bold text-lg flex items-center gap-2">
-                    <i className="fa-solid fa-network-wired"></i>Kết nối LAN
-                  </h5>
-                  <button onClick={this.hideBridgeModal} className="text-white/80 hover:text-white transition-colors">
-                    <i className="fa-solid fa-xmark text-xl"></i>
-                  </button>
-                </div>
-              </div>
-              
-              <div className="p-4 space-y-3">
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 uppercase mb-1 block">IP:Port</label>
-                  <input 
-                    type="text" 
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white text-base"
-                    placeholder="192.168.1.100:9765"
-                    value={bridgeUrl.replace('ws://', '')}
-                    onChange={(e) => this.setState({ bridgeUrl: e.target.value })}
-                    disabled={bridgeConnected}
-                  />
-                </div>
-
-                {bridgeConnected && (
-                  <div className="flex items-center gap-2 p-2 rounded-lg bg-green-50 border border-green-200">
-                    <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
-                    <span className="text-sm font-medium text-green-700">Đã kết nối</span>
-                  </div>
-                )}
-              </div>
-              
-              <div className="flex gap-2 p-3 bg-slate-50 border-t">
-                <button onClick={this.hideBridgeModal}
-                  className="flex-1 py-2 px-3 rounded-xl border border-slate-200 text-slate-600 font-medium">Đóng</button>
-                {bridgeConnected ? (
-                  <button onClick={this.disconnectFromBridge}
-                    className="flex-1 py-2 px-3 rounded-xl bg-red-500 text-white font-medium">Ngắt kết nối</button>
-                ) : (
-                  <button onClick={this.connectToBridge} disabled={bridgeConnecting}
-                    className="flex-1 py-2 px-3 rounded-xl bg-blue-500 text-white font-medium disabled:opacity-50">
-                    {bridgeConnecting ? 'Đang kết nối...' : 'Kết nối'}
-                  </button>
-                )}
               </div>
             </div>
           </div>

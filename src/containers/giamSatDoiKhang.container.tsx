@@ -16,7 +16,19 @@ import { DEFAULT_COMBAT_CONST, DEFAULT_MATCH_OBJ } from '../constants/settings';
 import { convertWinLoseFormat, getModes, resizeTextToFit } from '../utils/helpers';
 
 // Import Bridge utilities
-import { subscribeScoreForGiamSat, connectBridgeAsGiamSat, isBridgeConnected, onBridgeConnectionChange, onBridgeClientsChange, disconnectBridge, sendResetScoreViaBridge } from '../utils/scoreSync';
+import { subscribeScoreForGiamSat, isBridgeConnected, onBridgeConnectionChange, onBridgeClientsChange, disconnectBridge, sendResetScoreViaBridge, autoConnectLanIfAvailable, isRunningOnLAN } from '../utils/scoreSync';
+
+// Import Offline Service
+import {
+    isOnline,
+    onNetworkChange,
+    cacheCombatArena,
+    getCachedCombatArena,
+    smartSet,
+    smartUpdate,
+    syncPendingWrites,
+    getPendingWritesCount
+} from '../services/offlineService';
 
 // Import components
 import FighterInfoModal from '../components/combat/FighterInfoModal';
@@ -111,7 +123,6 @@ interface GiamSatDoiKhangState {
     showInternetStatus: boolean;
     // Bridge connection
     isBridgeConnected: boolean;
-    showBridgeModal: boolean;
     bridgeUrl: string;
     bridgeConnecting: boolean;
     showHelpModal: boolean;
@@ -120,6 +131,9 @@ interface GiamSatDoiKhangState {
     refereeInternetStatus: boolean[];
     // LAN status từ Bridge clients
     refereeLanStatus: boolean[];
+    // Offline mode
+    isOffline: boolean;
+    pendingWritesCount: number;
 }
 
 // Tournament info tuple type
@@ -152,6 +166,9 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
     
     // Firebase presence cleanup
     firebasePresenceCleanup: (() => void) | null = null;
+    
+    // Offline network listener cleanup
+    networkCleanup: (() => void) | null = null;
 
     // Firebase database reference
     db: Database;
@@ -300,12 +317,14 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             showBlueCaution: false,
             showInternetStatus: false,
             isBridgeConnected: isBridgeConnected(),
-            showBridgeModal: false,
             bridgeUrl: localStorage.getItem('bridgeUrl') || '',
             bridgeConnecting: false,
             showHelpModal: false,
             refereeInternetStatus: [false, false, false, false, false],
             refereeLanStatus: [false, false, false, false, false],
+            // Offline mode
+            isOffline: !isOnline(),
+            pendingWritesCount: getPendingWritesCount(),
         };
 
         // Use constants instead of hardcoded values
@@ -359,6 +378,31 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
     componentDidMount(): void {
         document.addEventListener("keydown", this._handleKeyDown);
         window.onresize = () => resizeTextToFit('referee-score-area-top', 'tournamentName');
+        
+        // Subscribe to network status changes for offline mode
+        this.networkCleanup = onNetworkChange((online) => {
+            this.setState({ 
+                isOffline: !online,
+                pendingWritesCount: getPendingWritesCount()
+            });
+            
+            if (online) {
+                // Khi có mạng lại, sync pending writes
+                const pendingCount = getPendingWritesCount();
+                if (pendingCount > 0) {
+                    console.log(`[Offline] Online lại, syncing ${pendingCount} pending writes...`);
+                    syncPendingWrites(this.db).then(({ success, failed }) => {
+                        if (success > 0) {
+                            console.log(`[Offline] Đã đồng bộ ${success} thay đổi`);
+                        }
+                        if (failed > 0) {
+                            console.warn(`[Offline] ${failed} thay đổi không đồng bộ được`);
+                        }
+                        this.setState({ pendingWritesCount: getPendingWritesCount() });
+                    });
+                }
+            }
+        });
         
         // Subscribe to Bridge connection changes
         this.bridgeCleanup = onBridgeConnectionChange((connected) => {
@@ -451,6 +495,11 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         }
         if (this.firebasePresenceCleanup) {
             this.firebasePresenceCleanup();
+        }
+        
+        // Cleanup network listener
+        if (this.networkCleanup) {
+            this.networkCleanup();
         }
     }
 
@@ -555,6 +604,33 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         );
     }
 
+    /**
+     * Load data từ cache khi offline
+     */
+    tryLoadFromCache = (): void => {
+        const cached = getCachedCombatArena(this.tournamentNoIndex, this.combatArenaNoIndex);
+        if (cached) {
+            console.log('[Offline] Loading from cache...');
+            
+            this.combatObj = cached.combat;
+            this.settingObj = cached.settings;
+            this.matchNoCurrent = cached.lastMatch || 1;
+            this.matchNoCurrentIndex = this.matchNoCurrent - 1;
+            
+            if (this.combatObj) {
+                this.match = this.combatObj[this.matchNoCurrentIndex];
+            }
+            if (this.refereeObj == null) {
+                this.refereeObj = JSON.parse(JSON.stringify(this.combatConst.referee));
+            }
+            
+            this.showValue();
+            console.log('[Offline] Loaded match', this.matchNoCurrent, 'from cache');
+        } else {
+            console.warn('[Offline] No cache available');
+        }
+    }
+
     showTournamentInfo = (): void => {
         get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/combatArenaName')).then((snapshot) => {
             this.setState({ arenaName: snapshot.val() || '' });
@@ -589,18 +665,35 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             this.firebaseListeners.push(combatRef);
             onValue(combatRef, (snapshot) => {
                 this.combatObj = snapshot.val();
+                
+                // Cache data for offline mode
+                if (this.combatObj) {
+                    cacheCombatArena(this.tournamentNoIndex, this.combatArenaNoIndex, {
+                        combat: this.combatObj,
+                        settings: this.settingObj,
+                        arenaName: this.state.arenaName
+                    });
+                }
+                
                 if (this.lastMatchObj == null) {
                     this.matchNoCurrent = this.combatConst.lastMatch.no;
                     this.matchNoCurrentIndex = this.matchNoCurrent - 1;
-                    if (this.combatObj) {
-                        this.match = this.combatObj[this.matchNoCurrentIndex];
-                    }
                 }
+                
+                // Luôn update this.match từ combatObj để nhận realtime updates
+                if (this.combatObj && this.matchNoCurrentIndex !== undefined) {
+                    this.match = this.combatObj[this.matchNoCurrentIndex];
+                }
+                
                 if (this.refereeObj == null) {
                     // Deep copy để tránh reference mutation
                     this.refereeObj = JSON.parse(JSON.stringify(this.combatConst.referee));
                 }
                 this.showValue();
+            }, (error) => {
+                // Firebase error - có thể do mất mạng
+                console.warn('[Offline] Firebase error, trying cache:', error);
+                this.tryLoadFromCache();
             });
 
             const lastMatchRef = ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/lastMatch');
@@ -613,6 +706,11 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                     if (this.combatObj) {
                         this.match = this.combatObj[this.matchNoCurrentIndex];
                     }
+                    
+                    // Update cache with lastMatch
+                    cacheCombatArena(this.tournamentNoIndex, this.combatArenaNoIndex, {
+                        lastMatch: this.matchNoCurrent
+                    });
                 }
                 this.showValue();
             });
@@ -661,24 +759,17 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 this.setState({ showInternetStatus: !snapshot.val() });
             });
 
-            // Auto-connect Bridge nếu đã có URL lưu sẵn
-            this.autoConnectBridge();
+            // LAN Bridge: Tự động kết nối nếu đang chạy qua http://IP:3000
+            this.autoConnectLan();
         });
     }
 
-    autoConnectBridge = async (): Promise<void> => {
-        const savedUrl = localStorage.getItem('bridgeUrl');
-        if (savedUrl && !isBridgeConnected()) {
-            try {
-                const arena = this.combatArenaNoIndex === 0 ? 'A' : 'B';
-                const name = `Giám Sát DK`;
-                const success = await connectBridgeAsGiamSat(savedUrl, arena, this.tournamentNoIndex, name);
-                if (success) {
-                    toast.success('Đã tự động kết nối LAN!', { autoClose: 2000 });
-                }
-            } catch (err) {
-                // Silent fail - không cần thông báo lỗi vì Bridge có thể không chạy
-            }
+    autoConnectLan = async (): Promise<void> => {
+        const arena = this.combatArenaNoIndex === 0 ? 'A' : 'B';
+        const name = `Giám Sát DK`;
+        const success = await autoConnectLanIfAvailable('giam_sat', arena, this.tournamentNoIndex, name);
+        if (success) {
+            this.setState({ isBridgeConnected: true });
         }
     }
 
@@ -689,7 +780,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
     _handleKeyDown = (e: KeyboardEvent): void => {
         // ESC - Đóng modal đang mở
         if (e.which === 27) {
-            const { showPasswordModal, showChooseArenaNoModal, showModalChooseMatch, showModalConfirm, showBridgeModal, showHelpModal, showModalFighterInfo } = this.state;
+            const { showPasswordModal, showChooseArenaNoModal, showModalChooseMatch, showModalConfirm, showHelpModal, showModalFighterInfo } = this.state;
             if (showPasswordModal) {
                 this.setState({ showPasswordModal: false });
             } else if (showChooseArenaNoModal) {
@@ -700,8 +791,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 this.setState({ showModalConfirm: false, confirmWinnerColor: null });
             } else if (showModalFighterInfo) {
                 this.setState({ showModalFighterInfo: false });
-            } else if (showBridgeModal) {
-                this.hideBridgeModal();
             } else if (showHelpModal) {
                 this.setState({ showHelpModal: false });
             }
@@ -855,7 +944,8 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
 
         //Khung các giám định - Hiện điểm các giám định
         if (this.refereeObj && this.combatObj && this.matchNoCurrentIndex !== undefined) {
-            set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex), this.combatObj[this.matchNoCurrentIndex]);
+            // Use smartSet for offline support
+            smartSet(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex, this.combatObj[this.matchNoCurrentIndex]);
 
             const refereeScores = [];
             for (let i = 0; i < this.numReferee; i++) {
@@ -902,7 +992,12 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
 
     saveMatch(): void {
         if (this.match && this.matchNoCurrentIndex !== undefined) {
-            update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex), this.match);
+            // Use smartUpdate for offline support (merge data, không ghi đè)
+            smartUpdate(
+                this.db,
+                'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex,
+                this.match
+            );
         }
     }
 
@@ -992,9 +1087,25 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             matchTime: this.minutes + ":" + this.seconds,
             matchRound: this.formatRoundDisplay(this.round)
         });
+        
+        // Update lastMatch - use smartSet for offline support
         if (this.matchNoCurrent !== undefined) {
-            set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/lastMatch/no'), this.matchNoCurrent);
+            const lastMatchPath = 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/lastMatch/no';
+            smartSet(this.db, lastMatchPath, this.matchNoCurrent);
+            
+            // Update local cache immediately
+            cacheCombatArena(this.tournamentNoIndex, this.combatArenaNoIndex, {
+                lastMatch: this.matchNoCurrent
+            });
+            
+            // Update local match data from cache if offline
+            if (this.state.isOffline && this.combatObj) {
+                this.matchNoCurrentIndex = this.matchNoCurrent - 1;
+                this.match = this.combatObj[this.matchNoCurrentIndex];
+                this.showValue();
+            }
         }
+        
         const referees: RefereeScore[] = [];
         if (this.refereeObj) {
             for (let i = 0; i < this.numReferee; i++) {
@@ -1002,7 +1113,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 referees.push(this.refereeObj[i]);
             }
         }
-        set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/referee'), referees);
+        smartSet(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/referee', referees);
     }
 
 
@@ -1040,7 +1151,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 setTimeout(() => {
                     if (this.match && this.matchNoCurrentIndex !== undefined) {
                         this.match.match.win = "red";
-                        set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex + '/match/win'), "red");
+                        smartSet(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex + '/match/win', "red");
                         this.setState({
                             iconWinRed: true,
                             iconWinBlue: false,
@@ -1097,7 +1208,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 setTimeout(() => {
                     if (this.match && this.matchNoCurrentIndex !== undefined) {
                         this.match.match.win = "blue";
-                        set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex + '/match/win'), "blue");
+                        smartSet(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex + '/match/win', "blue");
                         this.setState({
                             iconWinBlue: true,
                             iconWinRed: false,
@@ -1319,7 +1430,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 fightersTemp.redFighter = JSON.parse(JSON.stringify(winFighter));
                 fightersTemp.redFighter.result = matchWin;
                 fightersTemp.redFighter.score = 0;
-                update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters'), fightersTemp);
+                smartUpdate(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters', fightersTemp);
                 break;
             }
 
@@ -1327,7 +1438,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 fightersTemp.redFighter = JSON.parse(JSON.stringify(loseFighter));
                 fightersTemp.redFighter.result = matchLose;
                 fightersTemp.redFighter.score = 0;
-                update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters'), fightersTemp);
+                smartUpdate(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters', fightersTemp);
                 break;
             }
 
@@ -1335,7 +1446,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 fightersTemp.blueFighter = JSON.parse(JSON.stringify(winFighter));
                 fightersTemp.blueFighter.result = matchWin;
                 fightersTemp.blueFighter.score = 0;
-                update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters'), fightersTemp);
+                smartUpdate(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters', fightersTemp);
                 break;
             }
 
@@ -1343,7 +1454,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 fightersTemp.blueFighter = JSON.parse(JSON.stringify(loseFighter));
                 fightersTemp.blueFighter.result = matchLose;
                 fightersTemp.blueFighter.score = 0;
-                update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters'), fightersTemp);
+                smartUpdate(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters', fightersTemp);
                 break;
             }
         }
@@ -1384,9 +1495,9 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                     }
                     this.match.fighters.redFighter.score += getModes(redScoreArray);
                     this.match.fighters.blueFighter.score += getModes(blueScoreArray);
-                    set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex + '/fighters'), this.match.fighters);
+                    smartSet(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex + '/fighters', this.match.fighters);
                     //Reset Giám định
-                    set(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/referee'), this.combatConst.referee);
+                    smartSet(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/referee', this.combatConst.referee);
                     // Gửi reset qua Bridge để đồng bộ với LAN clients
                     sendResetScoreViaBridge();
                     // QUAN TRỌNG: Deep copy để tránh reference mutation
@@ -1579,69 +1690,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         }
     }
 
-    // Bridge connection methods
-    showBridgeSettings = (): void => {
-        this.setState({ showBridgeModal: true });
-    }
-
-    hideBridgeModal = (): void => {
-        this.setState({ showBridgeModal: false });
-    }
-
-    connectToBridge = async (): Promise<void> => {
-        const { bridgeUrl } = this.state;
-        if (!bridgeUrl.trim()) {
-            toast.error('Vui lòng nhập địa chỉ Bridge');
-            return;
-        }
-
-        this.setState({ bridgeConnecting: true });
-        
-        try {
-            // Format URL properly
-            let url = bridgeUrl.trim();
-            if (!url.startsWith('ws://')) {
-                url = 'ws://' + url;
-            }
-            if (!url.includes(':')) {
-                url = url + ':9765';
-            }
-
-            // Save for next time
-            localStorage.setItem('bridgeUrl', url);
-            this.setState({ bridgeUrl: url });
-
-            // Connect as Giám Sát
-            const arena = this.combatArenaNoIndex === 0 ? 'A' : 'B';
-            const name = `Giám Sát DK`;
-            
-            const success = await connectBridgeAsGiamSat(url, arena, this.tournamentNoIndex, name);
-            
-            if (success) {
-                toast.success('Đã kết nối LAN!');
-                this.setState({ showBridgeModal: false });
-                
-                // Subscribe to score updates from Bridge - but it's already subscribed in chooseArenaNo
-                // Just mark as connected
-            } else {
-                toast.error('Không thể kết nối LAN');
-            }
-        } catch (err: any) {
-            toast.error('Lỗi kết nối: ' + err.message);
-        } finally {
-            this.setState({ bridgeConnecting: false });
-        }
-    }
-
-    disconnectFromBridge = (): void => {
-        disconnectBridge();
-        if (this.bridgeScoreCleanup) {
-            this.bridgeScoreCleanup();
-            this.bridgeScoreCleanup = null;
-        }
-        toast.info('Đã ngắt kết nối LAN');
-    }
-
     handleConfirmOK = (): void => {
         if (this.confirmCallback) {
             this.confirmCallback();
@@ -1677,9 +1725,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             showQuickMenu,
             showModalFighterInfo,
             isBridgeConnected: bridgeConnected,
-            showBridgeModal,
-            bridgeUrl,
-            bridgeConnecting,
             showHelpModal,
             refereeInternetStatus,
             refereeLanStatus
@@ -1813,12 +1858,18 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                     <div className="flex items-center gap-4 flex-1 min-w-0">
                         {/* Connection Status Dot - 4 colors */}
                         <span 
-                            className={`w-3 h-3 rounded-full block flex-shrink-0 ${
+                            className={`status-dot w-3 h-3 rounded-full block flex-shrink-0 ${
                                 !showInternetStatus && bridgeConnected ? 'bg-green-500' :
                                 !showInternetStatus ? 'bg-blue-500' :
                                 bridgeConnected ? 'bg-yellow-500' :
                                 'bg-gray-400'
                             }`}
+                            data-tooltip={
+                                !showInternetStatus && bridgeConnected ? 'Internet + LAN' :
+                                !showInternetStatus ? 'Chỉ Internet' :
+                                bridgeConnected ? 'Chỉ LAN' :
+                                'Mất kết nối'
+                            }
                         ></span>
                         <a href="#" onClick={this.showShortcut} className="flex-shrink-0">
                             <img src={logo} alt="logo" className="h-8" />
@@ -1861,13 +1912,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                                     </button>
                                     <div className="border-t border-slate-200 my-1"></div>
                                     <button 
-                                        onClick={() => { this.setState({ showQuickMenu: false, showBridgeModal: true }); }}
-                                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                                    >
-                                        <i className="fa fa-wifi text-slate-400"></i>
-                                        Kết nối LAN
-                                    </button>
-                                    <button 
                                         onClick={() => { this.setState({ showQuickMenu: false, showHelpModal: true }); }}
                                         className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
                                     >
@@ -1875,7 +1919,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                                         Giúp đỡ
                                     </button>
                                     <button 
-                                        onClick={() => { this.setState({ showQuickMenu: false }); window.open('/#/thiet-dat', '_blank'); }}
+                                        onClick={() => { this.setState({ showQuickMenu: false }); window.open('/thiet-dat', '_blank'); }}
                                         className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
                                     >
                                         <i className="fa fa-sliders text-slate-400"></i>
@@ -2052,8 +2096,8 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                                 <div key={i} className="bg-white rounded-xl shadow-lg overflow-hidden flex-1 flex flex-col relative">
                                     <div className="bg-slate-600 text-white text-center py-1 text-[1.5vh] font-semibold flex items-center justify-center gap-1">
                                         <div 
-                                            className={`w-2 h-2 rounded-full ${status.color}`} 
-                                            title={status.title}
+                                            className={`status-dot w-2 h-2 rounded-full ${status.color}`} 
+                                            data-tooltip={status.title}
                                         ></div>
                                         <span>Giám định {i}</span>
                                     </div>
@@ -2079,8 +2123,8 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                                 <div key={i} className="bg-white rounded-xl shadow-lg overflow-hidden flex-1 flex flex-col relative">
                                     <div className="bg-slate-600 text-white text-center py-1 text-[1.5vh] font-semibold flex items-center justify-center gap-1">
                                         <div 
-                                            className={`w-2 h-2 rounded-full ${status.color}`} 
-                                            title={status.title}
+                                            className={`status-dot w-2 h-2 rounded-full ${status.color}`} 
+                                            data-tooltip={status.title}
                                         ></div>
                                         <span>Giám định {i}</span>
                                     </div>
@@ -2326,59 +2370,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                     tournamentName={tournamentName}
                     arenaName={arenaName}
                 />
-
-                {/* Bridge Connection Modal */}
-                {showBridgeModal && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-                            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
-                                <div className="flex items-center justify-between">
-                                    <h5 className="text-white font-bold text-lg flex items-center gap-2">
-                                        <i className="fa-solid fa-network-wired"></i>Kết nối LAN
-                                    </h5>
-                                    <button onClick={this.hideBridgeModal} className="text-white/80 hover:text-white transition-colors">
-                                        <i className="fa-solid fa-xmark text-xl"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div className="p-4 space-y-3">
-                                <div>
-                                    <label className="text-xs font-semibold text-slate-500 uppercase mb-1 block">IP:Port</label>
-                                    <input 
-                                        type="text" 
-                                        className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white text-base"
-                                        placeholder="192.168.1.100:9765"
-                                        value={bridgeUrl.replace('ws://', '')}
-                                        onChange={(e) => this.setState({ bridgeUrl: e.target.value })}
-                                        disabled={bridgeConnected}
-                                    />
-                                </div>
-
-                                {bridgeConnected && (
-                                    <div className="flex items-center gap-2 p-2 rounded-lg bg-green-50 border border-green-200">
-                                        <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
-                                        <span className="text-sm font-medium text-green-700">Đã kết nối</span>
-                                    </div>
-                                )}
-                            </div>
-                            
-                            <div className="flex gap-2 p-3 bg-slate-50 border-t">
-                                <button onClick={this.hideBridgeModal}
-                                    className="flex-1 py-2 px-3 rounded-xl border border-slate-200 text-slate-600 font-medium">Đóng</button>
-                                {bridgeConnected ? (
-                                    <button onClick={this.disconnectFromBridge}
-                                        className="flex-1 py-2 px-3 rounded-xl bg-red-500 text-white font-medium">Ngắt kết nối</button>
-                                ) : (
-                                    <button onClick={this.connectToBridge} disabled={bridgeConnecting}
-                                        className="flex-1 py-2 px-3 rounded-xl bg-blue-500 text-white font-medium disabled:opacity-50">
-                                        {bridgeConnecting ? 'Đang kết nối...' : 'Kết nối'}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 {/* Help Modal */}
                 {showHelpModal && (

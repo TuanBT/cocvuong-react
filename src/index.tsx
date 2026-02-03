@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import './index.css';
 import 'bootstrap/dist/css/bootstrap.css';
 import './assets/css/style.css';
-import { Route, HashRouter } from 'react-router-dom';
+import { Route, BrowserRouter } from 'react-router-dom';
 import HomeContainer from './containers/home.container';
 import TestContainer from './containers/test.container';
 import InformationDkContainer from './containers/infomationDK.container';
@@ -18,11 +18,23 @@ import LoginContainer from './containers/login.container';
 import SignupContainer from './containers/signup.container';
 import ReactGA from 'react-ga4';
 import { ErrorBoundary } from './components/common';
+import { setupElectronBridgeAutoConnect } from './services/bridgeService';
 
-// Extend Window interface for GA_INITIALIZED
+// Extend Window interface for GA_INITIALIZED and CocVuong Bridge
 declare global {
   interface Window {
     GA_INITIALIZED?: boolean;
+    __COCVUONG_BRIDGE__?: {
+      url: string;
+      localIP: string;
+      port: number;
+      isElectron: boolean;
+    };
+    cocvuongElectron?: {
+      isElectron: boolean;
+      getBridgeInfo: () => Promise<any>;
+      onBridgeReady: (callback: (info: any) => void) => void;
+    };
   }
 }
 
@@ -35,9 +47,12 @@ if (!window.GA_INITIALIZED) {
 // Track pageview
 ReactGA.send({ hitType: "pageview", page: window.location.pathname });
 
+// Setup auto-connect nếu đang chạy trong CocVuong Desktop (Electron)
+setupElectronBridgeAutoConnect();
+
 ReactDOM.render(
   <ErrorBoundary>
-    <HashRouter>
+    <BrowserRouter>
       <div>
         <Route path="/" exact component={HomeContainer} />
         <Route path="/test" component={TestContainer} />
@@ -52,7 +67,7 @@ ReactDOM.render(
         <Route path="/login" component={LoginContainer} />
         <Route path="/signup" component={SignupContainer} />
       </div>
-    </HashRouter>
+    </BrowserRouter>
   </ErrorBoundary>,
   document.getElementById('root')
 );

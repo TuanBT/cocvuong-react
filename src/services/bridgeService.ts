@@ -55,6 +55,46 @@ const DEFAULT_CONFIG: Required<BridgeConfig> = {
   maxReconnectAttempts: 10
 };
 
+/**
+ * Kiểm tra xem đang chạy trong CocVuong Desktop (Electron) không
+ */
+function getElectronBridgeInfo(): { url: string; localIP: string; port: number } | null {
+  const win = window as any;
+  
+  // Check từ injected global variable
+  if (win.__COCVUONG_BRIDGE__) {
+    return win.__COCVUONG_BRIDGE__;
+  }
+  
+  return null;
+}
+
+/**
+ * Kiểm tra có đang chạy trong Electron không
+ */
+export function isRunningInElectron(): boolean {
+  return !!(window as any).__COCVUONG_BRIDGE__?.isElectron || !!(window as any).cocvuongElectron?.isElectron;
+}
+
+/**
+ * Kiểm tra có đang truy cập từ CocVuong Bridge server không (http://IP:3000)
+ * Nếu có thì tự động lấy WebSocket URL từ cùng IP
+ */
+export function getBridgeUrlFromLocation(): string | null {
+  const { hostname, port, protocol } = window.location;
+  
+  // Chỉ apply khi:
+  // 1. Đang dùng HTTP (không phải HTTPS) - để tránh mixed content
+  // 2. Port 3000 (port mặc định của CocVuong Bridge HTTP server)
+  // 3. Không phải localhost (đang trên LAN)
+  if (protocol === 'http:' && port === '3000' && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+    // Bridge WebSocket mặc định chạy ở port 9765
+    return `ws://${hostname}:9765`;
+  }
+  
+  return null;
+}
+
 class BridgeService {
   private ws: WebSocket | null = null;
   private config: Required<BridgeConfig> = DEFAULT_CONFIG;
@@ -73,6 +113,32 @@ class BridgeService {
   private scoreCallbacks: Set<(score: ScoreUpdateMessage) => void> = new Set();
   private clientsListCallbacks: Set<ClientsListCallback> = new Set();
   private connectedClients: BridgeClient[] = [];
+  
+  /**
+   * Lấy URL Bridge tự động (từ Electron hoặc từ URL location)
+   */
+  getAutoBridgeUrl(): string | null {
+    // Ưu tiên 1: Electron injected info
+    const electronInfo = getElectronBridgeInfo();
+    if (electronInfo?.url) {
+      return electronInfo.url;
+    }
+    
+    // Ưu tiên 2: Từ URL location (khi truy cập http://IP:3000)
+    const locationUrl = getBridgeUrlFromLocation();
+    if (locationUrl) {
+      return locationUrl;
+    }
+    
+    return null;
+  }
+
+  /**
+   * Lấy URL Bridge từ Electron nếu có (legacy - giữ để backward compatible)
+   */
+  getElectronBridgeUrl(): string | null {
+    return this.getAutoBridgeUrl();
+  }
 
   /**
    * Cấu hình service
@@ -168,7 +234,7 @@ class BridgeService {
   /**
    * Đăng ký với Bridge
    */
-  register(type: ClientType, name: string, arena: string, tournament: number): void {
+  register(type: ClientType, name: string, arena: string, tournament: number, gdIndex?: number): void {
     this.clientType = type;
     this.clientName = name;
     this.arena = arena;
@@ -179,7 +245,8 @@ class BridgeService {
       clientType: type,
       name: name,
       arena: arena,
-      tournament: tournament
+      tournament: tournament,
+      gdIndex: gdIndex
     });
   }
 
@@ -361,3 +428,41 @@ export const bridgeService = new BridgeService();
 
 // Export class cho testing
 export { BridgeService };
+
+/**
+ * Auto-connect tới Bridge nếu đang chạy trong môi trường LAN
+ * (Electron Desktop hoặc truy cập qua http://IP:3000)
+ * Gọi hàm này khi app khởi động
+ */
+export function setupElectronBridgeAutoConnect(): void {
+  // Ưu tiên 1: Check Electron injected info
+  const bridgeInfo = (window as any).__COCVUONG_BRIDGE__;
+  if (bridgeInfo?.url) {
+    console.log('[Bridge] Detected Electron Desktop, auto-connecting to:', bridgeInfo.url);
+    bridgeService.configure({ url: bridgeInfo.url });
+    localStorage.setItem('bridgeUrl', bridgeInfo.url);
+    localStorage.setItem('use_bridge', 'true');
+    return;
+  }
+  
+  // Ưu tiên 2: Check location-based URL (http://IP:3000)
+  const locationUrl = getBridgeUrlFromLocation();
+  if (locationUrl) {
+    console.log('[Bridge] Detected LAN access, auto-configuring Bridge URL:', locationUrl);
+    bridgeService.configure({ url: locationUrl });
+    localStorage.setItem('bridgeUrl', locationUrl);
+    localStorage.setItem('use_bridge', 'true');
+    return;
+  }
+  
+  // Lắng nghe event từ preload script (phòng trường hợp inject sau - chỉ cho Electron)
+  window.addEventListener('cocvuong-bridge-ready', (event: any) => {
+    const detail = event.detail;
+    if (detail?.url) {
+      console.log('[Bridge] Received bridge-ready event:', detail.url);
+      bridgeService.configure({ url: detail.url });
+      localStorage.setItem('bridgeUrl', detail.url);
+      localStorage.setItem('use_bridge', 'true');
+    }
+  });
+}
