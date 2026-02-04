@@ -2,6 +2,7 @@ import React, { Component, createRef, RefObject } from 'react';
 import { database } from '../firebase';
 import { ref, set, get, update, child, onValue, off, Database, DatabaseReference } from "firebase/database";
 import { subscribeToGiamDinhPresence, PresenceData } from '../services/firebaseService';
+import { bridgeService, RefereeStatusMessage } from '../services/bridgeService';
 import logo from '../assets/img/logo.png';
 import sound from '../assets/sound/School_Bell.mp3';
 import { ToastContainer, toast } from 'react-toastify';
@@ -131,6 +132,8 @@ interface GiamSatDoiKhangState {
     refereeInternetStatus: boolean[];
     // LAN status từ Bridge clients
     refereeLanStatus: boolean[];
+    // Bridge status từ realtime message (ưu tiên hơn Firebase)
+    refereeBridgeStatus: { hasInternet: boolean; hasLan: boolean; timestamp: number }[];
     // Offline mode
     isOffline: boolean;
     pendingWritesCount: number;
@@ -163,6 +166,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
     bridgeCleanup: (() => void) | null = null;
     bridgeScoreCleanup: (() => void) | null = null;
     bridgeClientsCleanup: (() => void) | null = null;
+    bridgeStatusCleanup: (() => void) | null = null;
     
     // Firebase presence cleanup
     firebasePresenceCleanup: (() => void) | null = null;
@@ -322,6 +326,13 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             showHelpModal: false,
             refereeInternetStatus: [false, false, false, false, false],
             refereeLanStatus: [false, false, false, false, false],
+            refereeBridgeStatus: [
+                { hasInternet: false, hasLan: false, timestamp: 0 },
+                { hasInternet: false, hasLan: false, timestamp: 0 },
+                { hasInternet: false, hasLan: false, timestamp: 0 },
+                { hasInternet: false, hasLan: false, timestamp: 0 },
+                { hasInternet: false, hasLan: false, timestamp: 0 }
+            ],
             // Offline mode
             isOffline: !isOnline(),
             pendingWritesCount: getPendingWritesCount(),
@@ -440,6 +451,21 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             this.setState({ refereeLanStatus: newLanStatus });
         });
 
+        // Subscribe to referee status updates from Bridge (realtime status from Giám Định)
+        this.bridgeStatusCleanup = bridgeService.onRefereeStatusUpdate((status) => {
+            this.setState((prevState: any) => {
+                const newBridgeStatus = [...prevState.refereeBridgeStatus];
+                if (status.gdIndex >= 0 && status.gdIndex < 5) {
+                    newBridgeStatus[status.gdIndex] = {
+                        hasInternet: status.hasInternet,
+                        hasLan: true, // If we receive status via Bridge, they have LAN
+                        timestamp: status.timestamp
+                    };
+                }
+                return { refereeBridgeStatus: newBridgeStatus };
+            });
+        });
+
         // Check for saved password in localStorage (valid for 6 hours)
         const savedPassword = localStorage.getItem('giamSatPassword');
         const savedTime = localStorage.getItem('giamSatPasswordTime');
@@ -492,6 +518,9 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         }
         if (this.bridgeClientsCleanup) {
             this.bridgeClientsCleanup();
+        }
+        if (this.bridgeStatusCleanup) {
+            this.bridgeStatusCleanup();
         }
         if (this.firebasePresenceCleanup) {
             this.firebasePresenceCleanup();
@@ -1723,11 +1752,31 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             isBridgeConnected: bridgeConnected,
             showHelpModal,
             refereeInternetStatus,
-            refereeLanStatus
+            refereeLanStatus,
+            refereeBridgeStatus
         } = this.state;
 
         // Helper function to get connection status dot color and title
+        // Priority: Bridge status (realtime) > Firebase Presence (delayed)
         const getConnectionStatus = (refereeIndex: number) => {
+            const bridgeStatus = refereeBridgeStatus[refereeIndex];
+            const now = Date.now();
+            
+            // Use Bridge status if fresh (received within last 15 seconds)
+            if (bridgeStatus && bridgeStatus.timestamp && (now - bridgeStatus.timestamp < 15000)) {
+                const hasInternet = bridgeStatus.hasInternet;
+                const hasLan = bridgeStatus.hasLan;
+                
+                if (hasInternet && hasLan) {
+                    return { color: 'bg-green-500', title: 'Internet + LAN (realtime)' };
+                } else if (hasInternet && !hasLan) {
+                    return { color: 'bg-blue-500', title: 'Chỉ Internet (realtime)' };
+                } else if (!hasInternet && hasLan) {
+                    return { color: 'bg-yellow-500', title: 'Chỉ LAN (backup)' };
+                }
+            }
+            
+            // Fallback to Firebase Presence + Bridge clients list
             const hasInternet = refereeInternetStatus[refereeIndex];
             const hasLan = refereeLanStatus[refereeIndex];
             
@@ -1873,7 +1922,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                         >
                             <img src={logo} alt="logo" className="h-6" />
                         </a>
-                        <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 rounded-lg px-3 py-1 max-w-[380px]" id="tournamentName">
+                        <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 rounded-lg px-3 py-1 max-w-[70vw]" id="tournamentName">
                             <span className="text-[1.6vh] font-bold text-slate-700 leading-snug whitespace-pre-line">{processedTournamentName}</span>
                         </div>
                     </div>

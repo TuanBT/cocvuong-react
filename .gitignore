@@ -13,6 +13,7 @@
 # Electron build outputs
 /cocvuong-lan/dist
 /cocvuong-lan/out
+/cocvuong-lan/build
 
 # misc
 .DS_Store

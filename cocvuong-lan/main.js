@@ -387,6 +387,28 @@ function handleMessage(clientId, message) {
       client.ws.send(JSON.stringify({ type: 'pong' }));
       break;
 
+    case 'status_update':
+      // Giám Định gửi trạng thái kết nối
+      // Chuyển tiếp tới tất cả Giám Sát cùng sân
+      const statusMessage = {
+        type: 'referee_status_update',
+        from: client.name,
+        fromId: clientId,
+        gdIndex: message.gdIndex,
+        hasInternet: message.hasInternet,
+        hasLan: true, // Nếu gửi được message này thì chắc chắn có LAN
+        arena: client.arena,
+        timestamp: Date.now()
+      };
+      
+      // Gửi tới Giám Sát cùng sân
+      clients.forEach((c) => {
+        if (c.type === 'giam_sat' && c.arena === client.arena && c.ws.readyState === WebSocket.OPEN) {
+          c.ws.send(JSON.stringify(statusMessage));
+        }
+      });
+      break;
+
     default:
       // Forward các message khác
       broadcast(message, clientId);

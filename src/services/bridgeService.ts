@@ -33,6 +33,17 @@ export interface ScoreUpdateMessage {
   timestamp: number;
 }
 
+export interface RefereeStatusMessage {
+  type: 'referee_status_update';
+  from: string;
+  fromId: string;
+  gdIndex: number;
+  hasInternet: boolean;
+  hasLan: boolean;
+  arena: string;
+  timestamp: number;
+}
+
 export type ClientType = 'giam_sat' | 'giam_dinh' | 'unknown';
 
 export interface BridgeClient {
@@ -47,6 +58,7 @@ export interface BridgeClient {
 type MessageCallback = (message: BridgeMessage) => void;
 type ConnectionCallback = (connected: boolean) => void;
 type ClientsListCallback = (clients: BridgeClient[]) => void;
+type RefereeStatusCallback = (status: RefereeStatusMessage) => void;
 
 // Default config
 const DEFAULT_CONFIG: Required<BridgeConfig> = {
@@ -112,6 +124,7 @@ class BridgeService {
   private connectionCallbacks: Set<ConnectionCallback> = new Set();
   private scoreCallbacks: Set<(score: ScoreUpdateMessage) => void> = new Set();
   private clientsListCallbacks: Set<ClientsListCallback> = new Set();
+  private refereeStatusCallbacks: Set<RefereeStatusCallback> = new Set();
   private connectedClients: BridgeClient[] = [];
   
   /**
@@ -297,6 +310,18 @@ class BridgeService {
   }
 
   /**
+   * Gửi trạng thái kết nối (dùng cho Giám Định)
+   * Giám Sát sẽ nhận được realtime status thay vì phụ thuộc Firebase presence
+   */
+  sendStatusUpdate(gdIndex: number, hasInternet: boolean): void {
+    this.send({
+      type: 'status_update',
+      gdIndex: gdIndex,
+      hasInternet: hasInternet
+    });
+  }
+
+  /**
    * Gửi message tới Bridge
    */
   send(message: BridgeMessage): void {
@@ -340,6 +365,14 @@ class BridgeService {
   }
 
   /**
+   * Đăng ký callback khi nhận trạng thái Giám Định (dùng cho Giám Sát)
+   */
+  onRefereeStatusUpdate(callback: RefereeStatusCallback): () => void {
+    this.refereeStatusCallbacks.add(callback);
+    return () => this.refereeStatusCallbacks.delete(callback);
+  }
+
+  /**
    * Lấy danh sách clients đã kết nối
    */
   getConnectedClients(): BridgeClient[] {
@@ -376,6 +409,11 @@ class BridgeService {
       case 'score_update':
         // Giám Sát nhận điểm từ Giám Định
         this.scoreCallbacks.forEach(cb => cb(message as ScoreUpdateMessage));
+        break;
+
+      case 'referee_status_update':
+        // Giám Sát nhận trạng thái kết nối từ Giám Định
+        this.refereeStatusCallbacks.forEach(cb => cb(message as RefereeStatusMessage));
         break;
 
       case 'score_reset':

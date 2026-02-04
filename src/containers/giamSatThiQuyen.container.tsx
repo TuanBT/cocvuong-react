@@ -1148,7 +1148,7 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
             >
               <img src={logo} alt="logo" className="h-6" />
             </a>
-            <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 rounded-lg px-3 py-1 max-w-[380px]">
+            <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 rounded-lg px-3 py-1 max-w-[70vw]">
               <span className="text-[1.6vh] font-bold text-slate-700 leading-snug whitespace-pre-line" ref={this.tournamentNameRef}>{processedTournamentName}</span>
             </div>
           </div>
