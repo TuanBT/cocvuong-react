@@ -29,6 +29,7 @@ interface GiamDinhDoiKhangContainerState {
   isShowFiveReferee: boolean;
   showSettingsMenu: boolean;
   showHelpModal: boolean;
+  showModalShortcut: boolean;
 }
 
 interface TournamentSetting {
@@ -79,7 +80,8 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
       showChooseRefereeNoModal: false,
       isShowFiveReferee: false,
       showSettingsMenu: false,
-      showHelpModal: false
+      showHelpModal: false,
+      showModalShortcut: false
     };
     
     this.db = database;
@@ -202,13 +204,15 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
   _handleKeyDown = (e: KeyboardEvent) => {
     // ESC - Đóng modal đang mở
     if (e.which === 27) {
-      const { showPasswordModal, showChooseRefereeNoModal, showHelpModal } = this.state;
+      const { showPasswordModal, showChooseRefereeNoModal, showHelpModal, showModalShortcut } = this.state;
       if (showPasswordModal) {
         this.hidePasswordModal();
       } else if (showChooseRefereeNoModal) {
         this.hideChooseRefereeNoModal();
       } else if (showHelpModal) {
         this.setState({ showHelpModal: false });
+      } else if (showModalShortcut) {
+        this.setState({ showModalShortcut: false });
       }
       return;
     }
@@ -395,7 +399,8 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
       showChooseRefereeNoModal,
       isShowFiveReferee,
       showSettingsMenu,
-      showHelpModal
+      showHelpModal,
+      showModalShortcut
     } = this.state;
 
     return (
@@ -477,6 +482,13 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => this.setState({ showSettingsMenu: false })}></div>
                     <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-50 min-w-[160px]">
+                      <button 
+                        onClick={() => this.setState({ showSettingsMenu: false, showModalShortcut: true })}
+                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                      >
+                        <i className="fa-solid fa-keyboard text-slate-500"></i>
+                        Phím tắt
+                      </button>
                       <button 
                         onClick={() => this.setState({ showSettingsMenu: false, showHelpModal: true })}
                         className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
@@ -696,47 +708,6 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
               </div>
               
               <div className="p-5">
-                {/* Keyboard Shortcuts Section */}
-                <div className="mb-5">
-                  <div className="flex items-center gap-2 mb-3">
-                    <i className="fa-solid fa-keyboard text-slate-400"></i>
-                    <span className="font-semibold text-slate-700">Phím tắt chấm điểm</span>
-                  </div>
-                  {/* Arrow keys visual */}
-                  <div className="flex justify-center mb-3">
-                    <div className="grid grid-cols-3 gap-1">
-                      <div></div>
-                      <div className="w-10 h-10 bg-red-100 rounded flex items-center justify-center">
-                        <span className="text-red-600 font-bold">↑</span>
-                      </div>
-                      <div></div>
-                      <div className="w-10 h-10 bg-red-200 rounded flex items-center justify-center">
-                        <span className="text-red-700 font-bold">←</span>
-                      </div>
-                      <div className="w-10 h-10 bg-blue-100 rounded flex items-center justify-center">
-                        <span className="text-blue-600 font-bold">↓</span>
-                      </div>
-                      <div className="w-10 h-10 bg-blue-200 rounded flex items-center justify-center">
-                        <span className="text-blue-700 font-bold">→</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="text-center p-2 bg-red-50 rounded-lg border border-red-100">
-                      <span className="text-red-700 font-medium">← +2 Đỏ | ↑ +1 Đỏ</span>
-                    </div>
-                    <div className="text-center p-2 bg-blue-50 rounded-lg border border-blue-100">
-                      <span className="text-blue-700 font-medium">→ +2 Xanh | ↓ +1 Xanh</span>
-                    </div>
-                  </div>
-                  <div className="mt-2 text-center p-2 bg-slate-100 rounded-lg text-sm">
-                    <span className="text-slate-600"><strong>Esc</strong> = Đóng cửa sổ đang mở</span>
-                  </div>
-                </div>
-                
-                {/* Divider */}
-                <div className="border-t border-slate-200 my-4"></div>
-
                 {/* Status Dot Section */}
                 <div>
                   <div className="flex items-center gap-2 mb-3">
@@ -766,6 +737,71 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
               
               <div className="px-5 py-3 bg-slate-50 border-t">
                 <button onClick={() => this.setState({ showHelpModal: false })}
+                  className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">Đã hiểu</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Shortcut Modal */}
+        {showModalShortcut && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => this.setState({ showModalShortcut: false })}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              {/* Header */}
+              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
+                <div className="flex items-center justify-between">
+                  <h5 className="text-white font-bold text-lg flex items-center gap-2">
+                    <i className="fa-solid fa-keyboard"></i>Phím tắt
+                  </h5>
+                  <button onClick={() => this.setState({ showModalShortcut: false })} className="text-white/80 hover:text-white transition-colors">
+                    <i className="fa-solid fa-xmark text-xl"></i>
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-5 space-y-4">
+                {/* Scoring Keys */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <i className="fa-solid fa-star text-slate-400"></i>
+                    <span className="font-semibold text-slate-700">Phím tắt chấm điểm</span>
+                  </div>
+                  
+                  {/* Arrow keys visual */}
+                  <div className="flex justify-center mb-3">
+                    <div className="grid grid-cols-3 gap-1">
+                      <div></div>
+                      <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center border border-red-200">
+                        <span className="text-red-600 font-bold text-lg">↑</span>
+                      </div>
+                      <div></div>
+                      <div className="w-12 h-12 bg-red-200 rounded-lg flex items-center justify-center border border-red-300">
+                        <span className="text-red-700 font-bold text-lg">←</span>
+                      </div>
+                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center border border-blue-200">
+                        <span className="text-blue-600 font-bold text-lg">↓</span>
+                      </div>
+                      <div className="w-12 h-12 bg-blue-200 rounded-lg flex items-center justify-center border border-blue-300">
+                        <span className="text-blue-700 font-bold text-lg">→</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="text-center p-3 bg-red-50 rounded-xl border border-red-100">
+                      <div className="text-red-700 font-bold mb-1">VĐV Đỏ</div>
+                      <div className="text-red-600 text-xs">↑ Gò (+1) | ← TĐT (+2)</div>
+                    </div>
+                    <div className="text-center p-3 bg-blue-50 rounded-xl border border-blue-100">
+                      <div className="text-blue-700 font-bold mb-1">VĐV Xanh</div>
+                      <div className="text-blue-600 text-xs">↓ Gò (+1) | → TĐT (+2)</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="px-5 py-3 bg-slate-50 border-t">
+                <button onClick={() => this.setState({ showModalShortcut: false })}
                   className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">Đã hiểu</button>
               </div>
             </div>

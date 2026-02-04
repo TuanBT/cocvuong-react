@@ -1593,10 +1593,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         this.timerCoundown--;
     }
 
-    showShortcut = (): void => {
-        this.setState({ showModalShortcut: true });
-    }
-
     startTimer = (): void => {
         if (this.timer) {
             this.stopTimer();
@@ -1916,6 +1912,13 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                                         Thông tin
                                     </button>
                                     <div className="border-t border-slate-200 my-1"></div>
+                                    <button 
+                                        onClick={() => { this.setState({ showQuickMenu: false, showModalShortcut: true }); }}
+                                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                                    >
+                                        <i className="fa fa-keyboard text-slate-400"></i>
+                                        Phím tắt
+                                    </button>
                                     <button 
                                         onClick={() => { this.setState({ showQuickMenu: false, showHelpModal: true }); }}
                                         className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
@@ -2393,43 +2396,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                             </div>
                             
                             <div className="p-5">
-                                {/* Keyboard Shortcuts Section */}
-                                <div className="mb-5">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <i className="fa-solid fa-keyboard text-slate-400"></i>
-                                        <span className="font-semibold text-slate-700">Phím tắt thường dùng</span>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
-                                            <span className="w-10 h-8 bg-blue-600 text-white rounded flex items-center justify-center text-xs font-bold">Space</span>
-                                            <span className="text-blue-700 text-sm">Đồng hồ</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
-                                            <span className="w-8 h-8 bg-blue-600 text-white rounded flex items-center justify-center font-bold">C</span>
-                                            <span className="text-blue-700 text-sm">Chọn trận</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 p-3 bg-red-50 rounded-xl border border-red-100">
-                                            <span className="w-8 h-8 bg-red-500 text-white rounded flex items-center justify-center font-bold">D</span>
-                                            <span className="text-red-700 text-sm">Đỏ thắng</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
-                                            <span className="w-8 h-8 bg-blue-500 text-white rounded flex items-center justify-center font-bold">X</span>
-                                            <span className="text-blue-700 text-sm">Xanh thắng</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 p-3 bg-slate-100 rounded-xl border border-slate-200">
-                                            <span className="w-8 h-8 bg-slate-500 text-white rounded flex items-center justify-center font-bold">R</span>
-                                            <span className="text-slate-700 text-sm">Reset timer</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 p-3 bg-slate-100 rounded-xl border border-slate-200">
-                                            <span className="w-8 h-8 bg-slate-500 text-white rounded flex items-center justify-center font-bold">I</span>
-                                            <span className="text-slate-700 text-sm">Thông tin VĐV</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                {/* Divider */}
-                                <div className="border-t border-slate-200 my-4"></div>
-
                                 {/* Status Dot Section */}
                                 <div>
                                     <div className="flex items-center gap-2 mb-3">
@@ -2466,43 +2432,111 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 )}
 
                 {/* Shortcut Modal */}
-                <div className={`fixed inset-0 z-50 ${showModalShortcut ? 'flex' : 'hidden'} items-center justify-center bg-black/50`}>
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4">
-                        <div className="bg-blue-600 px-5 py-4 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <i className="fa-solid fa-keyboard text-white"></i>
-                                <h5 className="text-white font-bold text-lg">Các phím tắt</h5>
+                {showModalShortcut && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => this.setState({ showModalShortcut: false })}>
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                            {/* Header */}
+                            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
+                                <div className="flex items-center justify-between">
+                                    <h5 className="text-white font-bold text-lg flex items-center gap-2">
+                                        <i className="fa-solid fa-keyboard"></i>Phím tắt
+                                    </h5>
+                                    <button onClick={() => this.setState({ showModalShortcut: false })} className="text-white/80 hover:text-white transition-colors">
+                                        <i className="fa-solid fa-xmark text-xl"></i>
+                                    </button>
+                                </div>
                             </div>
-                            <button onClick={() => this.setState({ showModalShortcut: false })} className="text-white/60 hover:text-white text-xl">×</button>
-                        </div>
-                        <div className="p-6">
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="border-b border-slate-200">
-                                        <th className="py-3 px-4 text-left text-sm font-semibold text-slate-600">Biểu Tượng</th>
-                                        <th className="py-3 px-4 text-left text-sm font-semibold text-slate-600">Tên phím</th>
-                                        <th className="py-3 px-4 text-left text-sm font-semibold text-slate-600">Chức năng</th>
-                                        <th className="py-3 px-4 text-left text-sm font-semibold text-slate-600">Ghi chú</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="text-slate-700">
-                                    <tr className="border-b border-slate-100"><td className="py-2 px-4 font-mono">←</td><td className="py-2 px-4">Trái</td><td className="py-2 px-4 text-red-600">-1 điểm cho Đỏ</td><td className="py-2 px-4"></td></tr>
-                                    <tr className="border-b border-slate-100"><td className="py-2 px-4 font-mono">↑</td><td className="py-2 px-4">Lên</td><td className="py-2 px-4 text-red-600">+1 điểm cho Đỏ</td><td className="py-2 px-4"></td></tr>
-                                    <tr className="border-b border-slate-100"><td className="py-2 px-4 font-mono">→</td><td className="py-2 px-4">Phải</td><td className="py-2 px-4 text-blue-600">+1 điểm cho Xanh</td><td className="py-2 px-4"></td></tr>
-                                    <tr className="border-b border-slate-100"><td className="py-2 px-4 font-mono">↓</td><td className="py-2 px-4">Xuống</td><td className="py-2 px-4 text-blue-600">-1 điểm cho Xanh</td><td className="py-2 px-4"></td></tr>
-                                    <tr className="border-b border-slate-100"><td className="py-2 px-4 font-mono">—</td><td className="py-2 px-4">Cách</td><td className="py-2 px-4">Điều khiển đồng hồ</td><td className="py-2 px-4 text-slate-500">Space</td></tr>
-                                    <tr className="border-b border-slate-100"><td className="py-2 px-4 font-mono">T</td><td className="py-2 px-4">T</td><td className="py-2 px-4">Lùi trận trước</td><td className="py-2 px-4"></td></tr>
-                                    <tr className="border-b border-slate-100"><td className="py-2 px-4 font-mono">C</td><td className="py-2 px-4">C</td><td className="py-2 px-4">Chọn trận nhảy cóc</td><td className="py-2 px-4"></td></tr>
-                                    <tr className="border-b border-slate-100"><td className="py-2 px-4 font-mono">D</td><td className="py-2 px-4">D</td><td className="py-2 px-4 text-red-600">Đỏ thắng</td><td className="py-2 px-4"></td></tr>
-                                    <tr><td className="py-2 px-4 font-mono">X</td><td className="py-2 px-4">X</td><td className="py-2 px-4 text-blue-600">Xanh thắng</td><td className="py-2 px-4"></td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div className="flex justify-end px-6 py-4 border-t bg-slate-50">
-                            <button onClick={() => this.setState({ showModalShortcut: false })} className="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-lg transition-colors">Đóng</button>
+                            
+                            <div className="p-5">
+                                {/* Chấm điểm */}
+                                <div className="mb-4">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <i className="fa-solid fa-star text-slate-400"></i>
+                                        <span className="font-semibold text-slate-700">Chấm điểm</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="flex items-center gap-2 p-3 bg-red-50 rounded-xl border border-red-100">
+                                            <span className="w-8 h-8 bg-red-500 text-white rounded flex items-center justify-center font-bold">↑</span>
+                                            <span className="text-red-700 text-sm">+1 Đỏ</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 p-3 bg-red-50 rounded-xl border border-red-100">
+                                            <span className="w-8 h-8 bg-red-500 text-white rounded flex items-center justify-center font-bold">←</span>
+                                            <span className="text-red-700 text-sm">-1 Đỏ</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                                            <span className="w-8 h-8 bg-blue-500 text-white rounded flex items-center justify-center font-bold">→</span>
+                                            <span className="text-blue-700 text-sm">+1 Xanh</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                                            <span className="w-8 h-8 bg-blue-500 text-white rounded flex items-center justify-center font-bold">↓</span>
+                                            <span className="text-blue-700 text-sm">-1 Xanh</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Divider */}
+                                <div className="border-t border-slate-200 my-4"></div>
+
+                                {/* Điều khiển */}
+                                <div className="mb-4">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <i className="fa-solid fa-gamepad text-slate-400"></i>
+                                        <span className="font-semibold text-slate-700">Điều khiển</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="flex items-center gap-2 p-3 bg-slate-100 rounded-xl border border-slate-200">
+                                            <span className="w-12 h-8 bg-slate-600 text-white rounded flex items-center justify-center text-xs font-bold">Space</span>
+                                            <span className="text-slate-700 text-sm">Đồng hồ</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 p-3 bg-slate-100 rounded-xl border border-slate-200">
+                                            <span className="w-8 h-8 bg-slate-600 text-white rounded flex items-center justify-center font-bold">R</span>
+                                            <span className="text-slate-700 text-sm">Reset timer</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 p-3 bg-slate-100 rounded-xl border border-slate-200">
+                                            <span className="w-8 h-8 bg-slate-600 text-white rounded flex items-center justify-center font-bold">C</span>
+                                            <span className="text-slate-700 text-sm">Chọn trận</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 p-3 bg-slate-100 rounded-xl border border-slate-200">
+                                            <span className="w-8 h-8 bg-slate-600 text-white rounded flex items-center justify-center font-bold">T</span>
+                                            <span className="text-slate-700 text-sm">Trận trước</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Divider */}
+                                <div className="border-t border-slate-200 my-4"></div>
+
+                                {/* Kết thúc trận */}
+                                <div>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <i className="fa-solid fa-trophy text-slate-400"></i>
+                                        <span className="font-semibold text-slate-700">Kết thúc trận</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="flex items-center gap-2 p-3 bg-red-50 rounded-xl border border-red-100">
+                                            <span className="w-8 h-8 bg-red-500 text-white rounded flex items-center justify-center font-bold">D</span>
+                                            <span className="text-red-700 text-sm">Đỏ thắng</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                                            <span className="w-8 h-8 bg-blue-500 text-white rounded flex items-center justify-center font-bold">X</span>
+                                            <span className="text-blue-700 text-sm">Xanh thắng</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 p-3 bg-slate-100 rounded-xl border border-slate-200">
+                                            <span className="w-8 h-8 bg-slate-600 text-white rounded flex items-center justify-center font-bold">I</span>
+                                            <span className="text-slate-700 text-sm">Thông tin VĐV</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="px-5 py-3 bg-slate-50 border-t">
+                                <button onClick={() => this.setState({ showModalShortcut: false })}
+                                    className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">Đã hiểu</button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
+
                 <div style={{ display: 'none' }}>
                     <audio id="sound">
                         <source src={sound} type="audio/mpeg" />

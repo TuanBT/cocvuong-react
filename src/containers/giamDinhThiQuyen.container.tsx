@@ -26,6 +26,7 @@ interface GiamDinhThiQuyenContainerState {
   selectedReferee: number;
   showSettingsMenu: boolean;
   showHelpModal: boolean;
+  showModalShortcut: boolean;
 }
 
 interface TournamentSetting {
@@ -74,7 +75,8 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
       selectedArena: 0,
       selectedReferee: 1,
       showSettingsMenu: false,
-      showHelpModal: false
+      showHelpModal: false,
+      showModalShortcut: false
     };
     
     this.db = database;
@@ -190,7 +192,7 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
   _handleKeyDown = (e: KeyboardEvent) => {
     // ESC - Xóa input hoặc đóng modal
     if (e.which === 27) {
-      const { showPasswordModal, showChooseRefereeNoModal, showHelpModal, refereeResultBox } = this.state;
+      const { showPasswordModal, showChooseRefereeNoModal, showHelpModal, showModalShortcut, refereeResultBox } = this.state;
       // Nếu có input, xóa input trước
       if (refereeResultBox && refereeResultBox !== '') {
         this.clearInput();
@@ -203,6 +205,8 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
         this.setState({ showChooseRefereeNoModal: false });
       } else if (showHelpModal) {
         this.setState({ showHelpModal: false });
+      } else if (showModalShortcut) {
+        this.setState({ showModalShortcut: false });
       }
       return;
     }
@@ -402,7 +406,8 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
       selectedArena,
       selectedReferee,
       showSettingsMenu,
-      showHelpModal
+      showHelpModal,
+      showModalShortcut
     } = this.state;
 
     return (
@@ -484,6 +489,13 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => this.setState({ showSettingsMenu: false })}></div>
                     <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-50 min-w-[160px]">
+                      <button 
+                        onClick={() => this.setState({ showSettingsMenu: false, showModalShortcut: true })}
+                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                      >
+                        <i className="fa-solid fa-keyboard text-slate-500"></i>
+                        Phím tắt
+                      </button>
                       <button 
                         onClick={() => this.setState({ showSettingsMenu: false, showHelpModal: true })}
                         className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
@@ -752,40 +764,6 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
               </div>
               
               <div className="p-5">
-                {/* Keyboard Shortcuts Section */}
-                <div className="mb-5">
-                  <div className="flex items-center gap-2 mb-3">
-                    <i className="fa-solid fa-keyboard text-slate-400"></i>
-                    <span className="font-semibold text-slate-700">Phím tắt chấm điểm</span>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-                      <div className="flex gap-1">
-                        {['0','1','2','3'].map(n => (
-                          <span key={n} className="w-8 h-8 bg-slate-200 rounded flex items-center justify-center text-sm font-bold text-slate-600">{n}</span>
-                        ))}
-                        <span className="w-8 h-8 flex items-center justify-center text-slate-400">...</span>
-                        <span className="w-8 h-8 bg-slate-200 rounded flex items-center justify-center text-sm font-bold text-slate-600">9</span>
-                        <span className="w-8 h-8 bg-slate-200 rounded flex items-center justify-center text-sm font-bold text-slate-600">.</span>
-                      </div>
-                      <span className="text-slate-600 text-sm">Nhập điểm số</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
-                        <span className="px-3 py-1.5 bg-blue-500 text-white rounded text-sm font-bold">Enter</span>
-                        <span className="text-blue-700 text-sm font-medium">Gửi điểm</span>
-                      </div>
-                      <div className="flex items-center gap-2 p-3 bg-red-50 rounded-xl border border-red-100">
-                        <span className="px-3 py-1.5 bg-red-500 text-white rounded text-sm font-bold">Esc</span>
-                        <span className="text-red-700 text-sm font-medium">Xóa / Đóng</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Divider */}
-                <div className="border-t border-slate-200 my-4"></div>
-
                 {/* Status Dot Section */}
                 <div>
                   <div className="flex items-center gap-2 mb-3">
@@ -815,6 +793,69 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
               
               <div className="px-5 py-3 bg-slate-50 border-t">
                 <button onClick={() => this.setState({ showHelpModal: false })}
+                  className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">Đã hiểu</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Shortcut Modal */}
+        {showModalShortcut && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => this.setState({ showModalShortcut: false })}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              {/* Header */}
+              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
+                <div className="flex items-center justify-between">
+                  <h5 className="text-white font-bold text-lg flex items-center gap-2">
+                    <i className="fa-solid fa-keyboard"></i>Phím tắt
+                  </h5>
+                  <button onClick={() => this.setState({ showModalShortcut: false })} className="text-white/80 hover:text-white transition-colors">
+                    <i className="fa-solid fa-xmark text-xl"></i>
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-5 space-y-4">
+                {/* Number Input */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <i className="fa-solid fa-calculator text-slate-400"></i>
+                    <span className="font-semibold text-slate-700">Nhập điểm</span>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                    <div className="flex gap-1">
+                      {['0','1','2','3'].map(n => (
+                        <span key={n} className="w-8 h-8 bg-slate-200 rounded flex items-center justify-center text-sm font-bold text-slate-600">{n}</span>
+                      ))}
+                      <span className="w-8 h-8 flex items-center justify-center text-slate-400">...</span>
+                      <span className="w-8 h-8 bg-slate-200 rounded flex items-center justify-center text-sm font-bold text-slate-600">9</span>
+                      <span className="w-8 h-8 bg-slate-200 rounded flex items-center justify-center text-sm font-bold text-slate-600">.</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">Dùng bàn phím số hoặc numpad</p>
+                </div>
+                
+                {/* Actions */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <i className="fa-solid fa-check-double text-slate-400"></i>
+                    <span className="font-semibold text-slate-700">Thao tác</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex items-center gap-2 p-3 bg-green-50 rounded-xl border border-green-100">
+                      <span className="min-w-12 h-8 px-2 bg-green-600 text-white rounded flex items-center justify-center text-xs font-bold">Enter</span>
+                      <span className="text-green-700 text-sm">Gửi điểm</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-3 bg-red-50 rounded-xl border border-red-100">
+                      <span className="min-w-10 h-8 px-2 bg-red-500 text-white rounded flex items-center justify-center text-xs font-bold">Esc</span>
+                      <span className="text-red-700 text-sm">Xóa / Đóng</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="px-5 py-3 bg-slate-50 border-t">
+                <button onClick={() => this.setState({ showModalShortcut: false })}
                   className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">Đã hiểu</button>
               </div>
             </div>
