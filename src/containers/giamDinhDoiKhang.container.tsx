@@ -9,7 +9,6 @@ import { REFEREE_COUNT } from '../constants/rounds';
 
 // Import Bridge utilities
 import { sendScoreFromGiamDinh, connectBridgeAsGiamDinh, isBridgeConnected, onBridgeConnectionChange, disconnectBridge } from '../utils/scoreSync';
-import { bridgeService } from '../services/bridgeService';
 
 // Import Firebase presence
 import { setGiamDinhPresence, removeGiamDinhPresence } from '../services/firebaseService';
@@ -103,17 +102,6 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
     this.bridgeCleanup = onBridgeConnectionChange((connected) => {
       this.setState({ isBridgeConnected: connected });
     });
-  }
-
-  componentDidUpdate(prevProps: GiamDinhDoiKhangContainerProps, prevState: GiamDinhDoiKhangContainerState) {
-    const { isInternetConnected, isBridgeConnected } = this.state;
-    
-    // Khi internet hoặc bridge status thay đổi, gửi update qua Bridge
-    if (prevState.isInternetConnected !== isInternetConnected || prevState.isBridgeConnected !== isBridgeConnected) {
-      if (bridgeService.isConnected && this.referreIndex >= 0) {
-        bridgeService.sendStatusUpdate(this.referreIndex, isInternetConnected);
-      }
-    }
   }
 
   componentWillUnmount() {
