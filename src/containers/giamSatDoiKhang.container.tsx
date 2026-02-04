@@ -1,7 +1,6 @@
 import React, { Component, createRef, RefObject } from 'react';
 import { database } from '../firebase';
 import { ref, set, get, update, child, onValue, off, Database, DatabaseReference } from "firebase/database";
-import { subscribeToGiamDinhPresence, PresenceData } from '../services/firebaseService';
 import logo from '../assets/img/logo.png';
 import sound from '../assets/sound/School_Bell.mp3';
 import { ToastContainer, toast } from 'react-toastify';
@@ -16,7 +15,7 @@ import { DEFAULT_COMBAT_CONST, DEFAULT_MATCH_OBJ } from '../constants/settings';
 import { convertWinLoseFormat, getModes, resizeTextToFit } from '../utils/helpers';
 
 // Import Bridge utilities
-import { subscribeScoreForGiamSat, isBridgeConnected, onBridgeConnectionChange, onBridgeClientsChange, disconnectBridge, sendResetScoreViaBridge, autoConnectLanIfAvailable, isRunningOnLAN } from '../utils/scoreSync';
+import { subscribeScoreForGiamSat, isBridgeConnected, onBridgeConnectionChange, disconnectBridge, sendResetScoreViaBridge, autoConnectLanIfAvailable, isRunningOnLAN } from '../utils/scoreSync';
 
 // Import Offline Service
 import {
@@ -126,11 +125,6 @@ interface GiamSatDoiKhangState {
     bridgeUrl: string;
     bridgeConnecting: boolean;
     showHelpModal: boolean;
-    // Giám Định connection status (indexed by referee index 0-4)
-    // Internet status từ Firebase presence
-    refereeInternetStatus: boolean[];
-    // LAN status từ Bridge clients
-    refereeLanStatus: boolean[];
     // Offline mode
     isOffline: boolean;
     pendingWritesCount: number;
@@ -162,10 +156,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
     // Bridge cleanup function
     bridgeCleanup: (() => void) | null = null;
     bridgeScoreCleanup: (() => void) | null = null;
-    bridgeClientsCleanup: (() => void) | null = null;
-    
-    // Firebase presence cleanup
-    firebasePresenceCleanup: (() => void) | null = null;
     
     // Offline network listener cleanup
     networkCleanup: (() => void) | null = null;
@@ -320,8 +310,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             bridgeUrl: localStorage.getItem('bridgeUrl') || '',
             bridgeConnecting: false,
             showHelpModal: false,
-            refereeInternetStatus: [false, false, false, false, false],
-            refereeLanStatus: [false, false, false, false, false],
             // Offline mode
             isOffline: !isOnline(),
             pendingWritesCount: getPendingWritesCount(),
@@ -412,34 +400,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             }
         });
 
-        // Subscribe to Bridge clients list changes
-        this.bridgeClientsCleanup = onBridgeClientsChange((clients) => {
-            // Tìm các Giám Định cùng sân và tournament
-            const arena = this.arenaNo || 'A';
-            const tournament = this.tournamentNoIndex;
-            
-            // Cập nhật trạng thái kết nối LAN cho từng giám định (index 0-4)
-            const newLanStatus = [false, false, false, false, false];
-            
-            clients.forEach((client: any) => {
-                if (client.type === 'giam_dinh' && 
-                    client.connected && 
-                    client.arena === arena &&
-                    (client.tournament === tournament || !client.tournament)) {
-                    // Lấy index từ tên, ví dụ "Giám định 1" -> index 0
-                    const match = client.name.match(/(\d+)/);
-                    if (match) {
-                        const gdIndex = parseInt(match[1]) - 1;
-                        if (gdIndex >= 0 && gdIndex < 5) {
-                            newLanStatus[gdIndex] = true;
-                        }
-                    }
-                }
-            });
-            
-            this.setState({ refereeLanStatus: newLanStatus });
-        });
-
         // Check for saved password in localStorage (valid for 6 hours)
         const savedPassword = localStorage.getItem('giamSatPassword');
         const savedTime = localStorage.getItem('giamSatPasswordTime');
@@ -489,12 +449,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         }
         if (this.bridgeScoreCleanup) {
             this.bridgeScoreCleanup();
-        }
-        if (this.bridgeClientsCleanup) {
-            this.bridgeClientsCleanup();
-        }
-        if (this.firebasePresenceCleanup) {
-            this.firebasePresenceCleanup();
         }
         
         // Cleanup network listener
@@ -571,37 +525,8 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             this.combatArenaNoIndex = parseInt(combatArenaNo, 10);
             this.arenaNo = this.combatArenaNoIndex === 0 ? 'A' : 'B';
             
-            // Subscribe to Firebase presence (Giám Định online status)
-            this.subscribeFirebasePresence();
-            
             this.showTournamentInfo();
         }
-    }
-
-    subscribeFirebasePresence = (): void => {
-        // Cleanup previous subscription if any
-        if (this.firebasePresenceCleanup) {
-            this.firebasePresenceCleanup();
-        }
-        
-        const arena = this.arenaNo || 'A';
-        this.firebasePresenceCleanup = subscribeToGiamDinhPresence(
-            arena,
-            this.tournamentNoIndex,
-            (presenceList: PresenceData[]) => {
-                // Cập nhật trạng thái kết nối Internet cho từng giám định (index 0-4)
-                const newInternetStatus = [false, false, false, false, false];
-                
-                presenceList.forEach((presence) => {
-                    const gdIndex = presence.refereeIndex;
-                    if (gdIndex >= 0 && gdIndex < 5) {
-                        newInternetStatus[gdIndex] = presence.online;
-                    }
-                });
-                
-                this.setState({ refereeInternetStatus: newInternetStatus });
-            }
-        );
     }
 
     /**
@@ -1721,26 +1646,8 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             showQuickMenu,
             showModalFighterInfo,
             isBridgeConnected: bridgeConnected,
-            showHelpModal,
-            refereeInternetStatus,
-            refereeLanStatus
+            showHelpModal
         } = this.state;
-
-        // Helper function to get connection status dot color and title
-        const getConnectionStatus = (refereeIndex: number) => {
-            const hasInternet = refereeInternetStatus[refereeIndex];
-            const hasLan = refereeLanStatus[refereeIndex];
-            
-            if (hasInternet && hasLan) {
-                return { color: 'bg-green-500', title: 'Internet + LAN' };
-            } else if (hasInternet && !hasLan) {
-                return { color: 'bg-blue-500', title: 'Chỉ Internet' };
-            } else if (!hasInternet && hasLan) {
-                return { color: 'bg-yellow-500', title: 'Chỉ LAN (backup)' };
-            } else {
-                return { color: 'bg-gray-400', title: 'Mất kết nối' };
-            }
-        };
 
         // Calculate referee count for grid
         const refCount = isShowFiveReferee ? 5 : 3;
@@ -2099,15 +2006,10 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                         {/* Referee Scores */}
                         <div className="flex flex-col justify-center gap-2 px-4 py-4" style={{ width: '12%', background: 'linear-gradient(to bottom, #f1f5f9, #e2e8f0)' }}>
                             {[1, 2, 3].map(i => {
-                                const status = getConnectionStatus(i - 1);
                                 return (
                                 <div key={i} className="bg-white rounded-xl shadow-lg overflow-hidden flex-1 flex flex-col relative">
-                                    <div className="bg-slate-600 text-white text-center py-1 text-[1.5vh] font-semibold flex items-center justify-center gap-1">
-                                        <div 
-                                            className={`status-dot w-2 h-2 rounded-full ${status.color}`} 
-                                            data-tooltip={status.title}
-                                        ></div>
-                                        <span>Giám định {i}</span>
+                                    <div className="bg-slate-600 text-white text-center py-1 text-[1.5vh] font-semibold">
+                                        Giám định {i}
                                     </div>
                                     <div className="flex-1 flex">
                                         <div 
@@ -2126,15 +2028,10 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                                 </div>
                             )})}
                             {isShowFiveReferee && [4, 5].map(i => {
-                                const status = getConnectionStatus(i - 1);
                                 return (
                                 <div key={i} className="bg-white rounded-xl shadow-lg overflow-hidden flex-1 flex flex-col relative">
-                                    <div className="bg-slate-600 text-white text-center py-1 text-[1.5vh] font-semibold flex items-center justify-center gap-1">
-                                        <div 
-                                            className={`status-dot w-2 h-2 rounded-full ${status.color}`} 
-                                            data-tooltip={status.title}
-                                        ></div>
-                                        <span>Giám định {i}</span>
+                                    <div className="bg-slate-600 text-white text-center py-1 text-[1.5vh] font-semibold">
+                                        Giám định {i}
                                     </div>
                                     <div className="flex-1 flex">
                                         <div 

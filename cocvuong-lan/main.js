@@ -126,12 +126,23 @@ function broadcastClientsListToGiamSat() {
     clients: clientsList
   });
   
+  // Debug: Log số lượng GĐ và GS
+  const gdCount = clientsList.filter(c => c.type === 'giam_dinh').length;
+  const gsCount = clientsList.filter(c => c.type === 'giam_sat').length;
+  
   // Gửi tới tất cả Giám Sát
+  let sentCount = 0;
   clients.forEach((client) => {
     if (client.type === 'giam_sat' && client.ws.readyState === WebSocket.OPEN) {
       client.ws.send(message);
+      sentCount++;
     }
   });
+  
+  // Log nếu có GS để debug
+  if (sentCount > 0) {
+    sendLog('info', `[Periodic] Gửi clients_list tới ${sentCount} GS (${gdCount} GĐ online)`);
+  }
 }
 
 /**
@@ -187,6 +198,14 @@ async function initWebSocketServer() {
           qrCode: qrCode
         });
       }
+      
+      // Periodic broadcast clients_list mỗi 5s để GS luôn có status mới nhất
+      sendLog('info', '[Periodic] Khởi động periodic broadcast mỗi 5s');
+      setInterval(() => {
+        const totalClients = clients.size;
+        sendLog('info', `[Periodic] Tick - ${totalClients} clients đang kết nối`);
+        broadcastClientsListToGiamSat();
+      }, 5000);
     });
     
     wss.on('error', (error) => {

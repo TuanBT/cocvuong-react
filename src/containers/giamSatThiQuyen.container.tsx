@@ -5,8 +5,7 @@ import logo from '../assets/img/logo.png';
 import sound from '../assets/sound/Reg.mp3';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { subscribeToGiamDinhPresence, PresenceData } from '../services/firebaseService';
-import { isBridgeConnected, onBridgeConnectionChange, onBridgeClientsChange, disconnectBridge, autoConnectLanIfAvailable, isRunningOnLAN } from '../utils/scoreSync';
+import { isBridgeConnected, onBridgeConnectionChange, disconnectBridge, autoConnectLanIfAvailable, isRunningOnLAN } from '../utils/scoreSync';
 
 // Import Offline Service
 import {
@@ -102,8 +101,6 @@ interface GiamSatThiQuyenState {
   selectedArena: number;
   specScoreWidth: string;
   // Connection status tracking
-  refereeInternetStatus: boolean[];
-  refereeLanStatus: boolean[];
   isBridgeConnected: boolean;
   bridgeUrl: string;
   bridgeConnecting: boolean;
@@ -182,9 +179,7 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
   tournamentNoIndex: number;
 
   // Connection tracking cleanup functions
-  firebasePresenceCleanup: (() => void) | null;
   bridgeConnectionCleanup: (() => void) | null;
-  bridgeClientsCleanup: (() => void) | null;
   arenaNo: string;
 
   // Refs
@@ -277,9 +272,7 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     this.tournamentNoIndex = 0;
 
     // Connection tracking
-    this.firebasePresenceCleanup = null;
     this.bridgeConnectionCleanup = null;
-    this.bridgeClientsCleanup = null;
     this.arenaNo = 'A';
 
     this.tournamentNameRef = createRef();
@@ -321,8 +314,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       selectedArena: 0,
       specScoreWidth: '',
       // Connection status
-      refereeInternetStatus: [false, false, false, false, false],
-      refereeLanStatus: [false, false, false, false, false],
       isBridgeConnected: false,
       bridgeUrl: localStorage.getItem('bridgeUrl') || '',
       bridgeConnecting: false,
@@ -359,51 +350,10 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
 
   // ============ Connection Tracking Methods ============
 
-  subscribeFirebasePresence = (): void => {
-    if (this.firebasePresenceCleanup) {
-      this.firebasePresenceCleanup();
-    }
-
-    const arena = this.arenaNo || 'A';
-    this.firebasePresenceCleanup = subscribeToGiamDinhPresence(
-      arena,
-      this.tournamentNoIndex,
-      (presenceList: PresenceData[]) => {
-        const newInternetStatus = [false, false, false, false, false];
-        presenceList.forEach((presence) => {
-          const gdIndex = presence.refereeIndex;
-          if (gdIndex >= 0 && gdIndex < 5) {
-            newInternetStatus[gdIndex] = true;
-          }
-        });
-        this.setState({ refereeInternetStatus: newInternetStatus });
-      }
-    );
-  }
-
   setupBridgeListeners = (): void => {
     // Listen for Bridge connection changes
     this.bridgeConnectionCleanup = onBridgeConnectionChange((connected) => {
       this.setState({ isBridgeConnected: connected });
-    });
-
-    // Listen for clients list changes to track LAN status
-    const arena = this.arenaNo || 'A';
-    this.bridgeClientsCleanup = onBridgeClientsChange((clients) => {
-      const newLanStatus = [false, false, false, false, false];
-      clients.forEach((client: any) => {
-        if (
-          client.type === 'giam_dinh' &&
-          client.arena === arena &&
-          client.tournament === this.tournamentNoIndex
-        ) {
-          const gdIndex = client.gdIndex;
-          if (gdIndex >= 0 && gdIndex < 5) {
-            newLanStatus[gdIndex] = true;
-          }
-        }
-      });
-      this.setState({ refereeLanStatus: newLanStatus });
     });
   }
 
@@ -468,14 +418,8 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       clearInterval(this.timer);
     }
     // Cleanup connection tracking
-    if (this.firebasePresenceCleanup) {
-      this.firebasePresenceCleanup();
-    }
     if (this.bridgeConnectionCleanup) {
       this.bridgeConnectionCleanup();
-    }
-    if (this.bridgeClientsCleanup) {
-      this.bridgeClientsCleanup();
     }
     // Cleanup network listener
     if (this.networkCleanup) {
@@ -538,7 +482,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       } else {
         // Single arena - setup connection tracking
         this.arenaNo = 'A';
-        this.subscribeFirebasePresence();
         this.setupBridgeListeners();
         // LAN Bridge: Kết nối thủ công qua menu cài đặt
         
@@ -554,7 +497,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     this.arenaNo = selectedArena === 0 ? 'A' : 'B';
     
     // Subscribe to connection tracking
-    this.subscribeFirebasePresence();
     this.setupBridgeListeners();
     // LAN Bridge: Tự động kết nối nếu đang chạy qua http://IP:3000
     this.autoConnectLan();
@@ -996,27 +938,9 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       selectedTournament,
       selectedArena,
       specScoreWidth,
-      refereeInternetStatus,
-      refereeLanStatus,
       isBridgeConnected: bridgeConnected,
       showHelpModal
     } = this.state;
-
-    // Helper function to get connection status dot color and title
-    const getConnectionStatus = (refereeIndex: number) => {
-      const hasInternet = refereeInternetStatus[refereeIndex];
-      const hasLan = refereeLanStatus[refereeIndex];
-      
-      if (hasInternet && hasLan) {
-        return { color: 'bg-green-500', title: 'Internet + LAN' };
-      } else if (hasInternet && !hasLan) {
-        return { color: 'bg-blue-500', title: 'Chỉ Internet' };
-      } else if (!hasInternet && hasLan) {
-        return { color: 'bg-yellow-500', title: 'Chỉ LAN (backup)' };
-      } else {
-        return { color: 'bg-gray-400', title: 'Mất kết nối' };
-      }
-    };
 
     // Get country flag for first fighter
     let countryFlag = '';
@@ -1269,15 +1193,10 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
           {/* Row 5: Referee Scores */}
           <div className="flex items-stretch gap-2" style={{ height: '10%' }}>
             {[1, 2, 3].map(i => {
-              const status = getConnectionStatus(i - 1);
               return (
               <div key={i} className="flex-1 bg-white rounded-lg shadow overflow-hidden flex flex-col">
-                <div className="bg-slate-600 text-white text-center py-1 text-[1.5vh] font-medium flex items-center justify-center gap-1">
-                  <div 
-                    className={`status-dot w-2 h-2 rounded-full ${status.color}`} 
-                    data-tooltip={status.title}
-                  ></div>
-                  <span>Giám định {i}</span>
+                <div className="bg-slate-600 text-white text-center py-1 text-[1.5vh] font-medium">
+                  Giám định {i}
                 </div>
                 <div className="flex-1 flex items-center justify-center">
                   <div className="text-[4vh] font-bold text-slate-700">
@@ -1287,15 +1206,10 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
               </div>
             )})}
             {isShowFiveReferee && [4, 5].map(i => {
-              const status = getConnectionStatus(i - 1);
               return (
               <div key={i} className="flex-1 bg-white rounded-lg shadow overflow-hidden flex flex-col">
-                <div className="bg-slate-600 text-white text-center py-1 text-[1.5vh] font-medium flex items-center justify-center gap-1">
-                  <div 
-                    className={`status-dot w-2 h-2 rounded-full ${status.color}`} 
-                    data-tooltip={status.title}
-                  ></div>
-                  <span>Giám định {i}</span>
+                <div className="bg-slate-600 text-white text-center py-1 text-[1.5vh] font-medium">
+                  Giám định {i}
                 </div>
                 <div className="flex-1 flex items-center justify-center">
                   <div className="text-[4vh] font-bold text-slate-700">
