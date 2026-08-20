@@ -2,18 +2,12 @@
 
 # dependencies
 /node_modules
-/cocvuong-lan/node_modules
 
 # testing
 /coverage
 
 # production
 /build
-
-# Electron build outputs
-/cocvuong-lan/dist
-/cocvuong-lan/out
-/cocvuong-lan/build
 
 # misc
 .DS_Store

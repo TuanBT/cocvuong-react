@@ -1,5 +1,5 @@
 export * from './helpers';
 export { default as helpers } from './helpers';
 
-// Score Sync utilities for Bridge/Firebase
+// Score Sync utilities (Firebase)
 export * from './scoreSync';

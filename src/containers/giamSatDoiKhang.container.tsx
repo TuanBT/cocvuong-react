@@ -14,8 +14,8 @@ import { DEFAULT_COMBAT_CONST, DEFAULT_MATCH_OBJ } from '../constants/settings';
 // Import utils
 import { convertWinLoseFormat, getModes, resizeTextToFit } from '../utils/helpers';
 
-// Import Bridge utilities
-import { subscribeScoreForGiamSat, isBridgeConnected, onBridgeConnectionChange, disconnectBridge, sendResetScoreViaBridge, autoConnectLanIfAvailable, isRunningOnLAN } from '../utils/scoreSync';
+// Import Score Sync utilities
+import { subscribeScoreForGiamSat } from '../utils/scoreSync';
 
 // Import Offline Service
 import {
@@ -120,10 +120,6 @@ interface GiamSatDoiKhangState {
     showRedCaution: boolean;
     showBlueCaution: boolean;
     showInternetStatus: boolean;
-    // Bridge connection
-    isBridgeConnected: boolean;
-    bridgeUrl: string;
-    bridgeConnecting: boolean;
     showHelpModal: boolean;
     // Offline mode
     isOffline: boolean;
@@ -153,9 +149,8 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
     // Firebase listener references for cleanup
     firebaseListeners: DatabaseReference[] = [];
 
-    // Bridge cleanup function
-    bridgeCleanup: (() => void) | null = null;
-    bridgeScoreCleanup: (() => void) | null = null;
+    // Score listener cleanup function
+    scoreCleanup: (() => void) | null = null;
     
     // Offline network listener cleanup
     networkCleanup: (() => void) | null = null;
@@ -306,9 +301,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             showRedCaution: false,
             showBlueCaution: false,
             showInternetStatus: false,
-            isBridgeConnected: isBridgeConnected(),
-            bridgeUrl: localStorage.getItem('bridgeUrl') || '',
-            bridgeConnecting: false,
             showHelpModal: false,
             // Offline mode
             isOffline: !isOnline(),
@@ -391,14 +383,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 }
             }
         });
-        
-        // Subscribe to Bridge connection changes
-        this.bridgeCleanup = onBridgeConnectionChange((connected) => {
-            this.setState({ isBridgeConnected: connected });
-            if (connected) {
-                toast.success("Đã kết nối LAN", { autoClose: 2000 });
-            }
-        });
 
         // Check for saved password in localStorage (valid for 6 hours)
         const savedPassword = localStorage.getItem('giamSatPassword');
@@ -443,12 +427,9 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         });
         this.firebaseListeners = [];
 
-        // Cleanup Bridge listeners
-        if (this.bridgeCleanup) {
-            this.bridgeCleanup();
-        }
-        if (this.bridgeScoreCleanup) {
-            this.bridgeScoreCleanup();
+        // Cleanup score listener
+        if (this.scoreCleanup) {
+            this.scoreCleanup();
         }
         
         // Cleanup network listener
@@ -640,11 +621,8 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 this.showValue();
             });
 
-            // Subscribe to score updates from both Firebase and Bridge (LAN)
-            // subscribeScoreForGiamSat handles both sources with Bridge priority
-            // NOTE: Không dùng Firebase listener riêng cho referee vì sẽ gây conflict
-            // khi dùng đồng thời Internet + LAN (điểm bị cộng bất tử)
-            this.bridgeScoreCleanup = subscribeScoreForGiamSat(
+            // Subscribe to score updates from Firebase
+            this.scoreCleanup = subscribeScoreForGiamSat(
                 {
                     db: this.db,
                     tournamentNoIndex: this.tournamentNoIndex,
@@ -652,26 +630,16 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                     arena: this.combatArenaNoIndex === 0 ? 'A' : 'B'
                 },
                 this.numReferee,
-                (refereeIndex: number, redScore: number, blueScore: number, isFullUpdate: boolean) => {
+                (refereeIndex: number, redScore: number, blueScore: number) => {
                     // Initialize refereeObj if not exists
                     if (!this.refereeObj) {
                         this.refereeObj = JSON.parse(JSON.stringify(this.combatConst.referee));
                     }
                     // Update referee object when receiving score
                     if (this.refereeObj[refereeIndex]) {
-                        if (isFullUpdate) {
-                            // Firebase update - ghi đè cả 2 giá trị (bao gồm reset về 0)
-                            this.refereeObj[refereeIndex].redScore = redScore;
-                            this.refereeObj[refereeIndex].blueScore = blueScore;
-                        } else {
-                            // Bridge update - chỉ cập nhật màu được gửi
-                            if (redScore > 0) {
-                                this.refereeObj[refereeIndex].redScore = redScore;
-                            }
-                            if (blueScore > 0) {
-                                this.refereeObj[refereeIndex].blueScore = blueScore;
-                            }
-                        }
+                        // Firebase gửi cả 2 giá trị (bao gồm reset về 0)
+                        this.refereeObj[refereeIndex].redScore = redScore;
+                        this.refereeObj[refereeIndex].blueScore = blueScore;
                         this.showValue();
                     }
                 }
@@ -683,20 +651,9 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             onValue(connectedRef, (snapshot) => {
                 this.setState({ showInternetStatus: !snapshot.val() });
             });
-
-            // LAN Bridge: Tự động kết nối nếu đang chạy qua http://IP:3000
-            this.autoConnectLan();
         });
     }
 
-    autoConnectLan = async (): Promise<void> => {
-        const arena = this.combatArenaNoIndex === 0 ? 'A' : 'B';
-        const name = `Giám Sát DK`;
-        const success = await autoConnectLanIfAvailable('giam_sat', arena, this.tournamentNoIndex, name);
-        if (success) {
-            this.setState({ isBridgeConnected: true });
-        }
-    }
 
     chooseTournament = (tournamentNoIndex: number): void => {
         this.tournamentNoIndex = tournamentNoIndex;
@@ -1423,8 +1380,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                     smartSet(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex + '/fighters', this.match.fighters);
                     //Reset Giám định
                     smartSet(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/referee', this.combatConst.referee);
-                    // Gửi reset qua Bridge để đồng bộ với LAN clients
-                    sendResetScoreViaBridge();
                     // QUAN TRỌNG: Deep copy để tránh reference mutation
                     this.refereeObj = JSON.parse(JSON.stringify(this.combatConst.referee));
                     this.scoreTimerCount = this.timeScore;
@@ -1645,7 +1600,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             isPrioritizeUnitName,
             showQuickMenu,
             showModalFighterInfo,
-            isBridgeConnected: bridgeConnected,
             showHelpModal
         } = this.state;
 
@@ -1759,20 +1713,12 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 {/* Header - Tournament Info */}
                 <div className="bg-white border-b border-slate-200 text-slate-800 py-2 px-4 flex items-center justify-between" style={{ minHeight: '5%' }}>
                     <div className="flex items-center gap-4 flex-1 min-w-0">
-                        {/* Connection Status Dot - 4 colors */}
+                        {/* Connection Status Dot */}
                         <span 
                             className={`status-dot w-3 h-3 rounded-full block flex-shrink-0 ${
-                                !showInternetStatus && bridgeConnected ? 'bg-green-500' :
-                                !showInternetStatus ? 'bg-blue-500' :
-                                bridgeConnected ? 'bg-yellow-500' :
-                                'bg-gray-400'
+                                !showInternetStatus ? 'bg-green-500' : 'bg-gray-400'
                             }`}
-                            data-tooltip={
-                                !showInternetStatus && bridgeConnected ? 'Internet + LAN' :
-                                !showInternetStatus ? 'Chỉ Internet' :
-                                bridgeConnected ? 'Chỉ LAN' :
-                                'Mất kết nối'
-                            }
+                            data-tooltip={!showInternetStatus ? 'Đã kết nối Internet' : 'Mất kết nối'}
                         ></span>
                         <a 
                             href="/" 
@@ -1780,11 +1726,12 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                         >
                             <img src={logo} alt="logo" className="h-6" />
                         </a>
-                        <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 rounded-lg px-3 py-1 max-w-[70vw]" id="tournamentName">
-                            <span className="text-[1.6vh] font-bold text-slate-700 leading-snug whitespace-pre-line">{processedTournamentName}</span>
-                        </div>
                     </div>
-                    <div className="flex items-center gap-3 flex-shrink-0">
+                    {/* Tournament Name - canh giua man hinh, ngay tren dong ho */}
+                    <div className="text-center px-4 max-w-[50vw]" id="tournamentName">
+                        <span className="text-[3.2vh] font-black uppercase tracking-wide text-coc-red leading-tight whitespace-pre-line">{processedTournamentName}</span>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0 flex-1 justify-end">
                         <span className="bg-slate-200 px-4 py-1.5 rounded font-bold text-base" id="arena-name">{arenaName}</span>
                         <span className={`font-bold text-base px-3 py-1.5 rounded ${matchType?.toLowerCase().includes('chung kết') ? 'bg-yellow-400 text-yellow-900' : matchType?.toLowerCase().includes('bán kết') ? 'bg-orange-400 text-orange-900' : ''}`} id="match-type">{matchType}</span>
                         <span className="font-semibold text-base" id="match-category">{matchCategory}</span>
@@ -2302,15 +2249,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                                     <div className="grid grid-cols-2 gap-3 text-sm">
                                         <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
                                             <span className="w-3 h-3 rounded-full bg-green-500 shadow-sm"></span>
-                                            <span className="text-slate-600">Internet + LAN</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
-                                            <span className="w-3 h-3 rounded-full bg-blue-500 shadow-sm"></span>
-                                            <span className="text-slate-600">Chỉ Internet</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
-                                            <span className="w-3 h-3 rounded-full bg-yellow-500 shadow-sm"></span>
-                                            <span className="text-slate-600">Chỉ LAN</span>
+                                            <span className="text-slate-600">Đã kết nối Internet</span>
                                         </div>
                                         <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
                                             <span className="w-3 h-3 rounded-full bg-gray-400 shadow-sm"></span>

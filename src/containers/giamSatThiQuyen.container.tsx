@@ -5,7 +5,6 @@ import logo from '../assets/img/logo.png';
 import sound from '../assets/sound/Reg.mp3';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { isBridgeConnected, onBridgeConnectionChange, disconnectBridge, autoConnectLanIfAvailable, isRunningOnLAN } from '../utils/scoreSync';
 
 // Import Offline Service
 import {
@@ -101,9 +100,6 @@ interface GiamSatThiQuyenState {
   selectedArena: number;
   specScoreWidth: string;
   // Connection status tracking
-  isBridgeConnected: boolean;
-  bridgeUrl: string;
-  bridgeConnecting: boolean;
   showHelpModal: boolean;
   // Offline mode
   isOffline: boolean;
@@ -179,7 +175,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
   tournamentNoIndex: number;
 
   // Connection tracking cleanup functions
-  bridgeConnectionCleanup: (() => void) | null;
   arenaNo: string;
 
   // Refs
@@ -272,7 +267,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     this.tournamentNoIndex = 0;
 
     // Connection tracking
-    this.bridgeConnectionCleanup = null;
     this.arenaNo = 'A';
 
     this.tournamentNameRef = createRef();
@@ -314,9 +308,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       selectedArena: 0,
       specScoreWidth: '',
       // Connection status
-      isBridgeConnected: false,
-      bridgeUrl: localStorage.getItem('bridgeUrl') || '',
-      bridgeConnecting: false,
       showHelpModal: false,
       // Offline mode
       isOffline: !isOnline(),
@@ -347,17 +338,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       toast.error('Không tìm thấy trận đấu!');
     }
   }
-
-  // ============ Connection Tracking Methods ============
-
-  setupBridgeListeners = (): void => {
-    // Listen for Bridge connection changes
-    this.bridgeConnectionCleanup = onBridgeConnectionChange((connected) => {
-      this.setState({ isBridgeConnected: connected });
-    });
-  }
-
-  // ============ End Connection Tracking Methods ============
 
   componentDidMount(): void {
     document.addEventListener("keydown", this._handleKeyDown);
@@ -416,10 +396,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     this.firebaseListeners = [];
     if (this.timer) {
       clearInterval(this.timer);
-    }
-    // Cleanup connection tracking
-    if (this.bridgeConnectionCleanup) {
-      this.bridgeConnectionCleanup();
     }
     // Cleanup network listener
     if (this.networkCleanup) {
@@ -480,11 +456,8 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       if (this.settingObj && this.settingObj.martial.isShowArenaB === true) {
         this.setState({ showChooseArenaNoModal: true });
       } else {
-        // Single arena - setup connection tracking
+        // Single arena
         this.arenaNo = 'A';
-        this.setupBridgeListeners();
-        // LAN Bridge: Kết nối thủ công qua menu cài đặt
-        
         this.showMartialInfo();
       }
     });
@@ -496,28 +469,9 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     this.martialArenaNoIndex = selectedArena;
     this.arenaNo = selectedArena === 0 ? 'A' : 'B';
     
-    // Subscribe to connection tracking
-    this.setupBridgeListeners();
-    // LAN Bridge: Tự động kết nối nếu đang chạy qua http://IP:3000
-    this.autoConnectLan();
-    
     this.showMartialInfo();
   }
 
-  /**
-   * Tự động kết nối LAN nếu đang truy cập qua http://IP:3000
-   */
-  autoConnectLan = async (): Promise<void> => {
-    if (!isRunningOnLAN()) return;
-    
-    const arena = this.arenaNo;
-    const name = `Giám Sát TQ`;
-    
-    const success = await autoConnectLanIfAvailable('giam_sat', arena, this.tournamentNoIndex, name);
-    if (success) {
-      console.log('[LAN] Auto-connected as Giám Sát TQ');
-    }
-  }
 
   chooseTournament = (tournamentNoIndex: number): void => {
     this.tournamentNoIndex = tournamentNoIndex;
@@ -530,6 +484,7 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     });
     
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
+      this.settingObj = snapshot.val();
       if (this.settingObj) {
         this.setState({ tournamentName: this.settingObj.tournamentName });
       }
@@ -938,7 +893,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       selectedTournament,
       selectedArena,
       specScoreWidth,
-      isBridgeConnected: bridgeConnected,
       showHelpModal
     } = this.state;
 
@@ -1038,19 +992,14 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
         {/* Header - Tournament Info */}
         <div className="bg-white border-b border-slate-200 text-slate-800 px-4 py-2 flex items-center justify-between" style={{ minHeight: '5%' }}>
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            {/* Connection Status Dot - 4 colors */}
+            {/* Connection Status Dot */}
             <span 
               className={`status-dot w-3 h-3 rounded-full block flex-shrink-0 ${
-                isInternetConnected && bridgeConnected ? 'bg-green-500' :
-                isInternetConnected ? 'bg-blue-500' :
-                bridgeConnected ? 'bg-yellow-500' :
-                'bg-gray-400'
+                isInternetConnected ? 'bg-green-500' : 'bg-gray-400'
               }`}
               data-tooltip={
                 isOffline ? 'Offline Mode (using cache)' :
-                isInternetConnected && bridgeConnected ? 'Internet + LAN' :
-                isInternetConnected ? 'Chỉ Internet' :
-                bridgeConnected ? 'Chỉ LAN' :
+                isInternetConnected ? 'Đã kết nối Internet' :
                 'Mất kết nối'
               }
             ></span>
@@ -1487,15 +1436,7 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
                       <span className="w-3 h-3 rounded-full bg-green-500 shadow-sm"></span>
-                      <span className="text-slate-600">Internet + LAN</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
-                      <span className="w-3 h-3 rounded-full bg-blue-500 shadow-sm"></span>
-                      <span className="text-slate-600">Chỉ Internet</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
-                      <span className="w-3 h-3 rounded-full bg-yellow-500 shadow-sm"></span>
-                      <span className="text-slate-600">Chỉ LAN</span>
+                      <span className="text-slate-600">Đã kết nối Internet</span>
                     </div>
                     <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
                       <span className="w-3 h-3 rounded-full bg-gray-400 shadow-sm"></span>

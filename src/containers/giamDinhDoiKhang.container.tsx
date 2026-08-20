@@ -7,8 +7,8 @@ import 'react-toastify/dist/ReactToastify.css';
 // Import constants
 import { REFEREE_COUNT } from '../constants/rounds';
 
-// Import Bridge utilities
-import { sendScoreFromGiamDinh, connectBridgeAsGiamDinh, isBridgeConnected, onBridgeConnectionChange, disconnectBridge } from '../utils/scoreSync';
+// Import Score Sync utilities
+import { sendScoreFromGiamDinh } from '../utils/scoreSync';
 
 // Import Firebase presence
 import { setGiamDinhPresence, removeGiamDinhPresence } from '../services/firebaseService';
@@ -23,7 +23,6 @@ interface GiamDinhDoiKhangContainerState {
   gdName: string;
   gdMatch: string;
   isInternetConnected: boolean;
-  isBridgeConnected: boolean;
   showPasswordModal: boolean;
   showChooseRefereeNoModal: boolean;
   isShowFiveReferee: boolean;
@@ -57,8 +56,6 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
   arenaRadioRefs: RefObject<HTMLInputElement>[] = [createRef(), createRef()];
   refereeRadioRefs: RefObject<HTMLInputElement>[] = [];
 
-  // Bridge cleanup function
-  bridgeCleanup: (() => void) | null = null;
   
   // Presence cleanup function
   presenceCleanup: (() => void) | null = null;
@@ -75,7 +72,6 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
       gdName: '',
       gdMatch: '',
       isInternetConnected: true,
-      isBridgeConnected: isBridgeConnected(),
       showPasswordModal: true,
       showChooseRefereeNoModal: false,
       isShowFiveReferee: false,
@@ -97,11 +93,6 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
     
     // Check for cached password
     this.checkCachedPassword();
-
-    // Subscribe to Bridge connection changes
-    this.bridgeCleanup = onBridgeConnectionChange((connected) => {
-      this.setState({ isBridgeConnected: connected });
-    });
   }
 
   componentWillUnmount() {
@@ -113,11 +104,6 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
       off(listenerRef);
     });
     this.firebaseListeners = [];
-
-    // Cleanup Bridge listener
-    if (this.bridgeCleanup) {
-      this.bridgeCleanup();
-    }
     
     // Cleanup Firebase presence
     if (this.presenceCleanup) {
@@ -286,14 +272,12 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
       const connectedRef = ref(this.db, '.info/connected');
       this.firebaseListeners.push(connectedRef);
       onValue(connectedRef, (snapshot) => {
-        this.setState({ isInternetConnected: snapshot.val() === true });
+        const hasInternet = snapshot.val() === true;
+        this.setState({ isInternetConnected: hasInternet });
       });
 
       // Thiết lập Firebase presence (online status)
       this.setupPresence();
-
-      // Auto-connect Bridge nếu đã có URL lưu sẵn
-      this.autoConnectBridge();
     }
   }
 
@@ -311,24 +295,9 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
     }
   }
 
-  autoConnectBridge = async () => {
-    const savedUrl = localStorage.getItem('bridgeUrl');
-    if (savedUrl && !isBridgeConnected()) {
-      try {
-        const arena = this.combatArenaNoIndex === 0 ? 'A' : 'B';
-        const name = (this.refereeName || `Giám Định ${this.referreIndex + 1}`) + ' DK';
-        const success = await connectBridgeAsGiamDinh(savedUrl, this.referreIndex, arena, this.tournamentNoIndex, name);
-        if (success) {
-          toast.success('Đã tự động kết nối LAN!', { autoClose: 2000 });
-        }
-      } catch (err) {
-        // Silent fail - không cần thông báo lỗi vì Bridge có thể không chạy
-      }
-    }
-  }
 
   redAddition = (score: number) => {
-    // Gửi qua Bridge (nếu có) + Firebase
+    // Gửi điểm lên Firebase
     sendScoreFromGiamDinh({
       db: this.db,
       tournamentNoIndex: this.tournamentNoIndex,
@@ -350,7 +319,7 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
   }
 
   blueAddition = (score: number) => {
-    // Gửi qua Bridge (nếu có) + Firebase
+    // Gửi điểm lên Firebase
     sendScoreFromGiamDinh({
       db: this.db,
       tournamentNoIndex: this.tournamentNoIndex,
@@ -394,7 +363,6 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
       gdName, 
       gdMatch, 
       isInternetConnected,
-      isBridgeConnected: bridgeConnected,
       showPasswordModal,
       showChooseRefereeNoModal,
       isShowFiveReferee,
@@ -443,20 +411,12 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
           <div className="flex items-center justify-between gap-2">
             {/* LEFT: Status dot + Arena, Match */}
             <div className="flex items-center gap-2 min-w-0">
-              {/* Connection Status Dot - 4 colors */}
+              {/* Connection Status Dot */}
               <span 
                 className={`status-dot w-3 h-3 rounded-full block flex-shrink-0 ${
-                  isInternetConnected && bridgeConnected ? 'bg-green-500' :
-                  isInternetConnected ? 'bg-blue-500' :
-                  bridgeConnected ? 'bg-yellow-500' :
-                  'bg-gray-400'
+                  isInternetConnected ? 'bg-green-500' : 'bg-gray-400'
                 }`}
-                data-tooltip={
-                  isInternetConnected && bridgeConnected ? 'Internet + LAN' :
-                  isInternetConnected ? 'Chỉ Internet' :
-                  bridgeConnected ? 'Chỉ LAN' :
-                  'Mất kết nối'
-                }
+                data-tooltip={isInternetConnected ? 'Đã kết nối Internet' : 'Mất kết nối'}
               ></span>
               <span className="bg-emerald-500 text-white text-xs font-bold px-2 py-1 rounded-lg whitespace-nowrap">
                 {arenaName || '...'}
@@ -502,8 +462,8 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
               </div>
             </div>
           </div>
-          {/* Warning when both disconnected */}
-          {!isInternetConnected && !bridgeConnected && (
+          {/* Warning when disconnected */}
+          {!isInternetConnected && (
             <div className="mt-2 bg-red-100 text-red-700 py-1 px-2 text-center text-xs font-medium rounded-lg border border-red-200">
               <i className="fa-solid fa-exclamation-triangle mr-1"></i>
               Không có kết nối - Không thể chấm điểm
@@ -717,15 +677,7 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
                       <span className="w-3 h-3 rounded-full bg-green-500 shadow-sm"></span>
-                      <span className="text-slate-600">Internet + LAN</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
-                      <span className="w-3 h-3 rounded-full bg-blue-500 shadow-sm"></span>
-                      <span className="text-slate-600">Chỉ Internet</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
-                      <span className="w-3 h-3 rounded-full bg-yellow-500 shadow-sm"></span>
-                      <span className="text-slate-600">Chỉ LAN</span>
+                      <span className="text-slate-600">Đã kết nối Internet</span>
                     </div>
                     <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
                       <span className="w-3 h-3 rounded-full bg-gray-400 shadow-sm"></span>

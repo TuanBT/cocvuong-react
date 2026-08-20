@@ -18,23 +18,11 @@ import LoginContainer from './containers/login.container';
 import SignupContainer from './containers/signup.container';
 import ReactGA from 'react-ga4';
 import { ErrorBoundary } from './components/common';
-import { setupElectronBridgeAutoConnect } from './services/bridgeService';
 
-// Extend Window interface for GA_INITIALIZED and CocVuong Bridge
+// Extend Window interface for GA_INITIALIZED
 declare global {
   interface Window {
     GA_INITIALIZED?: boolean;
-    __COCVUONG_BRIDGE__?: {
-      url: string;
-      localIP: string;
-      port: number;
-      isElectron: boolean;
-    };
-    cocvuongElectron?: {
-      isElectron: boolean;
-      getBridgeInfo: () => Promise<any>;
-      onBridgeReady: (callback: (info: any) => void) => void;
-    };
   }
 }
 
@@ -46,9 +34,6 @@ if (!window.GA_INITIALIZED) {
 
 // Track pageview
 ReactGA.send({ hitType: "pageview", page: window.location.pathname });
-
-// Setup auto-connect nếu đang chạy trong CocVuong Desktop (Electron)
-setupElectronBridgeAutoConnect();
 
 ReactDOM.render(
   <ErrorBoundary>
