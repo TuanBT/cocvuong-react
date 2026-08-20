@@ -839,10 +839,6 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     });
   }
 
-  shuffleMartial = () => {
-    this.setState({ data: this.combatArrayRaw });
-  }
-
   arrangeMartial = () => {
 
     this.martialObj = JSON.parse(JSON.stringify(this.martialConst));
