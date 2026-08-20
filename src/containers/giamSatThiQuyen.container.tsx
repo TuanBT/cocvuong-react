@@ -5,6 +5,7 @@ import logo from '../assets/img/logo.png';
 import sound from '../assets/sound/Reg.mp3';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import FitText from '../components/common/FitText';
 
 // Import Offline Service
 import {
@@ -178,7 +179,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
   arenaNo: string;
 
   // Refs
-  tournamentNameRef: RefObject<HTMLSpanElement>;
 
   // Constants
   tournamentConst: {
@@ -269,7 +269,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     // Connection tracking
     this.arenaNo = 'A';
 
-    this.tournamentNameRef = createRef();
 
     this.tournamentConst = { "lastMatch": { "no": 1 }, "referee": [{ "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }, { "redScore": 0, "blueScore": 0 }], "tournament": [] };
     this.matchObj = { "match": { "no": 1, "type": "", "category": "", "win": "" }, "fighters": { "redFighter": { "name": "Đỏ", "code": "", "score": 0 }, "blueFighter": { "name": "Xanh", "code": "", "score": 0 } } };
@@ -341,7 +340,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
 
   componentDidMount(): void {
     document.addEventListener("keydown", this._handleKeyDown);
-    window.onresize = this.resizeTextToFit;
     
     // Subscribe to network status changes for offline mode
     this.networkCleanup = onNetworkChange((online) => {
@@ -488,7 +486,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       if (this.settingObj) {
         this.setState({ tournamentName: this.settingObj.tournamentName });
       }
-      this.resizeTextToFit();
       const isShowFiveReferee = this.settingObj?.martial.isShowFiveReferee ?? false;
       const isShowCountryFlag = this.settingObj?.martial.isShowCountryFlag ?? false;
       this.setState({ 
@@ -838,25 +835,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     }
   }
 
-  resizeTextToFit = (): void => {
-    const parentDiv = document.getElementsByClassName('style-hd-info')[0] as HTMLElement;
-    const span = this.tournamentNameRef.current;
-    if (!parentDiv || !span) return;
-
-    let fontSize = 10;
-    span.style.fontSize = fontSize + 'px';
-
-    while (span.offsetHeight < parentDiv.offsetHeight && fontSize < 100) {
-      fontSize++;
-      span.style.fontSize = fontSize + 'px';
-    }
-
-    while (span.offsetHeight > parentDiv.offsetHeight && fontSize > 0) {
-      fontSize--;
-      span.style.fontSize = fontSize + 'px';
-    }
-  }
-
   handleArenaChange = (arenaIndex: number) => {
     this.setState({ selectedArena: arenaIndex });
   }
@@ -906,14 +884,19 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       }
     }
 
-    // Calculate fighter name font size based on number of fighters
     const fighterCount = matchMartialTeam.length;
-    const fighterFontSize = fighterCount <= 1 ? 'text-[4vh]' : fighterCount <= 2 ? 'text-[3.5vh]' : 'text-[2.8vh]';
+    // It nguoi thi chu to hon, dong nguoi thi FitText tu thu lai cho vua mot dong
+    const fighterNameMaxVh = fighterCount <= 1 ? 12 : fighterCount <= 2 ? 10 : 8;
 
-    // Process tournament name - replace <br>, </br>, <br/> with actual line breaks
+    // Ten giai luon nam tren mot dong: <br> tro thanh khoang trang, FitText lo phan co chu
     const processedTournamentName = tournamentName
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<\/br>/gi, '\n');
+      .replace(/<br\s*\/?>/gi, ' ')
+      .replace(/<\/br>/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Danh sach giam dinh hien thi theo cau hinh 3 hay 5 nguoi
+    const refereeList = isShowFiveReferee ? [1, 2, 3, 4, 5] : [1, 2, 3];
 
     // Build match list for dropdown with fighter names
     const matchList: { matchIndex: number; teamIndex: number; no: number; name: string; code: string; fighters: string[] }[] = [];
@@ -957,40 +940,37 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
         {(!matchMartialNo || matchMartialNo === '') && (
           <div className="absolute inset-0 z-30 flex flex-col overflow-hidden bg-slate-100">
             {/* Skeleton Header */}
-            <div className="bg-white border-b border-slate-200 py-2 px-4 flex items-center justify-between" style={{ minHeight: '5%' }}>
+            <div className="bg-white border-b border-slate-200 px-4 flex items-center justify-between" style={{ height: '6%' }}>
               <div className="flex items-center gap-3 flex-1">
                 <div className="h-8 w-8 bg-slate-300 rounded"></div>
-                <div className="h-5 w-48 bg-slate-200 rounded"></div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="h-5 w-64 bg-slate-200 rounded"></div>
+              <div className="flex items-center gap-2 flex-1 justify-end">
                 <div className="h-7 w-20 bg-slate-200 rounded"></div>
               </div>
             </div>
             {/* Skeleton Body */}
-            <div className="flex-1 p-3 flex flex-col gap-2">
-              {/* Skeleton Row 1: Match Name & Timer (12%) */}
-              <div className="flex items-stretch gap-3" style={{ height: '12%' }}>
-                <div className="flex-1 bg-slate-300 rounded-xl"></div>
-                <div className="bg-slate-300 rounded-xl" style={{ width: '12%' }}></div>
-              </div>
-              {/* Skeleton Row 2: Team Code (10%) */}
-              <div className="bg-slate-400 rounded-xl" style={{ height: '10%' }}></div>
-              {/* Skeleton Row 3: Fighter Names (14%) */}
-              <div className="bg-slate-300 rounded-xl" style={{ height: '14%' }}></div>
-              {/* Skeleton Row 4: Main Score (47%) */}
-              <div className="bg-slate-500 rounded-2xl" style={{ height: '47%' }}></div>
-              {/* Skeleton Row 5: Referee Scores (10%) */}
-              <div className="flex items-stretch gap-2" style={{ height: '10%' }}>
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="flex-1 bg-slate-300 rounded-lg"></div>
-                ))}
+            <div className="p-3 flex flex-col gap-2" style={{ height: '94%' }}>
+              {/* Skeleton Row 1: Noi dung (12%) */}
+              <div className="bg-slate-300 rounded-xl" style={{ height: '12%' }}></div>
+              {/* Skeleton Row 2: Don vi (11%) */}
+              <div className="bg-slate-400 rounded-xl" style={{ height: '11%' }}></div>
+              {/* Skeleton Row 3: Ten VDV (15%) */}
+              <div className="bg-slate-300 rounded-xl" style={{ height: '15%' }}></div>
+              {/* Skeleton Row 4: Dong ho | Diem tong | Giam dinh (55%) */}
+              <div className="flex items-stretch gap-2" style={{ height: '55%' }}>
+                <div className="bg-slate-300 rounded-xl" style={{ width: '18%' }}></div>
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="h-full bg-slate-400 rounded-[4vh]" style={{ width: '88%' }}></div>
+                </div>
+                <div className="bg-slate-300 rounded-xl" style={{ width: '20%' }}></div>
               </div>
             </div>
           </div>
         )}
 
         {/* Header - Tournament Info */}
-        <div className="bg-white border-b border-slate-200 text-slate-800 px-4 py-2 flex items-center justify-between" style={{ minHeight: '5%' }}>
+        <div className="bg-white border-b border-slate-200 text-slate-800 px-4 flex items-center justify-between" style={{ height: '6%' }}>
           <div className="flex items-center gap-3 flex-1 min-w-0">
             {/* Connection Status Dot */}
             <span 
@@ -1022,9 +1002,16 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
               <img src={logo} alt="logo" className="h-6" />
             </a>
           </div>
-          {/* Tournament Name - canh giua man hinh */}
-          <div className="text-center px-4 max-w-[50vw]" id="tournamentName">
-            <span className="text-[3.2vh] font-black uppercase tracking-wide text-coc-red leading-tight whitespace-pre-line" ref={this.tournamentNameRef}>{processedTournamentName}</span>
+          {/* Tournament Name - mot dong, tu co cho vua khung giua header */}
+          <div className="flex-[2] min-w-0 px-4 flex items-center justify-center" id="tournamentName">
+            <FitText
+              maxVh={3.4}
+              minVh={1.4}
+              className="text-center"
+              innerClassName="font-black uppercase tracking-wide text-coc-red leading-none"
+            >
+              {processedTournamentName}
+            </FitText>
           </div>
           <div className="flex items-center gap-3 flex-shrink-0 flex-1 justify-end">
             <span className="bg-slate-200 px-4 py-1.5 rounded font-bold text-base">{arenaName}</span>
@@ -1082,92 +1069,93 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col p-3 gap-2 relative" style={{ height: '95%' }}>
+        <div className="flex-1 flex flex-col p-3 gap-2 relative" style={{ height: '94%' }}>
 
-          {/* Row 1: Match Name & Timer */}
-          <div className="flex items-stretch gap-3" style={{ height: '12%' }}>
-            {/* Match Content Name */}
-            <div className="flex-1 bg-white rounded-xl shadow p-2 flex items-center">
-              <button onClick={this.prevMatchMartial} className="w-9 h-9 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center text-lg transition-colors flex-shrink-0">
-                <i className="fa fa-caret-left"></i>
-              </button>
-              <div className="flex-1 text-center px-2">
-                <div className="text-[2.8vh] font-bold text-slate-800 leading-tight">{matchMartialName}</div>
-                <div className="text-[1.5vh] font-medium text-slate-500">Lượt {matchMartialNo}</div>
-              </div>
-              <button onClick={this.nextMatchMartial} className="w-9 h-9 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center text-lg transition-colors flex-shrink-0">
-                <i className="fa fa-caret-right"></i>
-              </button>
+          {/* Row 1: Noi dung thi - mot dong, tu co cho vua */}
+          <div className="bg-white rounded-xl shadow px-3 flex items-center gap-3" style={{ height: '12%' }}>
+            <button onClick={this.prevMatchMartial} className="w-9 h-9 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center text-lg transition-colors flex-shrink-0">
+              <i className="fa fa-caret-left"></i>
+            </button>
+            <div className="flex-1 min-w-0 flex items-center justify-center">
+              <FitText maxVh={5.5} minVh={2} className="text-center" innerClassName="font-bold text-slate-800 leading-none">
+                {matchMartialName}
+                <span className="text-slate-400 font-medium"> · Lượt {matchMartialNo}</span>
+              </FitText>
             </div>
-
-            {/* Timer - Small */}
-            <div 
-              onClick={this.startTimer} 
-              className="rounded-xl shadow cursor-pointer transition-transform hover:scale-105 flex items-center justify-center px-4"
-              style={{ backgroundColor: timerBgColor || '#334155', width: '12%' }}
-            >
-              <div className="text-[5vh] font-bold text-white leading-none" style={{ fontFamily: 'clockicons, monospace' }}>
-                {matchTime}
-              </div>
-            </div>
+            <button onClick={this.nextMatchMartial} className="w-9 h-9 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center text-lg transition-colors flex-shrink-0">
+              <i className="fa fa-caret-right"></i>
+            </button>
           </div>
 
-          {/* Row 2: Team/Unit Code with Flag */}
-          <div className="bg-slate-700 rounded-xl shadow p-3 flex items-center justify-center gap-6" style={{ height: '10%' }}>
+          {/* Row 2: Don vi - mot dong, tu co cho vua */}
+          <div
+            className={`relative bg-slate-700 rounded-xl shadow flex items-center justify-center ${countryFlag ? 'px-[11vh]' : 'px-[3vh]'}`}
+            style={{ height: '11%' }}
+          >
             {countryFlag && (
-              <img className="h-14 rounded shadow border-2 border-white/30" src={countryFlag} alt="flag" />
+              <img className="absolute left-[2vh] top-1/2 -translate-y-1/2 h-[55%] rounded shadow border-2 border-white/30" src={countryFlag} alt="flag" />
             )}
-            <div className="text-[5vh] font-bold text-white tracking-wide">{matchMartialCode}</div>
+            <FitText maxVh={8} minVh={2.5} className="text-center" innerClassName="font-bold text-white tracking-wide leading-none">
+              {matchMartialCode}
+            </FitText>
           </div>
 
-          {/* Row 3: Fighter Names - Large, wrap naturally */}
-          <div className="bg-white rounded-xl shadow p-3 flex items-center justify-center" style={{ height: '14%' }}>
-            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1">
+          {/* Row 3: Ten VDV - tat ca tren mot dong, tu co cho vua */}
+          <div className="bg-white rounded-xl shadow px-[3vh] flex items-center justify-center" style={{ height: '15%' }}>
+            <FitText maxVh={fighterNameMaxVh} minVh={2} className="text-center" innerClassName="font-bold text-slate-800 leading-none">
               {matchMartialTeam.map((fighterData, i) => (
-                <div key={i} className={`${fighterFontSize} font-bold text-slate-800 leading-tight text-center whitespace-nowrap`}>
-                  {fighterCount > 2 && <span className="text-slate-500 font-medium">{i + 1}.</span>}
-                  {' '}{fighterData.fighter.name}
-                  {fighterCount > 1 && i < fighterCount - 1 && <span className="ml-4 text-slate-300">|</span>}
+                <React.Fragment key={i}>
+                  {i > 0 && <span className="text-slate-300 mx-[0.35em]">•</span>}
+                  {fighterCount > 2 && <span className="text-slate-400 font-medium">{i + 1}. </span>}
+                  {fighterData.fighter.name}
+                </React.Fragment>
+              ))}
+            </FitText>
+          </div>
+
+          {/* Row 4: Dong ho | Diem tong | Diem giam dinh */}
+          <div className="flex items-stretch gap-2" style={{ height: '55%' }}>
+
+            {/* Cot trai: dong ho - khoi mau bao trang thai, thu nho de nhuong cho cho diem */}
+            <div
+              onClick={this.startTimer}
+              className="rounded-xl shadow-lg flex items-center justify-center px-[1.5vh] cursor-pointer select-none transition-transform hover:scale-[1.02]"
+              style={{ width: '18%', backgroundColor: timerBgColor || '#334155' }}
+            >
+              <FitText
+                maxVh={14}
+                minVh={3}
+                className="text-center"
+                innerClassName="font-bold text-white leading-none"
+                innerStyle={{ fontFamily: 'clockicons, monospace' }}
+              >
+                {matchTime}
+              </FitText>
+            </div>
+
+            {/* Cot giua: diem tong - khoi mau cam om sat con so */}
+            <div className="flex-1 min-w-0 flex items-center justify-center">
+              <div
+                onClick={this.takeMainScore}
+                className="h-full max-w-full bg-amber-500 rounded-[4vh] shadow-lg px-[6vh] inline-flex items-center justify-center cursor-pointer select-none transition-transform hover:scale-[1.02]"
+              >
+                <div className="text-[min(40vh,24vw)] font-black text-white leading-none tabular-nums">
+                  {averageScore}
+                </div>
+              </div>
+            </div>
+
+            {/* Cot phai: diem giam dinh */}
+            <div className="bg-white rounded-xl shadow flex flex-col divide-y divide-slate-100 overflow-hidden" style={{ width: '20%' }}>
+              {refereeList.map(i => (
+                <div key={i} className="flex-1 min-h-0 flex items-center justify-between px-[1.5vh]">
+                  <span className="text-[2vh] font-bold text-slate-400 leading-none whitespace-nowrap">Giám định {i}</span>
+                  <span className={`${isShowFiveReferee ? 'text-[7vh]' : 'text-[10vh]'} font-bold text-slate-700 leading-none tabular-nums`}>
+                    {refereeScores[i - 1] || '00'}
+                  </span>
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Row 4: Main Score - Most prominent */}
-          <div className="bg-amber-500 rounded-2xl shadow-lg flex items-center justify-center cursor-pointer transition-transform hover:scale-[1.01]" style={{ height: '47%' }} onClick={this.takeMainScore}>
-            <div className="text-[38vh] font-black text-white leading-none">
-              {averageScore}
-            </div>
-          </div>
-
-          {/* Row 5: Referee Scores */}
-          <div className="flex items-stretch gap-2" style={{ height: '10%' }}>
-            {[1, 2, 3].map(i => {
-              return (
-              <div key={i} className="flex-1 bg-white rounded-lg shadow overflow-hidden flex flex-col">
-                <div className="bg-slate-600 text-white text-center py-1 text-[1.5vh] font-medium">
-                  Giám định {i}
-                </div>
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="text-[4vh] font-bold text-slate-700">
-                    {refereeScores[i-1] || '0.00'}
-                  </div>
-                </div>
-              </div>
-            )})}
-            {isShowFiveReferee && [4, 5].map(i => {
-              return (
-              <div key={i} className="flex-1 bg-white rounded-lg shadow overflow-hidden flex flex-col">
-                <div className="bg-slate-600 text-white text-center py-1 text-[1.5vh] font-medium">
-                  Giám định {i}
-                </div>
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="text-[4vh] font-bold text-slate-700">
-                    {refereeScores[i-1] || '0.00'}
-                  </div>
-                </div>
-              </div>
-            )})}
           </div>
         </div>
 

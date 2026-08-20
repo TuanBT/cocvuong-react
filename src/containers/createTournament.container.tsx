@@ -124,6 +124,9 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
   combatArray: any[] = [];
   martialArray: any[] = [];
   martialStandardArray: any[][] = [];
+  // true: martialStandardArray đọc trực tiếp từ file chuẩn (4 cột: STT, Tên, Code, Quốc gia)
+  // false: do arrangeMartial sinh ra từ file thô (5 cột: STT, Nội dung, Tên, Code, Quốc gia)
+  martialStandardFromFile = false;
   tournamentNoIndex = 0;
   martialArenaNoIndex = 0;
   tournamentObj: any[] | null = null;
@@ -343,6 +346,10 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     if (!this.combatStandardArray?.length) {
       this.arrangeCombat();
     }
+    if (!this.combatObj?.combat?.length) {
+      toast.error("Chưa có dữ liệu Đối Kháng để tạo giải. Vui lòng import file ở Bước 2.");
+      return;
+    }
     if (this.combatObj) {
       update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/'), this.combatObj as any).then(() => {
         toast.success("Cập nhập thông tin giải đấu thành công!");
@@ -366,6 +373,10 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     if (!this.martialStandardArray?.length) {
       this.arrangeMartial();
     }
+    if (!this.martialObj?.martial?.length) {
+      toast.error("Chưa có dữ liệu Thi Quyền để tạo giải. Vui lòng import file ở Bước 2.");
+      return;
+    }
     if (this.martialObj) {
       update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/'), this.martialObj as any).then(() => {
         toast.success("Cập nhập thông tin giải đấu thành công!");
@@ -374,16 +385,32 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     }
   }
 
+  // Đọc sheet 'data' của file Excel. Mọi lỗi đều báo bằng toast thay vì chết im lặng trong reader.onload
+  readDataSheet = (file: File, onRows: (rows: any[][]) => void) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = read(data, { type: 'array' });
+        const worksheet = workbook.Sheets['data'];
+        if (!worksheet) {
+          toast.error(`File thiếu sheet tên "data". Sheet đang có: ${workbook.SheetNames.join(', ') || '(không có)'}`);
+          return;
+        }
+        onRows(utils.sheet_to_json(worksheet, { header: 1 }) as any[][]);
+      } catch (err: any) {
+        toast.error('Không đọc được file Excel: ' + (err?.message || err));
+      }
+    };
+    reader.onerror = () => toast.error('Không đọc được file.');
+    reader.readAsArrayBuffer(file);
+  }
+
   handleimportCombatRawFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const data = new Uint8Array(e.target?.result as ArrayBuffer);
-      const workbook = read(data, { type: 'array' });
-      const worksheet = workbook.Sheets['data'];
-      const excelData = utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+    this.readDataSheet(file, (excelData) => {
       this.combatArrayRaw = [];
       // File mới => bỏ lịch đã sắp trước đó, nếu không sẽ ghi đè bằng dữ liệu cũ
       this.combatStandardArray = [];
@@ -407,8 +434,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
       this.combatArrangeHeader = ['STT', 'HẠNG CÂN', 'TÊN VDV', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
       this.setState({ data: this.combatArrayRaw });
-    };
-    reader.readAsArrayBuffer(file);
+    });
   }
 
   shuffle = () => {
@@ -786,15 +812,11 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const data = new Uint8Array(e.target?.result as ArrayBuffer);
-      const workbook = read(data, { type: 'array' });
-      const worksheet = workbook.Sheets['data'];
-      const excelData = utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+    this.readDataSheet(file, (excelData) => {
       this.martialArrayRaw = [];
       // File mới => bỏ lịch đã sắp trước đó, nếu không sẽ ghi đè bằng dữ liệu cũ
       this.martialStandardArray = [];
+      this.martialStandardFromFile = false;
       this.martialObj = null;
       this.setState({ tournamentCreated: false });
 
@@ -814,8 +836,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
       this.martialArrangeHeader = ['STT', 'NỘI DUNG', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
       this.setState({ data: this.martialArrayRaw });
-    };
-    reader.readAsArrayBuffer(file);
+    });
   }
 
   shuffleMartial = () => {
@@ -829,6 +850,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     let fighterMartialObjTemp = JSON.parse(JSON.stringify(this.fighterMartialObj)) as FighterMartialObj;
     let fightersMartialObjTemp = JSON.parse(JSON.stringify(this.fightersMartialObj)) as FightersMartialObj;
     this.martialStandardArray = [];
+    this.martialStandardFromFile = false;
 
     const groupedData = new Map<string, any[][]>();
     let matchNo = 0;
@@ -875,13 +897,15 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     });
 
     this.martialArrayRaw = [];
-    this.combatArrangeHeader = ['STT', 'NỘI DUNG', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
+    this.martialArrangeHeader = ['STT', 'NỘI DUNG', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
     this.setState({ data: this.martialStandardArray });
 
   }
 
   downloadMartial = () => {
-    this.martialArrangeHeader = ['STT', 'NỘI DUNG', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
+    this.martialArrangeHeader = this.martialStandardFromFile
+      ? ['STT', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ', 'QUỐC GIA']
+      : ['STT', 'NỘI DUNG', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
     this.exportExcel(this.martialArrangeHeader, this.state.data, "Thong tin THI QUYEN");
   }
 
@@ -893,61 +917,99 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     }
   }
 
-  handleimportMartialStandardFile = (event: React.ChangeEvent<HTMLInputElement>) => {
-    this.martialObj = JSON.parse(JSON.stringify(this.martialConst));
-    let matchMartialObjTemp = JSON.parse(JSON.stringify(this.matchMartialObj)) as MatchMartialObj;
-    let fighterMartialObjTemp = JSON.parse(JSON.stringify(this.fighterMartialObj)) as FighterMartialObj;
-    let fightersMartialObjTemp = JSON.parse(JSON.stringify(this.fightersMartialObj)) as FightersMartialObj;
+  // Ô trống trong Excel là undefined => String(undefined) sẽ ra chuỗi "undefined" ghi thẳng vào DB
+  cell = (value: any) => (value !== undefined && value !== null ? String(value).trim() : '')
 
+  // Dòng tên nội dung: cột A là chữ (không phải số thứ tự) và cột B trống.
+  // Không dùng values.length === 1 vì Excel có thể để lại ô trống ở B/C/D làm dòng dài hơn 1.
+  isMartialContentRow = (values: any[]) => {
+    const first = this.cell(values[0]);
+    return first !== '' && isNaN(parseFloat(first)) && this.cell(values[1]) === '';
+  }
+
+  handleimportMartialStandardFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const data = new Uint8Array(e.target?.result as ArrayBuffer);
-      const workbook = read(data, { type: 'array' });
-      const worksheet = workbook.Sheets['data'];
-      const excelData = utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+    this.readDataSheet(file, (excelData) => {
+      this.martialObj = JSON.parse(JSON.stringify(this.martialConst));
       this.martialStandardArray = [];
+      this.martialStandardFromFile = true;
+      // File mới => bỏ dữ liệu file thô cũ và cho phép tạo giải lại
+      this.martialArrayRaw = [];
+      this.setState({ tournamentCreated: false });
+
+      let orphanFighters = 0;
+
+      // Đảm bảo luôn có nội dung để gắn VĐV vào, kể cả khi file thiếu dòng tên nội dung đầu tiên
+      const currentMatch = (): MatchMartialObj => {
+        if (this.martialObj!.martial.length === 0) {
+          const implicitMatch = JSON.parse(JSON.stringify(this.matchMartialObj)) as MatchMartialObj;
+          implicitMatch.match.name = 'Nội dung chưa đặt tên';
+          this.martialObj!.martial.push(implicitMatch);
+          this.martialStandardArray.push([implicitMatch.match.name, '', '', '']);
+          orphanFighters++;
+        }
+        return this.martialObj!.martial[this.martialObj!.martial.length - 1];
+      };
+
+      const makeFighter = (values: any[]): FighterMartialObj => {
+        const fighter = JSON.parse(JSON.stringify(this.fighterMartialObj)) as FighterMartialObj;
+        fighter.fighter.name = this.cell(values[1]);
+        fighter.fighter.code = this.cell(values[2]);
+        fighter.fighter.country = this.cell(values[3]);
+        return fighter;
+      };
 
       for (let i = 0; i < excelData.length; i++) {
         const values = excelData[i];
+        if (values.length === 0) continue;
 
-        if (values.length !== 0) {
-          if (values.length === 1 && values[0] !== " ") {
-            matchMartialObjTemp = JSON.parse(JSON.stringify(this.matchMartialObj));
-            this.martialObj!.martial.push(matchMartialObjTemp);
-            matchMartialObjTemp.match.name = String(values[0]).trim();
-            this.martialStandardArray.push([String(values[0]).trim(), '', '', '']);
-          } else {
-            if (!isNaN(parseFloat(values[0]))) {
-              fighterMartialObjTemp = JSON.parse(JSON.stringify(this.fighterMartialObj));
-              fighterMartialObjTemp.fighter.name = String(values[1]).trim();
-              fighterMartialObjTemp.fighter.code = String(values[2]).trim();
-              fighterMartialObjTemp.fighter.country = String(values[3]).trim();
-              fightersMartialObjTemp = JSON.parse(JSON.stringify(this.fightersMartialObj));
-              fightersMartialObjTemp.no = values[0];
-              fightersMartialObjTemp.fighters.push(fighterMartialObjTemp);
-              this.martialObj!.martial.slice(-1)[0].team.push(fightersMartialObjTemp);
-              this.martialStandardArray.push([values[0], String(values[1]).trim(), String(values[2]).trim(), String(values[3]).trim()]);
-            } else {
-              if (values[0] === undefined) {
-                fighterMartialObjTemp = JSON.parse(JSON.stringify(this.fighterMartialObj));
-                fighterMartialObjTemp.fighter.name = String(values[1]).trim();
-                fighterMartialObjTemp.fighter.code = String(values[2]).trim();
-                fighterMartialObjTemp.fighter.country = String(values[3]).trim();
-                this.martialObj!.martial.slice(-1)[0].team.slice(-1)[0].fighters.push(fighterMartialObjTemp);
-                this.martialStandardArray.push(['', String(values[1]).trim(), String(values[2]).trim(), String(values[3]).trim()]);
-              }
-            }
+        if (this.isMartialContentRow(values)) {
+          const matchMartialObjTemp = JSON.parse(JSON.stringify(this.matchMartialObj)) as MatchMartialObj;
+          matchMartialObjTemp.match.name = this.cell(values[0]);
+          this.martialObj!.martial.push(matchMartialObjTemp);
+          this.martialStandardArray.push([matchMartialObjTemp.match.name, '', '', '']);
+        } else if (!isNaN(parseFloat(values[0]))) {
+          // Dòng có STT => mở một lượt biểu diễn mới
+          const fightersMartialObjTemp = JSON.parse(JSON.stringify(this.fightersMartialObj)) as FightersMartialObj;
+          fightersMartialObjTemp.no = values[0];
+          fightersMartialObjTemp.fighters.push(makeFighter(values));
+          currentMatch().team.push(fightersMartialObjTemp);
+          this.martialStandardArray.push([values[0], this.cell(values[1]), this.cell(values[2]), this.cell(values[3])]);
+        } else if (this.cell(values[0]) === '' && this.cell(values[1]) !== '') {
+          // Dòng không có STT => VĐV tiếp theo của lượt đồng đội phía trên
+          const match = currentMatch();
+          if (match.team.length === 0) {
+            const fightersMartialObjTemp = JSON.parse(JSON.stringify(this.fightersMartialObj)) as FightersMartialObj;
+            fightersMartialObjTemp.no = 1;
+            match.team.push(fightersMartialObjTemp);
+            orphanFighters++;
           }
+          match.team[match.team.length - 1].fighters.push(makeFighter(values));
+          this.martialStandardArray.push(['', this.cell(values[1]), this.cell(values[2]), this.cell(values[3])]);
         }
+        // Còn lại là dòng tiêu đề cột (STT / HỌ VÀ TÊN / ...) hoặc dòng rác => bỏ qua
       }
 
-      this.combatArrangeHeader = ['STT', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
+      const totalFighters = this.martialObj!.martial.reduce(
+        (sum, m) => sum + (m.team || []).reduce((s, t) => s + t.fighters.length, 0), 0);
+
+      if (totalFighters === 0) {
+        toast.error('Không đọc được VĐV nào từ file. Kiểm tra lại định dạng: cột A = STT, B = Họ tên, C = MSSV/Đơn vị, D = Quốc gia.');
+        this.martialObj = null;
+        this.martialStandardArray = [];
+        this.martialStandardFromFile = false;
+      } else {
+        if (orphanFighters > 0) {
+          toast.warn('File thiếu dòng tên nội dung ở một số chỗ, hệ thống đã tự gom vào "Nội dung chưa đặt tên".');
+        }
+        toast.success(`Đã đọc ${this.martialObj!.martial.length} nội dung / ${totalFighters} VĐV.`);
+      }
+
+      this.martialArrangeHeader = ['STT', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
       this.setState({ data: this.martialStandardArray });
-    };
-    reader.readAsArrayBuffer(file);
+    });
   }
 
   handleimportCombatStandFile = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -956,13 +1018,9 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const data = new Uint8Array(e.target?.result as ArrayBuffer);
-      const workbook = read(data, { type: 'array' });
-      const worksheet = workbook.Sheets['data'];
-      const excelData = utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+    this.readDataSheet(file, (excelData) => {
       this.combatStandardArray = [];
+      this.setState({ tournamentCreated: false });
 
       for (let i = 1; i < excelData.length; i++) {
         const values = excelData[i];
@@ -996,8 +1054,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
       this.combatArrangeHeader = ["TRẬN", "HẠNG CÂN", "LOẠI TRẬN", "TÊN GIÁP ĐỎ", "CODE/ĐƠN VỊ GIÁP ĐỎ", "QUỐC GIA ĐỎ", "TÊN GIÁP XANH", "CODE/ĐƠN VỊ GIÁP XANH", "QUỐC GIA XANH"];
       this.setState({ data: this.combatStandardArray });
-    };
-    reader.readAsArrayBuffer(file);
+    });
   }
 
   importCombatStandard = () => {
@@ -1850,37 +1907,60 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     return weightCount;
   };
 
+  // Helper: Danh sách VĐV thi quyền đã chuẩn hoá, lấy từ nguồn nào đang có dữ liệu.
+  // Cần thiết vì import "file chuẩn" chỉ đổ vào martialStandardArray, còn "file thô" đổ vào martialArrayRaw.
+  getMartialFlatData = (): { index: any; content: string; name: string; code: string; country: string }[] => {
+    if (this.martialArrayRaw?.length) {
+      return this.martialArrayRaw.map((item) => ({
+        index: item[0],
+        content: item[1],
+        name: item[2],
+        code: item[3],
+        country: item[4],
+      }));
+    }
+
+    const flat: { index: any; content: string; name: string; code: string; country: string }[] = [];
+    let content = '';
+    this.martialStandardArray?.forEach((row) => {
+      if (this.isMartialContentRow(row)) {
+        content = this.cell(row[0]);
+        return;
+      }
+      flat.push(this.martialStandardFromFile
+        // File chuẩn: [STT, Tên, Code, Quốc gia] - tên nội dung nằm ở dòng tiêu đề phía trên
+        ? { index: row[0], content, name: row[1], code: row[2], country: row[3] }
+        // arrangeMartial: [STT, Nội dung, Tên, Code, Quốc gia]
+        : { index: row[0], content: row[1] || content, name: row[2], code: row[3], country: row[4] });
+    });
+    return flat;
+  };
+
   // Helper: Count martial content groups
   getMartialContentStats = () => {
     const contentCount: { [key: string]: number } = {};
-    this.martialArrayRaw?.forEach((item) => {
-      const content = item[1];
-      contentCount[content] = (contentCount[content] || 0) + 1;
+    this.getMartialFlatData().forEach((f) => {
+      contentCount[f.content] = (contentCount[f.content] || 0) + 1;
     });
     return contentCount;
   };
 
   // Helper: Group martial data by content
   getMartialDataByContent = () => {
-    const grouped: { [key: string]: { index: number; content: string; name: string; code: string; country: string }[] } = {};
-    this.martialArrayRaw?.forEach((item, i) => {
-      const content = item[1];
-      if (!grouped[content]) {
-        grouped[content] = [];
+    const grouped: { [key: string]: { index: any; content: string; name: string; code: string; country: string }[] } = {};
+    this.getMartialFlatData().forEach((f) => {
+      if (!grouped[f.content]) {
+        grouped[f.content] = [];
       }
-      grouped[content].push({
-        index: item[0],
-        content: item[1],
-        name: item[2],
-        code: item[3],
-        country: item[4],
-      });
+      grouped[f.content].push(f);
     });
     return grouped;
   };
 
   // Shuffle fighters for a specific martial content
   shuffleMartialContent = (content: string) => {
+    // Chỉ bốc thăm được với file thô; file chuẩn đã có sẵn thứ tự biểu diễn
+    if (!this.martialArrayRaw?.length) return;
     const grouped = this.getMartialDataByContent();
     const fighters = grouped[content];
     if (!fighters || fighters.length < 2) return;
@@ -1906,6 +1986,8 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
   // Shuffle all martial fighters
   shuffleAllMartial = () => {
+    // Chỉ bốc thăm được với file thô; file chuẩn đã có sẵn thứ tự biểu diễn
+    if (!this.martialArrayRaw?.length) return;
     const grouped = this.getMartialDataByContent();
     
     // Shuffle each content group
@@ -2325,7 +2407,9 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
   renderTqStep3 = () => {
     const groupedData = this.getMartialDataByContent();
     const contentKeys = Object.keys(groupedData);
-    const hasData = this.martialArrayRaw?.length > 0;
+    const hasData = contentKeys.length > 0;
+    // File chuẩn đã có sẵn thứ tự biểu diễn nên không cho bốc thăm lại
+    const canShuffle = this.martialArrayRaw?.length > 0;
 
     return (
       <div className="space-y-6">
@@ -2342,7 +2426,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
         </div>
 
         {/* Shuffle All Button */}
-        {hasData && (
+        {canShuffle && (
           <div className="flex justify-end">
             <button
               onClick={this.shuffleAllMartial}
@@ -2368,14 +2452,16 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
                         {fighters.length} VĐV
                       </span>
                     </div>
-                    <button
-                      onClick={() => this.shuffleMartialContent(content)}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg text-sm font-medium transition-all"
-                      title={`Xáo trộn ngẫu nhiên nội dung ${content}`}
-                    >
-                      <i className="fa-solid fa-shuffle"></i>
-                      Xáo trộn
-                    </button>
+                    {canShuffle && (
+                      <button
+                        onClick={() => this.shuffleMartialContent(content)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg text-sm font-medium transition-all"
+                        title={`Xáo trộn ngẫu nhiên nội dung ${content}`}
+                      >
+                        <i className="fa-solid fa-shuffle"></i>
+                        Xáo trộn
+                      </button>
+                    )}
                   </div>
                   <div className="p-4 bg-white">
                     <div className="flex flex-wrap gap-2">
@@ -2414,23 +2500,15 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
   renderTqStep4 = () => {
     const { tournamentCreated } = this.state;
     const hasArranged = this.martialStandardArray?.length > 0;
-    
-    // Get content stats from appropriate data source
-    const getContentStatsFromArray = (arr: any[]) => {
-      const contentCount: { [key: string]: number } = {};
-      arr?.forEach((item) => {
-        const content = item[1];
-        contentCount[content] = (contentCount[content] || 0) + 1;
-      });
-      return contentCount;
-    };
-    
-    const contentStats = hasArranged 
-      ? getContentStatsFromArray(this.martialStandardArray)
-      : this.getMartialContentStats();
+
+    // getMartialFlatData đã bỏ các dòng tên nội dung nên không đếm nhầm chúng thành VĐV
+    const contentStats = this.getMartialContentStats();
     const contentKeys = Object.keys(contentStats);
-    const totalFighters = hasArranged ? this.martialStandardArray.length : (this.martialArrayRaw?.length || 0);
+    const totalFighters = this.getMartialFlatData().length;
     const hasData = totalFighters > 0;
+    const martialPreviewHeader = this.martialStandardFromFile
+      ? ['STT', 'Họ tên', 'Code/Đơn vị', 'Quốc gia']
+      : ['STT', 'Nội dung', 'Họ tên', 'Code/Đơn vị', 'Quốc gia'];
 
     return (
       <div className="space-y-6">
@@ -2543,7 +2621,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 sticky top-0">
                   <tr>
-                    {(hasArranged ? ['STT', 'Nội dung', 'Họ tên', 'Code/Đơn vị', 'Quốc gia'] : this.martialArrangeHeader || ['STT', 'Nội dung', 'Họ tên', 'Code/Đơn vị', 'Quốc gia'])?.map((header, i) => 
+                    {martialPreviewHeader.map((header, i) => 
                       <th key={i} className="px-3 py-2 text-left font-semibold text-slate-600 border-b whitespace-nowrap">{header}</th>
                     )}
                   </tr>
