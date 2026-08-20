@@ -1021,11 +1021,12 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
             >
               <img src={logo} alt="logo" className="h-6" />
             </a>
-            <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 rounded-lg px-3 py-1 max-w-[70vw]">
-              <span className="text-[1.6vh] font-bold text-slate-700 leading-snug whitespace-pre-line" ref={this.tournamentNameRef}>{processedTournamentName}</span>
-            </div>
           </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
+          {/* Tournament Name - canh giua man hinh */}
+          <div className="text-center px-4 max-w-[50vw]" id="tournamentName">
+            <span className="text-[3.2vh] font-black uppercase tracking-wide text-coc-red leading-tight whitespace-pre-line" ref={this.tournamentNameRef}>{processedTournamentName}</span>
+          </div>
+          <div className="flex items-center gap-3 flex-shrink-0 flex-1 justify-end">
             <span className="bg-slate-200 px-4 py-1.5 rounded font-bold text-base">{arenaName}</span>
             {/* Quick Menu Button */}
             <div className="relative">
