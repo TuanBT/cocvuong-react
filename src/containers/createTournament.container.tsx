@@ -2675,8 +2675,8 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
               
               {/* Right: Tournament name badge */}
               {tournamentName ? (
-                <div className="bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 rounded-lg px-3 py-1.5 max-w-[200px]">
-                  <p className="text-xs text-violet-700 font-medium truncate" title={tournamentName}>
+                <div className="bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 rounded-lg px-3 py-1.5 max-w-[300px]">
+                  <p className="text-xs text-violet-700 font-medium whitespace-pre-line" title={tournamentName}>
                     {tournamentName}
                   </p>
                 </div>
@@ -2766,7 +2766,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
                     <label key={i} onClick={() => this.chooseTournament(i)}
                       className="flex items-center gap-3 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-violet-50 hover:border-violet-300 transition-colors">
                       <input type="radio" name="tournamentRadio" id={`tournamentRadio-${tournament[0]}`} value={tournament[1]} defaultChecked={i === 0} className="w-4 h-4 text-violet-500" />
-                      <span className="font-medium text-slate-700">{tournament[1]}</span>
+                      <span className="font-medium text-slate-700 whitespace-pre-line">{tournament[1]}</span>
                     </label>
                   )) : (
                     <div className="text-center py-6">

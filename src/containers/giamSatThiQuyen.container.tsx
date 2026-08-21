@@ -888,11 +888,11 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     // It nguoi thi chu to hon, dong nguoi thi FitText tu thu lai cho vua mot dong
     const fighterNameMaxVh = fighterCount <= 1 ? 12 : fighterCount <= 2 ? 10 : 8;
 
-    // Ten giai luon nam tren mot dong: <br> tro thanh khoang trang, FitText lo phan co chu
+    // Ten giai: <br> tro thanh xuong dong, giu nguyen \n tu textarea
     const processedTournamentName = tournamentName
-      .replace(/<br\s*\/?>/gi, ' ')
-      .replace(/<\/br>/gi, ' ')
-      .replace(/\s+/g, ' ')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/br>/gi, '\n')
+      .replace(/[^\S\n]+/g, ' ')
       .trim();
 
     // Danh sach giam dinh hien thi theo cau hinh 3 hay 5 nguoi
@@ -970,8 +970,8 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
         )}
 
         {/* Header - Tournament Info */}
-        <div className="bg-white border-b border-slate-200 text-slate-800 px-4 flex items-center justify-between" style={{ height: '6%' }}>
-          <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="bg-white border-b border-slate-200 text-slate-800 px-4 flex items-center justify-between relative" style={{ minHeight: '7%' }}>
+          <div className="flex items-center gap-3 flex-shrink-0 z-10">
             {/* Connection Status Dot */}
             <span 
               className={`status-dot w-3 h-3 rounded-full block flex-shrink-0 ${
@@ -1002,18 +1002,19 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
               <img src={logo} alt="logo" className="h-6" />
             </a>
           </div>
-          {/* Tournament Name - mot dong, tu co cho vua khung giua header */}
-          <div className="flex-[2] min-w-0 px-4 flex items-center justify-center" id="tournamentName">
+          {/* Tournament Name - canh giua man hinh bang absolute */}
+          <div className="absolute inset-0 flex items-center justify-center px-[15%] pointer-events-none" id="tournamentName">
             <FitText
-              maxVh={3.4}
-              minVh={1.4}
+              maxVh={4.5}
+              minVh={1.6}
+              maxHeightVh={6.5}
               className="text-center"
-              innerClassName="font-black uppercase tracking-wide text-coc-red leading-none"
+              innerClassName="font-black uppercase tracking-wide text-coc-red leading-tight whitespace-pre-line"
             >
               {processedTournamentName}
             </FitText>
           </div>
-          <div className="flex items-center gap-3 flex-shrink-0 flex-1 justify-end">
+          <div className="flex items-center gap-3 flex-shrink-0 z-10">
             <span className="bg-slate-200 px-4 py-1.5 rounded font-bold text-base">{arenaName}</span>
             {/* Quick Menu Button */}
             <div className="relative">
@@ -1188,7 +1189,7 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
                         onChange={() => this.chooseTournament(i)} 
                         className="w-4 h-4 text-blue-500" 
                       />
-                      <span className="text-sm text-slate-700">{tournament[1]}</span>
+                      <span className="text-sm text-slate-700 whitespace-pre-line">{tournament[1]}</span>
                     </label>
                   )) : <p className="text-slate-400 italic text-sm">Không có giải đấu</p>}
                 </div>

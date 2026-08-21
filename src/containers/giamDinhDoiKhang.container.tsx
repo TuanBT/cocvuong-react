@@ -590,7 +590,7 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
                       <label key={i} onClick={() => this.chooseTournament(i)}
                         className="flex items-center gap-2 p-2 border border-slate-200 rounded-lg cursor-pointer hover:bg-blue-50">
                         <input type="radio" name="tournamentRadio" defaultChecked={i === 0} className="w-4 h-4 text-blue-500" />
-                        <span className="text-sm text-slate-700">{tournament[1]}</span>
+                        <span className="text-sm text-slate-700 whitespace-pre-line">{tournament[1]}</span>
                       </label>
                     )) : <p className="text-slate-400 italic text-sm">Không có giải đấu</p>}
                   </div>

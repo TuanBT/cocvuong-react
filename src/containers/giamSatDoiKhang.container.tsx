@@ -10,6 +10,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { COLORS } from '../constants/colors';
 import { ROUNDS, REFEREE_COUNT, TIME_SCORE } from '../constants/rounds';
 import { DEFAULT_COMBAT_CONST, DEFAULT_MATCH_OBJ } from '../constants/settings';
+import FitText from '../components/common/FitText';
 
 // Import utils
 import { convertWinLoseFormat, getModes, resizeTextToFit } from '../utils/helpers';
@@ -1711,8 +1712,8 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 )}
 
                 {/* Header - Tournament Info */}
-                <div className="bg-white border-b border-slate-200 text-slate-800 py-2 px-4 flex items-center justify-between" style={{ minHeight: '5%' }}>
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                <div className="bg-white border-b border-slate-200 text-slate-800 py-2 px-4 flex items-center justify-between relative" style={{ minHeight: '7%' }}>
+                    <div className="flex items-center gap-3 flex-shrink-0 z-10">
                         {/* Connection Status Dot */}
                         <span 
                             className={`status-dot w-3 h-3 rounded-full block flex-shrink-0 ${
@@ -1726,13 +1727,21 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                         >
                             <img src={logo} alt="logo" className="h-6" />
                         </a>
-                    </div>
-                    {/* Tournament Name - canh giua man hinh, ngay tren dong ho */}
-                    <div className="text-center px-4 max-w-[50vw]" id="tournamentName">
-                        <span className="text-[3.2vh] font-black uppercase tracking-wide text-coc-red leading-tight whitespace-pre-line">{processedTournamentName}</span>
-                    </div>
-                    <div className="flex items-center gap-3 flex-shrink-0 flex-1 justify-end">
                         <span className="bg-slate-200 px-4 py-1.5 rounded font-bold text-base" id="arena-name">{arenaName}</span>
+                    </div>
+                    {/* Tournament Name - canh giua man hinh bang absolute */}
+                    <div className="absolute inset-0 flex items-center justify-center px-[15%] pointer-events-none" id="tournamentName">
+                        <FitText
+                            maxVh={4.5}
+                            minVh={1.6}
+                            maxHeightVh={6.5}
+                            className="text-center"
+                            innerClassName="font-black uppercase tracking-wide text-coc-red leading-tight whitespace-pre-line"
+                        >
+                            {processedTournamentName}
+                        </FitText>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0 z-10">
                         <span className={`font-bold text-base px-3 py-1.5 rounded ${matchType?.toLowerCase().includes('chung kết') ? 'bg-yellow-400 text-yellow-900' : matchType?.toLowerCase().includes('bán kết') ? 'bg-orange-400 text-orange-900' : ''}`} id="match-type">{matchType}</span>
                         <span className="font-semibold text-base" id="match-category">{matchCategory}</span>
                         {/* Quick Menu Button */}
@@ -2078,7 +2087,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                                         <label key={i} onClick={() => this.chooseTournament(i)}
                                             className="flex items-center gap-2 p-2 border border-slate-200 rounded-lg cursor-pointer hover:bg-blue-50">
                                             <input type="radio" name="tournamentRadio" defaultChecked={i === 0} className="w-4 h-4 text-blue-500" />
-                                            <span className="text-sm text-slate-700">{tournament[1]}</span>
+                                            <span className="text-sm text-slate-700 whitespace-pre-line">{tournament[1]}</span>
                                         </label>
                                     )) : <p className="text-slate-400 italic text-sm">Không có giải đấu</p>}
                                 </div>

@@ -424,8 +424,8 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
               
               {/* Right: Tournament name badge */}
               {tournamentName ? (
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg px-3 py-1.5 max-w-[200px]">
-                  <p className="text-xs text-blue-700 font-medium truncate" title={tournamentName}>
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg px-3 py-1.5 max-w-[300px]">
+                  <p className="text-xs text-blue-700 font-medium whitespace-pre-line" title={tournamentName}>
                     {tournamentName}
                   </p>
                 </div>
@@ -463,7 +463,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
                       onChange={() => this.chooseTournament(i)}
                       className="w-4 h-4 text-indigo-500"
                     />
-                    <span className="font-medium text-slate-700">{tournament[0]} - {tournament[1]}</span>
+                    <span className="font-medium text-slate-700 whitespace-pre-line">{tournament[0]} - {tournament[1]}</span>
                   </label>
                 )) : (
                   <p className="text-slate-400 italic col-span-2">Không có giải đấu</p>

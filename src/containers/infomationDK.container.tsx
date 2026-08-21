@@ -235,8 +235,8 @@ class InformationDkContainer extends Component<InformationDkContainerProps, Info
               
               {/* Right: Tournament name badge */}
               {tournamentName ? (
-                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg px-3 py-1.5 max-w-[200px]">
-                  <p className="text-xs text-amber-700 font-medium truncate" title={tournamentName}>
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg px-3 py-1.5 max-w-[300px]">
+                  <p className="text-xs text-amber-700 font-medium whitespace-pre-line" title={tournamentName}>
                     {tournamentName}
                   </p>
                 </div>
@@ -260,7 +260,7 @@ class InformationDkContainer extends Component<InformationDkContainerProps, Info
                   <button 
                     key={i}
                     onClick={() => this.chooseTournament(i)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-pre-line transition-all ${
                       selectedTournament === i 
                         ? 'bg-amber-500 text-white shadow-md' 
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
