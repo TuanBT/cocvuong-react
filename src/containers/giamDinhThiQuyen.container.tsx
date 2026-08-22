@@ -1,8 +1,19 @@
-import React, { Component, createRef, RefObject } from 'react';
+import React, { Component } from 'react';
 import { database } from '../firebase';
 import { ref, get, update, child, onValue, off, DatabaseReference, Database } from "firebase/database";
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { toast } from 'react-toastify';
+
+import { PasswordModal, Toast } from '../components/ui';
+import {
+  RefereeHeader,
+  RefereeSetupModal,
+  RefereeHelpModal,
+  ShortcutModal,
+  ScoreKey,
+} from '../components/referee';
+
+/** 1..9 - hang 0 va hai phim chuc nang duoc dat rieng o cuoi ban phim */
+const NUMPAD_KEYS = [7, 8, 9, 4, 5, 6, 1, 2, 3];
 
 interface GiamDinhThiQuyenContainerProps {}
 
@@ -21,7 +32,6 @@ interface GiamDinhThiQuyenContainerState {
   selectedTournament: number;
   selectedArena: number;
   selectedReferee: number;
-  showSettingsMenu: boolean;
   showHelpModal: boolean;
   showModalShortcut: boolean;
 }
@@ -69,7 +79,6 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
       selectedTournament: 0,
       selectedArena: 0,
       selectedReferee: 1,
-      showSettingsMenu: false,
       showHelpModal: false,
       showModalShortcut: false
     };
@@ -175,43 +184,28 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
     this.setState({ selectedTournament: tournamentNoIndex });
   }
 
+  /** Con modal nao dang mo thi ban phim thuoc ve modal do */
+  isAnyModalOpen(): boolean {
+    const { showPasswordModal, showChooseRefereeNoModal, showHelpModal, showModalShortcut } = this.state;
+    return showPasswordModal || showChooseRefereeNoModal || showHelpModal || showModalShortcut;
+  }
+
   _handleKeyDown = (e: KeyboardEvent) => {
-    // ESC - Xóa input hoặc đóng modal
-    if (e.which === 27) {
-      const { showPasswordModal, showChooseRefereeNoModal, showHelpModal, showModalShortcut, refereeResultBox } = this.state;
-      // Nếu có input, xóa input trước
-      if (refereeResultBox && refereeResultBox !== '') {
-        this.clearInput();
-        return;
-      }
-      // Nếu không có input, đóng modal
-      if (showPasswordModal) {
-        this.setState({ showPasswordModal: false });
-      } else if (showChooseRefereeNoModal) {
-        this.setState({ showChooseRefereeNoModal: false });
-      } else if (showHelpModal) {
-        this.setState({ showHelpModal: false });
-      } else if (showModalShortcut) {
-        this.setState({ showModalShortcut: false });
-      }
+    // Modal tu xu ly phim cua no (Esc de dong, so de nhap mat khau)
+    if (this.isAnyModalOpen()) return;
+
+    if (e.key === 'Escape') {
+      this.clearInput();
       return;
     }
-    // Enter - Gửi điểm
-    if (e.which === 13) {
+
+    if (e.key === 'Enter') {
       this.submitInput();
       return;
     }
-    // . (Chấm) - Nhập dấu thập phân (keyCode 190 hoặc 110 cho numpad)
-    if (e.which === 190 || e.which === 110) {
-      this.input('.');
-      return;
-    }
-    // 0-9 (keyboard và numpad)
-    if (e.which >= 48 && e.which <= 57) {
-      this.input(e.which - 48);
-    } else if (e.which >= 96 && e.which <= 105) {
-      // Numpad 0-9
-      this.input(e.which - 96);
+
+    if (e.key >= '0' && e.key <= '9') {
+      this.input(Number(e.key));
     }
   }
 
@@ -259,20 +253,9 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
     }
   }
 
-  input = (score: number | string) => {
-    // Xử lý dấu thập phân
-    if (score === '.') {
-      if (this.refereeMartialScore.includes('.')) {
-        return; // Đã có dấu thập phân rồi
-      }
-      this.refereeMartialScore += '.';
-      this.setState({ refereeResultBox: this.refereeMartialScore || '00' });
-      return;
-    }
-    
-    // Kiểm tra độ dài (cho phép thêm 1 ký tự nếu có dấu thập phân)
-    const maxLength = this.refereeMartialScore.includes('.') ? 4 : 2; // Ví dụ: 9.5 hoặc 99
-    if (this.refereeMartialScore.replace('.', '').length >= 2) {
+  input = (score: number) => {
+    // Điểm thi quyền là số nguyên 0-99
+    if (this.refereeMartialScore.length >= 2) {
       toast.error("Chỉ nhập điểm từ 0 đến 99");
       return;
     }
@@ -349,463 +332,214 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
     this.setState({ selectedReferee: refereeIndex });
   }
 
+  openShortcuts = () => this.setState({ showModalShortcut: true });
+
+  openHelp = () => this.setState({ showHelpModal: true });
+
+  closeShortcuts = () => this.setState({ showModalShortcut: false });
+
+  closeHelp = () => this.setState({ showHelpModal: false });
+
+  hidePasswordModal = () => this.setState({ showPasswordModal: false });
+
+  hideChooseRefereeNoModal = () => this.setState({ showChooseRefereeNoModal: false });
+
+  renderSkeleton() {
+    return (
+      <div className="absolute inset-0 z-20 flex flex-col bg-slate-100">
+        <div className="bg-white px-3 py-2 flex-shrink-0 border-b border-slate-200">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 bg-slate-300 rounded-full animate-pulse" />
+              <div className="h-6 w-16 bg-slate-300 rounded-lg animate-pulse" />
+              <div className="h-6 w-20 bg-slate-200 rounded-lg animate-pulse" />
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-24 bg-slate-200 rounded-lg animate-pulse" />
+              <div className="h-9 w-9 bg-slate-200 rounded-full animate-pulse" />
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 flex flex-col p-2 gap-2">
+          <div className="h-[18vh] bg-slate-300 rounded-card animate-pulse" />
+          <div className="flex-1 grid grid-cols-3 gap-2">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="bg-slate-300 rounded-card animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   render() {
-    const { 
-      password, 
-      arenaName, 
-      gdName, 
-      matchMartialName, 
-      matchMartialNo, 
+    const {
+      password,
+      arenaName,
+      gdName,
+      matchMartialName,
+      matchMartialNo,
       refereeResultBox,
       isInternetConnected,
-      showPasswordModal, 
-      showChooseRefereeNoModal, 
+      showPasswordModal,
+      showChooseRefereeNoModal,
       isShowFiveReferee,
+      showHelpModal,
+      showModalShortcut,
       selectedTournament,
       selectedArena,
       selectedReferee,
-      showSettingsMenu,
-      showHelpModal,
-      showModalShortcut
     } = this.state;
 
+    const hasInput = this.refereeMartialScore !== '';
+
     return (
-      <div className="giam-dinh-container bg-slate-100">
-        {/* Loading Skeleton when no match data - covers entire screen */}
-        {!matchMartialName && (
-          <div className="absolute inset-0 z-30 flex flex-col overflow-hidden bg-slate-100">
-            {/* Skeleton Header */}
-            <div className="bg-white shadow-md px-3 py-2 border-b border-slate-200">
-              <div className="flex items-center justify-between gap-2">
-                {/* LEFT skeleton - status dot + arena + match */}
-                <div className="flex items-center gap-2">
-                  <div className="h-3 w-3 bg-slate-300 rounded-full animate-pulse"></div>
-                  <div className="h-6 w-16 bg-slate-300 rounded-lg animate-pulse"></div>
-                  <div className="h-6 w-24 bg-slate-200 rounded-lg animate-pulse"></div>
-                </div>
-                {/* RIGHT skeleton - Giám Định nổi bật + settings */}
-                <div className="flex items-center gap-2">
-                  <div className="h-8 w-24 bg-gradient-to-r from-blue-200 to-indigo-200 rounded-lg animate-pulse"></div>
-                  <div className="h-8 w-8 bg-slate-200 rounded-full animate-pulse"></div>
-                </div>
-              </div>
-            </div>
-            {/* Skeleton Body */}
-            <div className="flex-1 flex flex-col p-2">
-              {/* Score Display Skeleton */}
-              <div className="bg-slate-400 rounded-2xl h-32 mb-2 flex-shrink-0 animate-pulse"></div>
-              {/* Numpad Skeleton */}
-              <div className="flex-1 grid grid-cols-3 gap-2">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(i => (
-                  <div key={i} className="bg-slate-300 rounded-xl animate-pulse"></div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+      <div data-accent="martial" className="app-fullscreen bg-slate-100">
+        {!gdName && this.renderSkeleton()}
 
-        {/* Header - status dot LEFT, Giám Định name RIGHT */}
-        <header className="bg-white shadow-md px-3 py-2 flex-shrink-0 border-b border-slate-200">
-          <div className="flex items-center justify-between gap-2">
-            {/* LEFT: Status dot + Arena, Match */}
-            <div className="flex items-center gap-2 min-w-0">
-              {/* Connection Status Dot */}
-              <span 
-                className={`status-dot w-3 h-3 rounded-full block flex-shrink-0 ${
-                  isInternetConnected ? 'bg-green-500' : 'bg-gray-400'
-                }`}
-                data-tooltip={isInternetConnected ? 'Đã kết nối Internet' : 'Mất kết nối'}
-              ></span>
-              <span className="bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded-lg whitespace-nowrap">
-                {arenaName || '...'}
-              </span>
-              <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-lg whitespace-nowrap">
-                {matchMartialName || '...'}{matchMartialNo ? ` - ${matchMartialNo}` : ''}
-              </span>
-            </div>
-            {/* RIGHT: Giám Định name (nổi bật) + Settings */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm px-3 py-1.5 rounded-lg shadow-md">
-                {gdName || '...'}
-              </span>
-              <div className="relative">
-                <button 
-                  onClick={() => this.setState({ showSettingsMenu: !showSettingsMenu })}
-                  className="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center"
-                >
-                  <i className="fa fa-cog text-sm"></i>
-                </button>
-                {/* Dropdown Menu */}
-                {showSettingsMenu && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => this.setState({ showSettingsMenu: false })}></div>
-                    <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-50 min-w-[160px]">
-                      <button 
-                        onClick={() => this.setState({ showSettingsMenu: false, showModalShortcut: true })}
-                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                      >
-                        <i className="fa-solid fa-keyboard text-slate-500"></i>
-                        Phím tắt
-                      </button>
-                      <button 
-                        onClick={() => this.setState({ showSettingsMenu: false, showHelpModal: true })}
-                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
-                      >
-                        <i className="fa-solid fa-circle-question text-slate-500"></i>
-                        Giúp đỡ
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-          {/* Warning when disconnected */}
-          {!isInternetConnected && (
-            <div className="mt-2 bg-red-100 text-red-700 py-1 px-2 text-center text-xs font-medium rounded-lg border border-red-200">
-              <i className="fa-solid fa-exclamation-triangle mr-1"></i>
-              Không có kết nối - Không thể chấm điểm
-            </div>
-          )}
-        </header>
+        <RefereeHeader
+          isOnline={isInternetConnected}
+          chips={[
+            { label: arenaName || '...', className: 'bg-amber-600' },
+            {
+              label: `${matchMartialName || '...'}${matchMartialNo ? ` - ${matchMartialNo}` : ''}`,
+              className: 'bg-slate-600',
+            },
+          ]}
+          refereeName={gdName}
+          onOpenShortcuts={this.openShortcuts}
+          onOpenHelp={this.openHelp}
+        />
 
-        {/* Full-screen Calculator - takes all remaining space */}
         <div className="flex-1 flex flex-col p-2 min-h-0 overflow-hidden">
-          {/* Score Display - compact for portrait mode */}
-          <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl shadow-lg p-2 mb-2 flex-shrink-0">
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg py-2 px-3">
-              <p className="text-[15vw] sm:text-[12vw] md:text-[10vw] font-black text-white text-center tracking-wider drop-shadow-lg leading-none">
-                {refereeResultBox}
-              </p>
-            </div>
+          {/* O diem: chua bam gui thi mo, da co so thi noi ro len de giam dinh
+              lien mat vao khong nham */}
+          <div
+            className={`rounded-card shadow-sm px-3 py-2 mb-2 flex-shrink-0 transition-colors duration-150
+              ${hasInput ? 'bg-amber-500' : 'bg-slate-300'}`}
+          >
+            <output
+              className="block text-[15vw] sm:text-[12vw] md:text-[10vw] font-black text-white
+                text-center tracking-wider drop-shadow leading-none tabular-nums"
+            >
+              {refereeResultBox}
+            </output>
           </div>
 
-          {/* Numpad - fills ALL remaining space */}
+          {/* Ban phim lap day toan bo phan con lai; phim to nhat co the de bam
+              nhanh bang ngon cai khi cam mot tay. Diem thi quyen la so nguyen
+              nen ban phim chi co 0-9, khong co dau thap phan. */}
           <div className="flex-1 grid grid-cols-3 gap-2 min-h-0">
-            {/* Row 1: 7, 8, 9 */}
-            <button onClick={() => this.input(7)}
-              className="bg-white rounded-xl shadow-md flex items-center justify-center touch-manipulation select-none transition-all duration-100 active:scale-[0.95] active:bg-amber-100 active:shadow-[inset_0_0_20px_rgba(251,191,36,0.4)]"
-              style={{ minHeight: 0 }}>
-              <span className="text-[9vw] sm:text-[7vw] font-bold text-slate-700">7</span>
-            </button>
-            <button onClick={() => this.input(8)}
-              className="bg-white rounded-xl shadow-md flex items-center justify-center touch-manipulation select-none transition-all duration-100 active:scale-[0.95] active:bg-amber-100 active:shadow-[inset_0_0_20px_rgba(251,191,36,0.4)]"
-              style={{ minHeight: 0 }}>
-              <span className="text-[9vw] sm:text-[7vw] font-bold text-slate-700">8</span>
-            </button>
-            <button onClick={() => this.input(9)}
-              className="bg-white rounded-xl shadow-md flex items-center justify-center touch-manipulation select-none transition-all duration-100 active:scale-[0.95] active:bg-amber-100 active:shadow-[inset_0_0_20px_rgba(251,191,36,0.4)]"
-              style={{ minHeight: 0 }}>
-              <span className="text-[9vw] sm:text-[7vw] font-bold text-slate-700">9</span>
-            </button>
-            
-            {/* Row 2: 4, 5, 6 */}
-            <button onClick={() => this.input(4)}
-              className="bg-white rounded-xl shadow-md flex items-center justify-center touch-manipulation select-none transition-all duration-100 active:scale-[0.95] active:bg-amber-100 active:shadow-[inset_0_0_20px_rgba(251,191,36,0.4)]"
-              style={{ minHeight: 0 }}>
-              <span className="text-[9vw] sm:text-[7vw] font-bold text-slate-700">4</span>
-            </button>
-            <button onClick={() => this.input(5)}
-              className="bg-white rounded-xl shadow-md flex items-center justify-center touch-manipulation select-none transition-all duration-100 active:scale-[0.95] active:bg-amber-100 active:shadow-[inset_0_0_20px_rgba(251,191,36,0.4)]"
-              style={{ minHeight: 0 }}>
-              <span className="text-[9vw] sm:text-[7vw] font-bold text-slate-700">5</span>
-            </button>
-            <button onClick={() => this.input(6)}
-              className="bg-white rounded-xl shadow-md flex items-center justify-center touch-manipulation select-none transition-all duration-100 active:scale-[0.95] active:bg-amber-100 active:shadow-[inset_0_0_20px_rgba(251,191,36,0.4)]"
-              style={{ minHeight: 0 }}>
-              <span className="text-[9vw] sm:text-[7vw] font-bold text-slate-700">6</span>
-            </button>
-            
-            {/* Row 3: 1, 2, 3 */}
-            <button onClick={() => this.input(1)}
-              className="bg-white rounded-xl shadow-md flex items-center justify-center touch-manipulation select-none transition-all duration-100 active:scale-[0.95] active:bg-amber-100 active:shadow-[inset_0_0_20px_rgba(251,191,36,0.4)]"
-              style={{ minHeight: 0 }}>
-              <span className="text-[9vw] sm:text-[7vw] font-bold text-slate-700">1</span>
-            </button>
-            <button onClick={() => this.input(2)}
-              className="bg-white rounded-xl shadow-md flex items-center justify-center touch-manipulation select-none transition-all duration-100 active:scale-[0.95] active:bg-amber-100 active:shadow-[inset_0_0_20px_rgba(251,191,36,0.4)]"
-              style={{ minHeight: 0 }}>
-              <span className="text-[9vw] sm:text-[7vw] font-bold text-slate-700">2</span>
-            </button>
-            <button onClick={() => this.input(3)}
-              className="bg-white rounded-xl shadow-md flex items-center justify-center touch-manipulation select-none transition-all duration-100 active:scale-[0.95] active:bg-amber-100 active:shadow-[inset_0_0_20px_rgba(251,191,36,0.4)]"
-              style={{ minHeight: 0 }}>
-              <span className="text-[9vw] sm:text-[7vw] font-bold text-slate-700">3</span>
-            </button>
-            
-            {/* Row 4: Clear, 0, Submit */}
-            <button onClick={this.clearInput}
-              className="bg-red-500 text-white rounded-xl shadow-md flex items-center justify-center touch-manipulation select-none transition-all duration-100 active:scale-[0.95] active:brightness-110 active:shadow-[inset_0_0_20px_rgba(255,255,255,0.4)]"
-              style={{ minHeight: 0 }}>
-              <i className="fa-regular fa-trash-can text-[7vw] sm:text-[5vw]"></i>
-            </button>
-            <button onClick={() => this.input(0)}
-              className="bg-white rounded-xl shadow-md flex items-center justify-center touch-manipulation select-none transition-all duration-100 active:scale-[0.95] active:bg-amber-100 active:shadow-[inset_0_0_20px_rgba(251,191,36,0.4)]"
-              style={{ minHeight: 0 }}>
-              <span className="text-[9vw] sm:text-[7vw] font-bold text-slate-700">0</span>
-            </button>
-            <button onClick={this.submitInput}
-              className="bg-gradient-to-br from-emerald-400 to-emerald-600 text-white rounded-xl shadow-lg flex items-center justify-center touch-manipulation select-none transition-all duration-100 active:scale-[0.95] active:brightness-110 active:shadow-[inset_0_0_20px_rgba(255,255,255,0.4)]"
-              style={{ minHeight: 0 }}>
-              <i className="fa-solid fa-check text-[7vw] sm:text-[5vw]"></i>
-            </button>
+            {NUMPAD_KEYS.map((key) => (
+              <ScoreKey
+                key={key}
+                value={key}
+                onPress={this.input}
+                ariaLabel={`Nhập ${key}`}
+                className="bg-white active:bg-amber-100"
+                labelClassName="text-[9vw] sm:text-[7vw] font-bold text-slate-700"
+              >
+                {key}
+              </ScoreKey>
+            ))}
+
+            <ScoreKey
+              value={0}
+              onPress={this.clearInput}
+              ariaLabel="Xoá điểm vừa nhập"
+              className="bg-red-500 text-white active:brightness-110"
+              labelClassName="text-[7vw] sm:text-[5vw]"
+            >
+              <i className="fa-regular fa-trash-can" aria-hidden="true" />
+            </ScoreKey>
+
+            <ScoreKey
+              value={0}
+              onPress={this.input}
+              ariaLabel="Nhập 0"
+              className="bg-white active:bg-amber-100"
+              labelClassName="text-[9vw] sm:text-[7vw] font-bold text-slate-700"
+            >
+              0
+            </ScoreKey>
+
+            <ScoreKey
+              value={0}
+              onPress={this.submitInput}
+              ariaLabel="Gửi điểm"
+              className="bg-emerald-600 text-white shadow active:brightness-110"
+              labelClassName="text-[7vw] sm:text-[5vw]"
+            >
+              <i className="fa-solid fa-check" aria-hidden="true" />
+            </ScoreKey>
           </div>
         </div>
 
-        {/* Password Modal */}
-        {showPasswordModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
-                <div className="flex items-center justify-between">
-                  <h5 className="text-white font-bold text-lg flex items-center gap-2">
-                    <i className="fa-solid fa-lock"></i>Nhập mật khẩu
-                  </h5>
-                  <button onClick={() => this.setState({ showPasswordModal: false })} className="text-white/80 hover:text-white transition-colors">
-                    <i className="fa-solid fa-xmark text-xl"></i>
-                  </button>
-                </div>
+        <PasswordModal
+          isOpen={showPasswordModal}
+          value={password}
+          onInput={this.inputPw}
+          onSubmit={this.verifyPassword}
+          onClose={this.hidePasswordModal}
+        />
+
+        <RefereeSetupModal
+          isOpen={showChooseRefereeNoModal}
+          tournaments={this.tournaments}
+          selectedTournament={selectedTournament}
+          onSelectTournament={this.chooseTournament}
+          selectedArena={selectedArena}
+          onSelectArena={this.handleArenaChange}
+          selectedReferee={selectedReferee}
+          onSelectReferee={this.handleRefereeChange}
+          showFiveReferees={isShowFiveReferee}
+          onConfirm={this.chooseRefereeNo}
+          onClose={this.hideChooseRefereeNoModal}
+        />
+
+        <RefereeHelpModal isOpen={showHelpModal} onClose={this.closeHelp} />
+
+        <ShortcutModal isOpen={showModalShortcut} onClose={this.closeShortcuts}>
+          <div className="space-y-4">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <i className="fa-solid fa-calculator text-slate-400" aria-hidden="true" />
+                <span className="font-semibold text-slate-700">Nhập điểm</span>
               </div>
-              
-              <div className="p-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <input 
-                    type="password" 
-                    className="flex-1 px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 text-lg tracking-widest text-center"
-                    placeholder="••••••"
-                    value={password}
-                    readOnly
-                  />
-                  <button 
-                    onClick={() => this.inputPw('-1')}
-                    className="p-2 bg-red-100 text-red-600 rounded-xl"
-                  >
-                    <i className="fas fa-trash-alt"></i>
-                  </button>
-                </div>
-                
-                <div className="grid grid-cols-5 gap-1.5 mb-2">
-                  {['1','2','3','4','5'].map(num => (
-                    <button key={num} onClick={() => this.inputPw(num)}
-                      className="p-3 text-lg font-bold bg-slate-100 active:bg-slate-300 rounded-xl">{num}</button>
-                  ))}
-                </div>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {['6','7','8','9','0'].map(num => (
-                    <button key={num} onClick={() => this.inputPw(num)}
-                      className="p-3 text-lg font-bold bg-slate-100 active:bg-slate-300 rounded-xl">{num}</button>
-                  ))}
-                </div>
+              <div className="flex flex-wrap items-center gap-1 p-3 bg-slate-50 rounded-control">
+                {['0', '1', '2', '3'].map((n) => (
+                  <span key={n} className="w-8 h-8 bg-slate-200 rounded flex items-center justify-center
+                    text-sm font-bold text-slate-600">{n}</span>
+                ))}
+                <span className="w-8 h-8 flex items-center justify-center text-slate-400">…</span>
+                <span className="w-8 h-8 bg-slate-200 rounded flex items-center justify-center
+                  text-sm font-bold text-slate-600">9</span>
               </div>
-              
-              <div className="flex gap-2 p-3 bg-slate-50 border-t">
-                <button onClick={() => this.setState({ showPasswordModal: false })}
-                  className="flex-1 py-2 px-3 rounded-xl border border-slate-200 text-slate-600 font-medium">Hủy</button>
-                <button onClick={this.verifyPassword}
-                  className="flex-1 py-2 px-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700">OK</button>
+              <p className="text-xs text-slate-500 mt-2 mb-0">Dùng hàng phím số hoặc numpad</p>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <i className="fa-solid fa-check-double text-slate-400" aria-hidden="true" />
+                <span className="font-semibold text-slate-700">Thao tác</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-control border border-emerald-100">
+                  <span className="px-2 h-8 bg-emerald-600 text-white rounded flex items-center
+                    justify-center text-xs font-bold">Enter</span>
+                  <span className="text-emerald-700 text-sm">Gửi điểm</span>
+                </div>
+                <div className="flex items-center gap-2 p-3 bg-red-50 rounded-control border border-red-100">
+                  <span className="px-2 h-8 bg-red-500 text-white rounded flex items-center
+                    justify-center text-xs font-bold">Esc</span>
+                  <span className="text-red-700 text-sm">Xoá / Đóng</span>
+                </div>
               </div>
             </div>
           </div>
-        )}
+        </ShortcutModal>
 
-        {/* Choose Referee Modal */}
-        {showChooseRefereeNoModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden max-h-[85vh] overflow-y-auto">
-              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4 sticky top-0">
-                <div className="flex items-center justify-between">
-                  <h5 className="text-white font-bold text-lg flex items-center gap-2">
-                    <i className="fa-solid fa-id-badge"></i>Chọn thông tin
-                  </h5>
-                  <button onClick={() => this.setState({ showChooseRefereeNoModal: false })} className="text-white/80 hover:text-white transition-colors">
-                    <i className="fa-solid fa-xmark text-xl"></i>
-                  </button>
-                </div>
-              </div>
-              
-              <div className="p-4 space-y-4">
-                {/* Tournament Selection */}
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Giải đấu</p>
-                  <div className="space-y-1.5 max-h-32 overflow-y-auto">
-                    {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
-                      <label key={i} onClick={() => this.chooseTournament(i)}
-                        className="flex items-center gap-2 p-2 border border-slate-200 rounded-lg cursor-pointer hover:bg-blue-50">
-                        <input type="radio" name="tournamentRadio" checked={selectedTournament === i}
-                          onChange={() => this.chooseTournament(i)} className="w-4 h-4 text-blue-500" />
-                        <span className="text-sm text-slate-700 whitespace-pre-line">{tournament[1]}</span>
-                      </label>
-                    )) : <p className="text-slate-400 italic text-sm">Không có giải đấu</p>}
-                  </div>
-                </div>
-
-                {/* Arena Selection */}
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Sân thi đấu</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <label className="relative cursor-pointer">
-                      <input type="radio" name="optionsArena" value="0" checked={selectedArena === 0}
-                        onChange={() => this.handleArenaChange(0)} className="peer sr-only" />
-                      <div className="p-3 border-2 border-slate-200 rounded-xl text-center peer-checked:border-blue-500 peer-checked:bg-blue-50 flex flex-col items-center justify-center min-h-[60px]">
-                        <i className="fa-solid fa-chess-board text-xl text-blue-500"></i>
-                        <span className="font-bold text-sm text-slate-700 mt-1">Sân A</span>
-                      </div>
-                    </label>
-                    <label className="relative cursor-pointer">
-                      <input type="radio" name="optionsArena" value="1" checked={selectedArena === 1}
-                        onChange={() => this.handleArenaChange(1)} className="peer sr-only" />
-                      <div className="p-3 border-2 border-slate-200 rounded-xl text-center peer-checked:border-blue-500 peer-checked:bg-blue-50 flex flex-col items-center justify-center min-h-[60px]">
-                        <i className="fa-solid fa-chess-board text-xl text-blue-500"></i>
-                        <span className="font-bold text-sm text-slate-700 mt-1">Sân B</span>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Referee Selection */}
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Vị trí giám định</p>
-                  <div className={`grid ${isShowFiveReferee ? 'grid-cols-5' : 'grid-cols-3'} gap-1.5`}>
-                    {[1, 2, 3].map((num) => (
-                      <label key={num} className="relative cursor-pointer">
-                        <input type="radio" name="optionsReferee" value={num} checked={selectedReferee === num}
-                          onChange={() => this.handleRefereeChange(num)} className="peer sr-only" />
-                        <div className="p-2 border-2 border-slate-200 rounded-xl text-center peer-checked:border-blue-500 peer-checked:bg-blue-50 flex items-center justify-center min-h-[40px]">
-                          <span className="font-bold text-sm text-slate-700">GĐ{num}</span>
-                        </div>
-                      </label>
-                    ))}
-                    {isShowFiveReferee && [4, 5].map((num) => (
-                      <label key={num} className="relative cursor-pointer">
-                        <input type="radio" name="optionsReferee" value={num} checked={selectedReferee === num}
-                          onChange={() => this.handleRefereeChange(num)} className="peer sr-only" />
-                        <div className="p-2 border-2 border-slate-200 rounded-xl text-center peer-checked:border-blue-500 peer-checked:bg-blue-50 flex items-center justify-center min-h-[40px]">
-                          <span className="font-bold text-sm text-slate-700">GĐ{num}</span>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex gap-2 p-3 bg-slate-50 border-t sticky bottom-0">
-                <button onClick={() => this.setState({ showChooseRefereeNoModal: false })}
-                  className="flex-1 py-2 px-3 rounded-xl border border-slate-200 text-slate-600 font-medium">Hủy</button>
-                <button onClick={this.chooseRefereeNo}
-                  className="flex-1 py-2 px-3 rounded-xl bg-blue-500 text-white font-medium">OK</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Help Modal */}
-        {showHelpModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => this.setState({ showHelpModal: false })}>
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
-              {/* Header */}
-              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
-                <div className="flex items-center justify-between">
-                  <h5 className="text-white font-bold text-lg flex items-center gap-2">
-                    <i className="fa-solid fa-circle-question"></i>Hướng dẫn sử dụng
-                  </h5>
-                  <button onClick={() => this.setState({ showHelpModal: false })} className="text-white/80 hover:text-white transition-colors">
-                    <i className="fa-solid fa-xmark text-xl"></i>
-                  </button>
-                </div>
-              </div>
-              
-              <div className="p-5">
-                {/* Status Dot Section */}
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <i className="fa-solid fa-signal text-slate-400"></i>
-                    <span className="font-semibold text-slate-700">Trạng thái kết nối</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
-                      <span className="w-3 h-3 rounded-full bg-green-500 shadow-sm"></span>
-                      <span className="text-slate-600">Đã kết nối Internet</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
-                      <span className="w-3 h-3 rounded-full bg-gray-400 shadow-sm"></span>
-                      <span className="text-slate-600">Mất kết nối</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="px-5 py-3 bg-slate-50 border-t">
-                <button onClick={() => this.setState({ showHelpModal: false })}
-                  className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">Đã hiểu</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Shortcut Modal */}
-        {showModalShortcut && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => this.setState({ showModalShortcut: false })}>
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
-              {/* Header */}
-              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
-                <div className="flex items-center justify-between">
-                  <h5 className="text-white font-bold text-lg flex items-center gap-2">
-                    <i className="fa-solid fa-keyboard"></i>Phím tắt
-                  </h5>
-                  <button onClick={() => this.setState({ showModalShortcut: false })} className="text-white/80 hover:text-white transition-colors">
-                    <i className="fa-solid fa-xmark text-xl"></i>
-                  </button>
-                </div>
-              </div>
-              
-              <div className="p-5 space-y-4">
-                {/* Number Input */}
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <i className="fa-solid fa-calculator text-slate-400"></i>
-                    <span className="font-semibold text-slate-700">Nhập điểm</span>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-                    <div className="flex gap-1">
-                      {['0','1','2','3'].map(n => (
-                        <span key={n} className="w-8 h-8 bg-slate-200 rounded flex items-center justify-center text-sm font-bold text-slate-600">{n}</span>
-                      ))}
-                      <span className="w-8 h-8 flex items-center justify-center text-slate-400">...</span>
-                      <span className="w-8 h-8 bg-slate-200 rounded flex items-center justify-center text-sm font-bold text-slate-600">9</span>
-                      <span className="w-8 h-8 bg-slate-200 rounded flex items-center justify-center text-sm font-bold text-slate-600">.</span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-2">Dùng bàn phím số hoặc numpad</p>
-                </div>
-                
-                {/* Actions */}
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <i className="fa-solid fa-check-double text-slate-400"></i>
-                    <span className="font-semibold text-slate-700">Thao tác</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="flex items-center gap-2 p-3 bg-green-50 rounded-xl border border-green-100">
-                      <span className="min-w-12 h-8 px-2 bg-green-600 text-white rounded flex items-center justify-center text-xs font-bold">Enter</span>
-                      <span className="text-green-700 text-sm">Gửi điểm</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-3 bg-red-50 rounded-xl border border-red-100">
-                      <span className="min-w-10 h-8 px-2 bg-red-500 text-white rounded flex items-center justify-center text-xs font-bold">Esc</span>
-                      <span className="text-red-700 text-sm">Xóa / Đóng</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="px-5 py-3 bg-slate-50 border-t">
-                <button onClick={() => this.setState({ showModalShortcut: false })}
-                  className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">Đã hiểu</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <ToastContainer position="top-center" autoClose={800} hideProgressBar />
+        <Toast autoClose={800} />
       </div>
     );
   }

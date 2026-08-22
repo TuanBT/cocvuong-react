@@ -1,5 +1,5 @@
 import React, { Component, createRef, RefObject } from 'react';
-import '../../assets/css/style.css';
+import '../../assets/css/bracket.css';
 import { BRACKET_TEMPLATES, updateBracketMatchInfo, addPathHoverListeners, CombatInfo } from '../../utils/bracketUtils';
 
 interface Combat {

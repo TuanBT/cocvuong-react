@@ -120,30 +120,6 @@ export interface CommonSetting {
   passwordGiamDinh: string | number;
 }
 
-// Component Props types
-export interface PasswordModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onVerify: (password: string) => void;
-  title?: string;
-}
-
-export interface NumpadInputProps {
-  onInput: (value: string) => void;
-}
-
-export interface TournamentSelectorProps {
-  tournaments: Array<{ index: number; name: string }>;
-  selectedIndex: number;
-  onSelect: (index: number) => void;
-}
-
-export interface ArenaSelectorProps {
-  arenas: string[];
-  selectedIndex: number;
-  onSelect: (index: number) => void;
-}
-
 // State types
 export interface GiamSatDoiKhangState {
   data: any[];

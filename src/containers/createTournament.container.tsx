@@ -1,9 +1,12 @@
 import React, { Component } from 'react';
 import { database } from '../firebase';
 import { ref, get, update, child, onValue, Database } from "firebase/database";
-import logo from '../assets/img/logo.png';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { toast } from 'react-toastify';
+
+import {
+  PageShell, PageHeader, Button, PasswordModal, ConfirmModal,
+  LoadingOverlay, Modal, Toast, AppFooter,
+} from '../components/ui';
 import { read, write, utils } from 'xlsx';
 import FileSaver from "file-saver";
 import { NavLink } from "react-router-dom";
@@ -1286,133 +1289,122 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
   // Render Wizard Mode
   renderWizardMode = () => {
-    const { wizardType, wizardStep } = this.state;
+    const { wizardType, wizardStep, tournamentCreated } = this.state;
     const steps = this.getWizardSteps();
+    const currentStep = steps[wizardStep - 1];
+    const isLastStep = wizardStep === steps.length;
 
     return (
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        {/* Type Selector */}
-        <div className="flex justify-center gap-4 mb-8">
-          <button 
-            onClick={() => this.setWizardType('doikhang')}
-            className={`flex items-center gap-3 px-6 py-3 rounded-2xl font-medium transition-all ${
-              wizardType === 'doikhang' 
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg scale-105' 
-                : 'bg-white text-slate-600 border-2 border-slate-200 hover:border-emerald-300'
-            }`}
-          >
-            <i className="fa-solid fa-hand-fist text-xl"></i>
-            <span>Đối Kháng</span>
-          </button>
-          <button 
-            onClick={() => this.setWizardType('thiquyen')}
-            className={`flex items-center gap-3 px-6 py-3 rounded-2xl font-medium transition-all ${
-              wizardType === 'thiquyen' 
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg scale-105' 
-                : 'bg-white text-slate-600 border-2 border-slate-200 hover:border-amber-300'
-            }`}
-          >
-            <i className="fa-solid fa-person-running text-xl"></i>
-            <span>Thi Quyền</span>
-          </button>
-        </div>
-
-        {/* Progress Steps */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          {steps.map((s, i) => (
-            <React.Fragment key={s.step}>
-              <div 
-                onClick={() => s.step <= wizardStep && this.setWizardStep(s.step)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl cursor-pointer transition-all ${
-                  wizardStep === s.step 
-                    ? wizardType === 'doikhang' 
-                      ? 'bg-emerald-500 text-white shadow-lg' 
-                      : 'bg-amber-500 text-white shadow-lg'
-                    : wizardStep > s.step
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-slate-100 text-slate-400'
-                }`}
-              >
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
-                  wizardStep > s.step ? 'bg-green-500 text-white' : ''
-                }`}>
-                  {wizardStep > s.step ? <i className="fa-solid fa-check text-xs"></i> : s.step}
-                </div>
-                <span className="text-sm font-medium hidden sm:inline">{s.title}</span>
-              </div>
-              {i < steps.length - 1 && (
-                <div className={`w-8 h-0.5 ${wizardStep > s.step ? 'bg-green-500' : 'bg-slate-200'}`}></div>
-              )}
-            </React.Fragment>
+      <div className="w-full max-w-5xl mx-auto px-3 sm:px-4 py-6">
+        {/* Chon noi dung: doi khang hay thi quyen. Lua chon nay doi luon bang
+            mau cua ca man hinh nen nguoi dung khong nham dang nhap giai nao. */}
+        <div className="flex justify-center gap-3 mb-6" role="tablist" aria-label="Loại nội dung">
+          {([
+            { type: 'doikhang', label: 'Đối kháng', icon: 'fa-solid fa-hand-back-fist' },
+            { type: 'thiquyen', label: 'Thi quyền', icon: 'fa-solid fa-hand-fist' },
+          ] as const).map((option) => (
+            <button
+              key={option.type}
+              type="button"
+              role="tab"
+              aria-selected={wizardType === option.type}
+              onClick={() => this.setWizardType(option.type)}
+              className={`flex items-center gap-2.5 px-5 py-3 rounded-control font-medium
+                transition-colors tap-target
+                ${wizardType === option.type
+                  ? 'bg-accent-600 text-white shadow-sm'
+                  : 'bg-white text-slate-600 border-2 border-slate-200 hover:border-slate-300'}`}
+            >
+              <i className={`${option.icon} text-lg`} aria-hidden="true" />
+              {option.label}
+            </button>
           ))}
         </div>
 
-        {/* Step Content */}
-        <div className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
-          {/* Step Header */}
-          <div className={`px-6 py-4 ${wizardType === 'doikhang' ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-gradient-to-r from-amber-500 to-orange-500'}`}>
+        {/* Thanh tien trinh: tren dien thoai cuon ngang thay vi vo bo cuc */}
+        <ol className="flex items-center justify-start sm:justify-center gap-1.5 mb-6
+          overflow-x-auto scroll-x list-none p-0 m-0 pb-1">
+          {steps.map((step, index) => {
+            const isDone = wizardStep > step.step;
+            const isCurrent = wizardStep === step.step;
+            return (
+              <li key={step.step} className="flex items-center gap-1.5 flex-shrink-0">
+                <button
+                  type="button"
+                  disabled={step.step > wizardStep}
+                  onClick={() => this.setWizardStep(step.step)}
+                  aria-current={isCurrent ? 'step' : undefined}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-control transition-colors
+                    disabled:cursor-default
+                    ${isCurrent ? 'bg-accent-600 text-white shadow-sm'
+                      : isDone ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                      : 'bg-slate-100 text-slate-400'}`}
+                >
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
+                    ${isDone ? 'bg-emerald-600 text-white' : ''}`}>
+                    {isDone ? <i className="fa-solid fa-check" aria-hidden="true" /> : step.step}
+                  </span>
+                  <span className="text-sm font-medium hidden sm:inline whitespace-nowrap">{step.title}</span>
+                </button>
+                {index < steps.length - 1 && (
+                  <span className={`w-6 h-0.5 flex-shrink-0 ${isDone ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+                )}
+              </li>
+            );
+          })}
+        </ol>
+
+        <div className="bg-white rounded-card shadow-card border border-slate-100 overflow-hidden">
+          <div className="px-4 sm:px-6 py-4 bg-accent-600">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                <i className={`fa-solid ${steps[wizardStep - 1]?.icon} text-white text-lg`}></i>
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-white">
-                  Bước {wizardStep}: {steps[wizardStep - 1]?.title}
+              <span className="w-10 h-10 bg-white/20 rounded-control flex items-center justify-center flex-shrink-0">
+                <i className={`fa-solid ${currentStep?.icon} text-white text-lg`} aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-base sm:text-lg font-bold text-white m-0">
+                  Bước {wizardStep}: {currentStep?.title}
                 </h2>
-                <p className="text-white/80 text-sm">{steps[wizardStep - 1]?.description}</p>
+                <p className="text-white/80 text-sm m-0">{currentStep?.description}</p>
               </div>
             </div>
           </div>
 
-          {/* Step Body */}
-          <div className="p-6">
-            {this.renderWizardStepContent()}
-          </div>
+          <div className="p-4 sm:p-6">{this.renderWizardStepContent()}</div>
 
-          {/* Step Footer */}
-          <div className="flex justify-between items-center px-6 py-4 bg-slate-50 border-t border-slate-100">
-            <button 
-              onClick={this.prevWizardStep}
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-4
+            bg-slate-50 border-t border-slate-100">
+            <Button
+              variant="secondary"
+              icon="fa-solid fa-arrow-left"
               disabled={wizardStep === 1}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
-                wizardStep === 1 
-                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
-                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-              }`}
+              onClick={this.prevWizardStep}
             >
-              <i className="fa-solid fa-arrow-left"></i>
               Quay lại
-            </button>
-            
-            <div className="text-sm text-slate-500">
-              Bước {wizardStep} / {steps.length}
-            </div>
+            </Button>
 
-            {wizardStep < steps.length ? (
-              <button 
-                onClick={this.nextWizardStep}
-                className={`flex items-center gap-2 px-6 py-2 rounded-xl font-medium text-white transition-all ${
-                  wizardType === 'doikhang' 
-                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600' 
-                    : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600'
-                } shadow-lg`}
-              >
+            <span className="text-sm text-slate-500 order-last sm:order-none w-full sm:w-auto text-center">
+              Bước {wizardStep} / {steps.length}
+            </span>
+
+            {!isLastStep ? (
+              <Button variant="primary" onClick={this.nextWizardStep}>
                 Tiếp tục
-                <i className="fa-solid fa-arrow-right"></i>
-              </button>
-            ) : this.state.tournamentCreated ? (
-              <div className="flex items-center gap-2 px-6 py-2 rounded-xl font-medium text-emerald-600 bg-emerald-100">
-                <i className="fa-solid fa-check-circle"></i>
+                <i className="fa-solid fa-arrow-right" aria-hidden="true" />
+              </Button>
+            ) : tournamentCreated ? (
+              <span className="inline-flex items-center gap-2 px-4 py-2.5 rounded-control
+                font-medium text-emerald-700 bg-emerald-100">
+                <i className="fa-solid fa-circle-check" aria-hidden="true" />
                 Đã tạo giải
-              </div>
+              </span>
             ) : (
-              <button 
-                onClick={() => wizardType === 'doikhang' ? this.confirmImportCombat() : this.confirmImportMartial()}
-                className="flex items-center gap-2 px-6 py-2 rounded-xl font-medium text-white bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-lg transition-all"
+              <Button
+                variant="success"
+                icon="fa-solid fa-rocket"
+                onClick={() => (wizardType === 'doikhang' ? this.confirmImportCombat() : this.confirmImportMartial())}
               >
-                <i className="fa-solid fa-rocket"></i>
                 Tạo giải đấu
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -1453,12 +1445,12 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     
     return (
       <div className="space-y-6">
-        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+        <div className="bg-accent-50 border border-accent-200 rounded-control p-4">
           <div className="flex items-start gap-3">
-            <i className="fa-solid fa-lightbulb text-emerald-500 mt-1"></i>
+            <i className="fa-solid fa-lightbulb text-accent-500 mt-1"></i>
             <div>
-              <h4 className="font-semibold text-emerald-800">Chọn kiểu nhập liệu</h4>
-              <p className="text-sm text-emerald-700 mt-1">
+              <h4 className="font-semibold text-accent-800">Chọn kiểu nhập liệu</h4>
+              <p className="text-sm text-accent-700 mt-1">
                 Bạn có 2 lựa chọn để nhập thông tin VĐV: Từ file danh sách đăng ký (thô) hoặc từ file đã sắp lịch sẵn (chuẩn).
               </p>
             </div>
@@ -1469,15 +1461,15 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
           {/* File thô */}
           <button
             onClick={() => this.setWizardImportType('raw')}
-            className={`p-6 rounded-2xl border-2 text-left transition-all ${
+            className={`p-6 rounded-card border-2 text-left transition-all ${
               wizardImportType === 'raw'
-                ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-200'
-                : 'border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50'
+                ? 'border-accent-500 bg-accent-50 ring-2 ring-accent-200'
+                : 'border-slate-200 hover:border-accent-300 hover:bg-accent-50/50'
             }`}
           >
             <div className="flex items-start gap-4">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                wizardImportType === 'raw' ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'
+              <div className={`w-12 h-12 rounded-control flex items-center justify-center ${
+                wizardImportType === 'raw' ? 'bg-accent-500 text-white' : 'bg-slate-200 text-slate-500'
               }`}>
                 <i className="fa-solid fa-file-lines text-xl"></i>
               </div>
@@ -1487,14 +1479,14 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
                   Nhập danh sách VĐV đăng ký, hệ thống sẽ tự động sắp xếp và bốc thăm.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="text-xs px-2 py-1 bg-emerald-100 text-emerald-700 rounded-lg">STT</span>
-                  <span className="text-xs px-2 py-1 bg-emerald-100 text-emerald-700 rounded-lg">Hạng cân</span>
-                  <span className="text-xs px-2 py-1 bg-emerald-100 text-emerald-700 rounded-lg">Tên VĐV</span>
-                  <span className="text-xs px-2 py-1 bg-emerald-100 text-emerald-700 rounded-lg">Đơn vị</span>
+                  <span className="text-xs px-2 py-1 bg-accent-100 text-accent-700 rounded-lg">STT</span>
+                  <span className="text-xs px-2 py-1 bg-accent-100 text-accent-700 rounded-lg">Hạng cân</span>
+                  <span className="text-xs px-2 py-1 bg-accent-100 text-accent-700 rounded-lg">Tên VĐV</span>
+                  <span className="text-xs px-2 py-1 bg-accent-100 text-accent-700 rounded-lg">Đơn vị</span>
                 </div>
               </div>
               {wizardImportType === 'raw' && (
-                <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
+                <div className="w-6 h-6 bg-accent-500 rounded-full flex items-center justify-center">
                   <i className="fa-solid fa-check text-white text-xs"></i>
                 </div>
               )}
@@ -1504,14 +1496,14 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
           {/* File chuẩn */}
           <button
             onClick={() => this.setWizardImportType('standard')}
-            className={`p-6 rounded-2xl border-2 text-left transition-all ${
+            className={`p-6 rounded-card border-2 text-left transition-all ${
               wizardImportType === 'standard'
                 ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
                 : 'border-slate-200 hover:border-blue-300 hover:bg-blue-50/50'
             }`}
           >
             <div className="flex items-start gap-4">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+              <div className={`w-12 h-12 rounded-control flex items-center justify-center ${
                 wizardImportType === 'standard' ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-500'
               }`}>
                 <i className="fa-solid fa-table-cells text-xl"></i>
@@ -1538,18 +1530,18 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
         </div>
 
         {/* Info box */}
-        <div className={`p-4 rounded-xl border ${
-          wizardImportType === 'raw' ? 'bg-emerald-50 border-emerald-200' : 'bg-blue-50 border-blue-200'
+        <div className={`p-4 rounded-control border ${
+          wizardImportType === 'raw' ? 'bg-accent-50 border-accent-200' : 'bg-blue-50 border-blue-200'
         }`}>
           <div className="flex items-start gap-3">
             <i className={`fa-solid fa-info-circle mt-0.5 ${
-              wizardImportType === 'raw' ? 'text-emerald-500' : 'text-blue-500'
+              wizardImportType === 'raw' ? 'text-accent-500' : 'text-blue-500'
             }`}></i>
             <div className="text-sm">
               {wizardImportType === 'raw' ? (
                 <>
-                  <p className="font-medium text-emerald-800">Quy trình với file thô:</p>
-                  <ol className="mt-2 space-y-1 text-emerald-700 list-decimal list-inside">
+                  <p className="font-medium text-accent-800">Quy trình với file thô:</p>
+                  <ol className="mt-2 space-y-1 text-accent-700 list-decimal list-inside">
                     <li>Upload file Excel danh sách VĐV</li>
                     <li>Nhóm theo hạng cân + Xáo trộn bốc thăm</li>
                     <li>Điều chỉnh vị trí (tùy chọn)</li>
@@ -1580,7 +1572,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     if (wizardImportType === 'standard') {
       return (
         <div className="space-y-6">
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-control p-4">
             <div className="flex items-start gap-3">
               <i className="fa-solid fa-file-excel text-blue-500 mt-1"></i>
               <div>
@@ -1594,11 +1586,11 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
           <div className="flex flex-wrap gap-3">
             <a href={mauchuandoikhang} download="1-Mau_Chuan_Doi_Khang" target="_blank" rel="noreferrer"
-              className="flex items-center gap-2 px-4 py-2 border-2 border-blue-500 text-blue-600 rounded-xl font-medium hover:bg-blue-50">
+              className="flex items-center gap-2 px-4 py-2 border-2 border-blue-500 text-blue-600 rounded-control font-medium hover:bg-blue-50">
               <i className="fa-solid fa-file-download"></i> Tải mẫu Excel chuẩn
             </a>
             <label className="flex-1 min-w-[200px] relative">
-              <div className="flex items-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer">
+              <div className="flex items-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 rounded-control hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer">
                 <i className="fa-solid fa-cloud-upload text-slate-400"></i>
                 <span className="text-slate-500">Chọn hoặc kéo thả file Excel chuẩn...</span>
               </div>
@@ -1608,7 +1600,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
           </div>
 
           {/* Preview Table */}
-          <div className="overflow-x-auto border border-slate-200 rounded-xl max-h-[400px] overflow-y-auto">
+          <div className="overflow-x-auto border border-slate-200 rounded-control max-h-[400px] overflow-y-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 sticky top-0">
                 <tr>
@@ -1635,12 +1627,12 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     // File thô (mặc định)
     return (
       <div className="space-y-6">
-        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+        <div className="bg-accent-50 border border-accent-200 rounded-control p-4">
           <div className="flex items-start gap-3">
-            <i className="fa-solid fa-file-excel text-emerald-500 mt-1"></i>
+            <i className="fa-solid fa-file-excel text-accent-500 mt-1"></i>
             <div>
-              <h4 className="font-semibold text-emerald-800">Import danh sách VĐV</h4>
-              <p className="text-sm text-emerald-700 mt-1">
+              <h4 className="font-semibold text-accent-800">Import danh sách VĐV</h4>
+              <p className="text-sm text-accent-700 mt-1">
                 Upload file Excel chứa danh sách VĐV theo format: STT, Hạng cân, Tên VĐV, Mã số/Đơn vị, Quốc gia. Hệ thống sẽ tự động nhóm theo hạng cân.
               </p>
             </div>
@@ -1649,11 +1641,11 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
         <div className="flex flex-wrap gap-3">
           <a href={mauthodoikhang} download="3-Mau_Tho_Doi_Khang" target="_blank" rel="noreferrer"
-            className="flex items-center gap-2 px-4 py-2 border-2 border-emerald-500 text-emerald-600 rounded-xl font-medium hover:bg-emerald-50">
+            className="flex items-center gap-2 px-4 py-2 border-2 border-accent-500 text-accent-600 rounded-control font-medium hover:bg-accent-50">
             <i className="fa-solid fa-file-download"></i> Tải mẫu Excel
           </a>
           <label className="flex-1 min-w-[200px] relative">
-            <div className="flex items-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 rounded-xl hover:border-emerald-400 hover:bg-emerald-50 transition-all cursor-pointer">
+            <div className="flex items-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 rounded-control hover:border-accent-400 hover:bg-accent-50 transition-all cursor-pointer">
               <i className="fa-solid fa-cloud-upload text-slate-400"></i>
               <span className="text-slate-500">Chọn hoặc kéo thả file Excel...</span>
             </div>
@@ -1663,16 +1655,16 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
         </div>
 
         <div className="flex gap-3">
-          <button onClick={this.grouping} className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium">
+          <button onClick={this.grouping} className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-control font-medium">
             <i className="fas fa-sort-amount-down"></i> Nhóm theo hạng cân
           </button>
-          <button onClick={this.shuffle} className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium">
+          <button onClick={this.shuffle} className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-control font-medium">
             <i className="fa-solid fa-shuffle"></i> Xáo trộn ngẫu nhiên
           </button>
         </div>
 
         {/* Preview Table */}
-        <div className="overflow-x-auto border border-slate-200 rounded-xl max-h-[400px] overflow-y-auto">
+        <div className="overflow-x-auto border border-slate-200 rounded-control max-h-[400px] overflow-y-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 sticky top-0">
               <tr>
@@ -1742,12 +1734,12 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
     return (
       <div className="space-y-6">
-        <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+        <div className="bg-accent-50 border border-accent-200 rounded-control p-4">
           <div className="flex items-start gap-3">
-            <i className="fa-solid fa-sitemap text-purple-500 mt-1"></i>
+            <i className="fa-solid fa-sitemap text-accent-500 mt-1"></i>
             <div>
-              <h4 className="font-semibold text-purple-800">Sắp xếp thứ tự VĐV</h4>
-              <p className="text-sm text-purple-700 mt-1">
+              <h4 className="font-semibold text-accent-800">Sắp xếp thứ tự VĐV</h4>
+              <p className="text-sm text-accent-700 mt-1">
                 Sắp xếp thứ tự VĐV trong mỗi hạng cân. Dùng nút mũi tên để di chuyển hoặc nhấn "Xáo trộn" để bốc thăm ngẫu nhiên.
               </p>
             </div>
@@ -1766,14 +1758,14 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
             <div className="flex flex-wrap items-center gap-3">
               <button 
                 onClick={this.shuffle}
-                className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-all"
+                className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-control font-medium transition-all"
               >
                 <i className="fa-solid fa-shuffle"></i>
                 Xáo trộn tất cả
               </button>
               <button 
                 onClick={this.grouping}
-                className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium transition-all"
+                className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-control font-medium transition-all"
               >
                 <i className="fas fa-sort-amount-down"></i>
                 Sắp xếp lại
@@ -1781,7 +1773,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
             </div>
 
             {/* Hướng dẫn hạt giống */}
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+            <div className="bg-amber-50 border border-amber-200 rounded-control p-3">
               <div className="flex items-start gap-2 text-sm text-amber-800">
                 <i className="fa-solid fa-star text-amber-500 mt-0.5"></i>
                 <div>
@@ -1797,16 +1789,16 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
               const bracketInfo = this.getBracketPreview(fighters);
               
               return (
-                <div key={wi} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div key={wi} className="bg-white rounded-control border border-slate-200 overflow-hidden">
                   {/* Weight header */}
-                  <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-3 flex items-center justify-between">
+                  <div className="bg-accent-600 px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
                         <i className="fa-solid fa-dumbbell text-white"></i>
                       </div>
                       <div>
                         <h3 className="font-bold text-white">{weight}</h3>
-                        <p className="text-emerald-100 text-sm">{fighters.length} VĐV • {bracketInfo?.total || 0} trận</p>
+                        <p className="text-accent-100 text-sm">{fighters.length} VĐV • {bracketInfo?.total || 0} trận</p>
                       </div>
                     </div>
                     {bracketInfo && (
@@ -1835,16 +1827,16 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
                         return (
                         <div 
                           key={fi}
-                          className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
-                            seedNum === 1 ? 'border-purple-300 bg-purple-50' :
-                            seedNum === 2 ? 'border-orange-300 bg-orange-50' :
+                          className={`flex items-center gap-3 p-3 rounded-control border-2 transition-all ${
+                            seedNum === 1 ? 'border-accent-300 bg-accent-50' :
+                            seedNum === 2 ? 'border-amber-300 bg-amber-50' :
                             'border-slate-200 bg-slate-50 hover:border-slate-300'
                           }`}
                         >
                           {/* Position indicator */}
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
-                            seedNum === 1 ? 'bg-purple-500 text-white' :
-                            seedNum === 2 ? 'bg-orange-500 text-white' :
+                            seedNum === 1 ? 'bg-accent-500 text-white' :
+                            seedNum === 2 ? 'bg-amber-500 text-white' :
                             'bg-slate-300 text-slate-600'
                           }`}>
                             {fi + 1}
@@ -1857,8 +1849,8 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
                                 seedNum === 0 
                                   ? 'bg-slate-100 text-slate-300 hover:bg-amber-100 hover:text-amber-500' 
                                   : seedNum === 1
-                                    ? 'bg-purple-500 text-white'
-                                    : 'bg-orange-500 text-white'
+                                    ? 'bg-accent-500 text-white'
+                                    : 'bg-amber-500 text-white'
                               }`}
                               title={seedNum === 0 ? 'Đánh dấu hạt giống' : `Hạt giống #${seedNum}`}
                             >
@@ -1874,7 +1866,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
                           {/* Seed labels */}
                           {seedNum > 0 && (
                             <span className={`px-2 py-1 text-xs font-semibold rounded-lg ${
-                              seedNum === 1 ? 'bg-purple-500 text-white' : 'bg-orange-500 text-white'
+                              seedNum === 1 ? 'bg-accent-500 text-white' : 'bg-amber-500 text-white'
                             }`}>
                               HG #{seedNum}
                             </span>
@@ -2020,19 +2012,19 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
       <div className="space-y-6">
         {/* Status Banner */}
         {tournamentCreated ? (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+          <div className="bg-accent-50 border border-accent-200 rounded-control p-4">
             <div className="flex items-start gap-3">
-              <i className="fa-solid fa-trophy text-emerald-500 mt-1"></i>
+              <i className="fa-solid fa-trophy text-accent-500 mt-1"></i>
               <div>
-                <h4 className="font-semibold text-emerald-800">Đã tạo giải đấu thành công!</h4>
-                <p className="text-sm text-emerald-700 mt-1">
+                <h4 className="font-semibold text-accent-800">Đã tạo giải đấu thành công!</h4>
+                <p className="text-sm text-accent-700 mt-1">
                   Giải đấu đã được lưu vào hệ thống. Bạn có thể tải file Excel bên dưới.
                 </p>
               </div>
             </div>
           </div>
         ) : (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+          <div className="bg-green-50 border border-green-200 rounded-control p-4">
             <div className="flex items-start gap-3">
               <i className="fa-solid fa-check-circle text-green-500 mt-1"></i>
               <div>
@@ -2049,19 +2041,19 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
         {/* Summary Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-emerald-50 rounded-xl p-4 text-center">
-            <div className="text-3xl font-bold text-emerald-600">{totalFighters}</div>
-            <div className="text-sm text-emerald-700 mt-1">VĐV</div>
+          <div className="bg-accent-50 rounded-control p-4 text-center">
+            <div className="text-3xl font-bold text-accent-600">{totalFighters}</div>
+            <div className="text-sm text-accent-700 mt-1">VĐV</div>
           </div>
-          <div className="bg-blue-50 rounded-xl p-4 text-center">
+          <div className="bg-blue-50 rounded-control p-4 text-center">
             <div className="text-3xl font-bold text-blue-600">{weightKeys.length}</div>
             <div className="text-sm text-blue-700 mt-1">Hạng cân</div>
           </div>
-          <div className="bg-purple-50 rounded-xl p-4 text-center">
-            <div className="text-3xl font-bold text-purple-600">{hasArranged ? this.combatStandardArray.length : '—'}</div>
-            <div className="text-sm text-purple-700 mt-1">Trận đấu</div>
+          <div className="bg-accent-50 rounded-control p-4 text-center">
+            <div className="text-3xl font-bold text-accent-600">{hasArranged ? this.combatStandardArray.length : '—'}</div>
+            <div className="text-sm text-accent-700 mt-1">Trận đấu</div>
           </div>
-          <div className="bg-amber-50 rounded-xl p-4 text-center">
+          <div className="bg-amber-50 rounded-control p-4 text-center">
             <div className="text-3xl font-bold text-amber-600">{this.combatObj?.combatArena?.length || 2}</div>
             <div className="text-sm text-amber-700 mt-1">Sân thi đấu</div>
           </div>
@@ -2069,7 +2061,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
         {/* Weight Groups Summary */}
         {weightKeys.length > 0 && (
-          <div className="bg-slate-50 rounded-xl p-4">
+          <div className="bg-slate-50 rounded-control p-4">
             <h4 className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
               <i className="fa-solid fa-layer-group"></i>
               Thống kê theo hạng cân
@@ -2078,7 +2070,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
               {weightKeys.map((weight, i) => (
                 <span key={i} className="px-3 py-1 bg-white rounded-lg text-sm border border-slate-200 shadow-sm">
                   <span className="font-medium text-slate-700">{weight}</span>
-                  <span className="ml-2 text-emerald-600 font-semibold">{weightStats[weight]}</span>
+                  <span className="ml-2 text-accent-600 font-semibold">{weightStats[weight]}</span>
                 </span>
               ))}
             </div>
@@ -2091,7 +2083,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
             <button 
               onClick={this.arrangeCombatForWizard}
               disabled={!hasData}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-control font-medium transition-all ${
                 hasData 
                   ? 'bg-amber-500 hover:bg-amber-600 text-white' 
                   : 'bg-slate-200 text-slate-400 cursor-not-allowed'
@@ -2104,7 +2096,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
           <button 
             onClick={this.downloadCombatOrigin}
             disabled={!hasArranged}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-control font-medium transition-all ${
               hasArranged
                 ? 'bg-blue-500 hover:bg-blue-600 text-white' 
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed'
@@ -2117,7 +2109,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
         {/* Preview Table - Full list with scroll */}
         {hasData && (
-          <div className="overflow-hidden border border-slate-200 rounded-xl">
+          <div className="overflow-hidden border border-slate-200 rounded-control">
             <div className="bg-slate-100 px-4 py-2 border-b border-slate-200 flex items-center justify-between">
               <span className="font-medium text-slate-700">
                 <i className="fa-solid fa-table mr-2"></i>
@@ -2167,12 +2159,12 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     
     return (
       <div className="space-y-6">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+        <div className="bg-accent-50 border border-accent-200 rounded-control p-4">
           <div className="flex items-start gap-3">
-            <i className="fa-solid fa-lightbulb text-amber-500 mt-1"></i>
+            <i className="fa-solid fa-lightbulb text-accent-500 mt-1"></i>
             <div>
-              <h4 className="font-semibold text-amber-800">Chọn kiểu nhập liệu</h4>
-              <p className="text-sm text-amber-700 mt-1">
+              <h4 className="font-semibold text-accent-800">Chọn kiểu nhập liệu</h4>
+              <p className="text-sm text-accent-700 mt-1">
                 Bạn có 2 lựa chọn để nhập thông tin VĐV Thi Quyền: Từ file danh sách đăng ký (thô) hoặc từ file đã sắp lịch sẵn (chuẩn).
               </p>
             </div>
@@ -2183,15 +2175,15 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
           {/* File thô */}
           <button
             onClick={() => this.setWizardImportType('raw')}
-            className={`p-6 rounded-2xl border-2 text-left transition-all ${
+            className={`p-6 rounded-card border-2 text-left transition-all ${
               wizardImportType === 'raw'
-                ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200'
-                : 'border-slate-200 hover:border-amber-300 hover:bg-amber-50/50'
+                ? 'border-accent-500 bg-accent-50 ring-2 ring-accent-200'
+                : 'border-slate-200 hover:border-accent-300 hover:bg-accent-50/50'
             }`}
           >
             <div className="flex items-start gap-4">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                wizardImportType === 'raw' ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-500'
+              <div className={`w-12 h-12 rounded-control flex items-center justify-center ${
+                wizardImportType === 'raw' ? 'bg-accent-500 text-white' : 'bg-slate-200 text-slate-500'
               }`}>
                 <i className="fa-solid fa-file-lines text-xl"></i>
               </div>
@@ -2201,14 +2193,14 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
                   Nhập danh sách VĐV đăng ký theo từng nội dung thi quyền.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded-lg">STT</span>
-                  <span className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded-lg">Nội dung</span>
-                  <span className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded-lg">Họ tên</span>
-                  <span className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded-lg">Đơn vị</span>
+                  <span className="text-xs px-2 py-1 bg-accent-100 text-accent-700 rounded-lg">STT</span>
+                  <span className="text-xs px-2 py-1 bg-accent-100 text-accent-700 rounded-lg">Nội dung</span>
+                  <span className="text-xs px-2 py-1 bg-accent-100 text-accent-700 rounded-lg">Họ tên</span>
+                  <span className="text-xs px-2 py-1 bg-accent-100 text-accent-700 rounded-lg">Đơn vị</span>
                 </div>
               </div>
               {wizardImportType === 'raw' && (
-                <div className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center">
+                <div className="w-6 h-6 bg-accent-500 rounded-full flex items-center justify-center">
                   <i className="fa-solid fa-check text-white text-xs"></i>
                 </div>
               )}
@@ -2218,15 +2210,15 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
           {/* File chuẩn */}
           <button
             onClick={() => this.setWizardImportType('standard')}
-            className={`p-6 rounded-2xl border-2 text-left transition-all ${
+            className={`p-6 rounded-card border-2 text-left transition-all ${
               wizardImportType === 'standard'
-                ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-200'
-                : 'border-slate-200 hover:border-orange-300 hover:bg-orange-50/50'
+                ? 'border-accent-500 bg-accent-50 ring-2 ring-accent-200'
+                : 'border-slate-200 hover:border-accent-300 hover:bg-accent-50/50'
             }`}
           >
             <div className="flex items-start gap-4">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                wizardImportType === 'standard' ? 'bg-orange-500 text-white' : 'bg-slate-200 text-slate-500'
+              <div className={`w-12 h-12 rounded-control flex items-center justify-center ${
+                wizardImportType === 'standard' ? 'bg-accent-500 text-white' : 'bg-slate-200 text-slate-500'
               }`}>
                 <i className="fa-solid fa-table-cells text-xl"></i>
               </div>
@@ -2236,13 +2228,13 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
                   Nhập file đã có sẵn lịch biểu diễn thi quyền.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded-lg">Lượt</span>
-                  <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded-lg">Nội dung</span>
-                  <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded-lg">VĐV</span>
+                  <span className="text-xs px-2 py-1 bg-accent-100 text-accent-700 rounded-lg">Lượt</span>
+                  <span className="text-xs px-2 py-1 bg-accent-100 text-accent-700 rounded-lg">Nội dung</span>
+                  <span className="text-xs px-2 py-1 bg-accent-100 text-accent-700 rounded-lg">VĐV</span>
                 </div>
               </div>
               {wizardImportType === 'standard' && (
-                <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+                <div className="w-6 h-6 bg-accent-500 rounded-full flex items-center justify-center">
                   <i className="fa-solid fa-check text-white text-xs"></i>
                 </div>
               )}
@@ -2251,18 +2243,18 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
         </div>
 
         {/* Info box */}
-        <div className={`p-4 rounded-xl border ${
-          wizardImportType === 'raw' ? 'bg-amber-50 border-amber-200' : 'bg-orange-50 border-orange-200'
+        <div className={`p-4 rounded-control border ${
+          wizardImportType === 'raw' ? 'bg-accent-50 border-accent-200' : 'bg-accent-50 border-accent-200'
         }`}>
           <div className="flex items-start gap-3">
             <i className={`fa-solid fa-info-circle mt-0.5 ${
-              wizardImportType === 'raw' ? 'text-amber-500' : 'text-orange-500'
+              wizardImportType === 'raw' ? 'text-accent-500' : 'text-accent-500'
             }`}></i>
             <div className="text-sm">
               {wizardImportType === 'raw' ? (
                 <>
-                  <p className="font-medium text-amber-800">Quy trình với file thô:</p>
-                  <ol className="mt-2 space-y-1 text-amber-700 list-decimal list-inside">
+                  <p className="font-medium text-accent-800">Quy trình với file thô:</p>
+                  <ol className="mt-2 space-y-1 text-accent-700 list-decimal list-inside">
                     <li>Upload file Excel danh sách VĐV</li>
                     <li>Hệ thống tự động sắp xếp theo nội dung</li>
                     <li>Xem trước và tạo giải</li>
@@ -2270,8 +2262,8 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
                 </>
               ) : (
                 <>
-                  <p className="font-medium text-orange-800">Quy trình với file chuẩn:</p>
-                  <ol className="mt-2 space-y-1 text-orange-700 list-decimal list-inside">
+                  <p className="font-medium text-accent-800">Quy trình với file chuẩn:</p>
+                  <ol className="mt-2 space-y-1 text-accent-700 list-decimal list-inside">
                     <li>Upload file Excel đã có lịch biểu diễn</li>
                     <li>Xem trước và xác nhận</li>
                     <li>Tạo giải đấu</li>
@@ -2292,12 +2284,12 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     if (wizardImportType === 'standard') {
       return (
         <div className="space-y-6">
-          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+          <div className="bg-accent-50 border border-accent-200 rounded-control p-4">
             <div className="flex items-start gap-3">
-              <i className="fa-solid fa-file-excel text-orange-500 mt-1"></i>
+              <i className="fa-solid fa-file-excel text-accent-500 mt-1"></i>
               <div>
-                <h4 className="font-semibold text-orange-800">Import file đã sắp lịch</h4>
-                <p className="text-sm text-orange-700 mt-1">
+                <h4 className="font-semibold text-accent-800">Import file đã sắp lịch</h4>
+                <p className="text-sm text-accent-700 mt-1">
                   Upload file Excel chứa lịch biểu diễn đã được sắp sẵn.
                 </p>
               </div>
@@ -2306,11 +2298,11 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
           <div className="flex flex-wrap gap-3">
             <a href={mauchuanthiquyen} download="2-Mau_Chuan_Thi_Quyen" target="_blank" rel="noreferrer"
-              className="flex items-center gap-2 px-4 py-2 border-2 border-orange-500 text-orange-600 rounded-xl font-medium hover:bg-orange-50">
+              className="flex items-center gap-2 px-4 py-2 border-2 border-accent-500 text-accent-600 rounded-control font-medium hover:bg-accent-50">
               <i className="fa-solid fa-file-download"></i> Tải mẫu Excel chuẩn
             </a>
             <label className="flex-1 min-w-[200px] relative">
-              <div className="flex items-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 rounded-xl hover:border-orange-400 hover:bg-orange-50 transition-all cursor-pointer">
+              <div className="flex items-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 rounded-control hover:border-accent-400 hover:bg-accent-50 transition-all cursor-pointer">
                 <i className="fa-solid fa-cloud-upload text-slate-400"></i>
                 <span className="text-slate-500">Chọn hoặc kéo thả file Excel chuẩn...</span>
               </div>
@@ -2320,7 +2312,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
           </div>
 
           {/* Preview Table */}
-          <div className="overflow-x-auto border border-slate-200 rounded-xl max-h-[400px] overflow-y-auto">
+          <div className="overflow-x-auto border border-slate-200 rounded-control max-h-[400px] overflow-y-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 sticky top-0">
                 <tr>
@@ -2347,12 +2339,12 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     // File thô (mặc định)
     return (
       <div className="space-y-6">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+        <div className="bg-accent-50 border border-accent-200 rounded-control p-4">
           <div className="flex items-start gap-3">
-            <i className="fa-solid fa-file-excel text-amber-500 mt-1"></i>
+            <i className="fa-solid fa-file-excel text-accent-500 mt-1"></i>
             <div>
-              <h4 className="font-semibold text-amber-800">Import danh sách VĐV</h4>
-              <p className="text-sm text-amber-700 mt-1">
+              <h4 className="font-semibold text-accent-800">Import danh sách VĐV</h4>
+              <p className="text-sm text-accent-700 mt-1">
                 Upload file Excel chứa danh sách VĐV theo format: STT, Nội dung, Họ và tên, Mã số/Đơn vị, Quốc gia.
               </p>
             </div>
@@ -2361,11 +2353,11 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
         <div className="flex flex-wrap gap-3">
           <a href={mauthothiquyen} download="4-Mau_Tho_Thi_Quyen" target="_blank" rel="noreferrer"
-            className="flex items-center gap-2 px-4 py-2 border-2 border-amber-500 text-amber-600 rounded-xl font-medium hover:bg-amber-50">
+            className="flex items-center gap-2 px-4 py-2 border-2 border-accent-500 text-accent-600 rounded-control font-medium hover:bg-accent-50">
             <i className="fa-solid fa-file-download"></i> Tải mẫu Excel
           </a>
           <label className="flex-1 min-w-[200px] relative">
-            <div className="flex items-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 rounded-xl hover:border-amber-400 hover:bg-amber-50 transition-all cursor-pointer">
+            <div className="flex items-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 rounded-control hover:border-accent-400 hover:bg-accent-50 transition-all cursor-pointer">
               <i className="fa-solid fa-cloud-upload text-slate-400"></i>
               <span className="text-slate-500">Chọn hoặc kéo thả file Excel...</span>
             </div>
@@ -2375,7 +2367,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
         </div>
 
         {/* Preview Table */}
-        <div className="overflow-x-auto border border-slate-200 rounded-xl max-h-[400px] overflow-y-auto">
+        <div className="overflow-x-auto border border-slate-200 rounded-control max-h-[400px] overflow-y-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 sticky top-0">
               <tr>
@@ -2409,12 +2401,12 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
     return (
       <div className="space-y-6">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+        <div className="bg-accent-50 border border-accent-200 rounded-control p-4">
           <div className="flex items-start gap-3">
-            <i className="fa-solid fa-sitemap text-amber-500 mt-1"></i>
+            <i className="fa-solid fa-sitemap text-accent-500 mt-1"></i>
             <div>
-              <h4 className="font-semibold text-amber-800">Sắp xếp thứ tự VĐV theo nội dung</h4>
-              <p className="text-sm text-amber-700 mt-1">
+              <h4 className="font-semibold text-accent-800">Sắp xếp thứ tự VĐV theo nội dung</h4>
+              <p className="text-sm text-accent-700 mt-1">
                 Xem danh sách VĐV theo từng nội dung. Có thể bốc thăm ngẫu nhiên thứ tự biểu diễn.
               </p>
             </div>
@@ -2426,7 +2418,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
           <div className="flex justify-end">
             <button
               onClick={this.shuffleAllMartial}
-              className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-accent-500 hover:bg-accent-600 text-white rounded-control font-medium transition-all"
             >
               <i className="fa-solid fa-shuffle"></i>
               Xáo trộn ngẫu nhiên tất cả
@@ -2440,8 +2432,8 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
             {contentKeys.map((content) => {
               const fighters = groupedData[content];
               return (
-                <div key={content} className="border border-slate-200 rounded-xl overflow-hidden">
-                  <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 flex items-center justify-between">
+                <div key={content} className="border border-slate-200 rounded-control overflow-hidden">
+                  <div className="bg-accent-600 px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <span className="text-white font-bold text-lg">{content}</span>
                       <span className="bg-white/20 text-white px-3 py-1 rounded-full text-sm font-medium">
@@ -2466,7 +2458,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
                           key={fi}
                           className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg"
                         >
-                          <span className="w-6 h-6 flex items-center justify-center text-xs font-bold bg-amber-100 text-amber-600 rounded-full">
+                          <span className="w-6 h-6 flex items-center justify-center text-xs font-bold bg-accent-100 text-accent-600 rounded-full">
                             {fi + 1}
                           </span>
                           <span className="font-medium text-slate-700">{f.name}</span>
@@ -2510,7 +2502,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
       <div className="space-y-6">
         {/* Status Banner */}
         {tournamentCreated ? (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-control p-4">
             <div className="flex items-start gap-3">
               <i className="fa-solid fa-trophy text-emerald-500 mt-1"></i>
               <div>
@@ -2522,7 +2514,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
             </div>
           </div>
         ) : (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+          <div className="bg-green-50 border border-green-200 rounded-control p-4">
             <div className="flex items-start gap-3">
               <i className="fa-solid fa-check-circle text-green-500 mt-1"></i>
               <div>
@@ -2539,15 +2531,15 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
         {/* Summary Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <div className="bg-amber-50 rounded-xl p-4 text-center">
-            <div className="text-3xl font-bold text-amber-600">{totalFighters}</div>
-            <div className="text-sm text-amber-700 mt-1">VĐV</div>
+          <div className="bg-accent-50 rounded-control p-4 text-center">
+            <div className="text-3xl font-bold text-accent-600">{totalFighters}</div>
+            <div className="text-sm text-accent-700 mt-1">VĐV</div>
           </div>
-          <div className="bg-orange-50 rounded-xl p-4 text-center">
-            <div className="text-3xl font-bold text-orange-600">{contentKeys.length}</div>
-            <div className="text-sm text-orange-700 mt-1">Nội dung</div>
+          <div className="bg-accent-50 rounded-control p-4 text-center">
+            <div className="text-3xl font-bold text-accent-600">{contentKeys.length}</div>
+            <div className="text-sm text-accent-700 mt-1">Nội dung</div>
           </div>
-          <div className="bg-rose-50 rounded-xl p-4 text-center">
+          <div className="bg-rose-50 rounded-control p-4 text-center">
             <div className="text-3xl font-bold text-rose-600">{this.martialObj?.martialArena?.length || 2}</div>
             <div className="text-sm text-rose-700 mt-1">Sân thi đấu</div>
           </div>
@@ -2555,7 +2547,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
         {/* Content Groups Summary */}
         {contentKeys.length > 0 && (
-          <div className="bg-slate-50 rounded-xl p-4">
+          <div className="bg-slate-50 rounded-control p-4">
             <h4 className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
               <i className="fa-solid fa-list"></i>
               Thống kê theo nội dung thi đấu
@@ -2564,7 +2556,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
               {contentKeys.map((content, i) => (
                 <span key={i} className="px-3 py-1 bg-white rounded-lg text-sm border border-slate-200 shadow-sm">
                   <span className="font-medium text-slate-700">{content}</span>
-                  <span className="ml-2 text-amber-600 font-semibold">{contentStats[content]}</span>
+                  <span className="ml-2 text-accent-600 font-semibold">{contentStats[content]}</span>
                 </span>
               ))}
             </div>
@@ -2577,9 +2569,9 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
             <button 
               onClick={this.arrangeMartial}
               disabled={!hasData}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-control font-medium transition-all ${
                 hasData 
-                  ? 'bg-amber-500 hover:bg-amber-600 text-white' 
+                  ? 'bg-accent-500 hover:bg-accent-600 text-white' 
                   : 'bg-slate-200 text-slate-400 cursor-not-allowed'
               }`}
             >
@@ -2590,7 +2582,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
           <button 
             onClick={this.downloadMartial}
             disabled={!hasArranged}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-control font-medium transition-all ${
               hasArranged 
                 ? 'bg-blue-500 hover:bg-blue-600 text-white' 
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed'
@@ -2603,7 +2595,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
         {/* Preview Table - Full list with scroll */}
         {hasData && (
-          <div className="overflow-hidden border border-slate-200 rounded-xl">
+          <div className="overflow-hidden border border-slate-200 rounded-control">
             <div className="bg-slate-100 px-4 py-2 border-b border-slate-200 flex items-center justify-between">
               <span className="font-medium text-slate-700">
                 <i className="fa-solid fa-table mr-2"></i>
@@ -2648,180 +2640,88 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
   };
 
   render() {
-    const { showPasswordModal, showChooseArenaNoModal, password, tournamentName, collapsedSections, isLoading, loadingMessage, showConfirmModal, confirmTitle, confirmMessage, dragOver } = this.state;
+    const {
+      showPasswordModal, showChooseArenaNoModal, password, tournamentName,
+      isLoading, loadingMessage, showConfirmModal, confirmTitle, confirmMessage,
+      wizardType, tournamentsLoading,
+    } = this.state;
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-violet-50 via-white to-purple-50">
-        {/* Header */}
-        <header className="bg-white/90 backdrop-blur-md shadow-sm sticky top-0 z-40 border-b border-slate-200">
-          <div className="max-w-7xl mx-auto px-4 py-3">
-            <div className="flex items-center justify-between">
-              {/* Left: Logo as Home button */}
-              <a 
-                href="/" 
-                title="Về Trang chủ" 
-                className="flex items-center p-2 bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-xl shadow-sm hover:shadow hover:border-slate-300 transition-all"
-              >
-                <img src={logo} alt="Logo" className="h-7" />
-              </a>
-              
-              {/* Center: Page Title */}
-              <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
-                  <i className="fas fa-file-upload text-white text-sm"></i>
-                </div>
-                <h1 className="text-lg font-bold text-slate-800">Tạo giải đấu</h1>
-              </div>
-              
-              {/* Right: Tournament name badge */}
-              {tournamentName ? (
-                <div className="bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 rounded-lg px-3 py-1.5 max-w-[300px]">
-                  <p className="text-xs text-violet-700 font-medium whitespace-pre-line" title={tournamentName}>
-                    {tournamentName}
-                  </p>
-                </div>
-              ) : (
-                <div className="w-[100px]"></div>
-              )}
+      <PageShell accent={wizardType === 'doikhang' ? 'combat' : 'martial'}>
+        <PageHeader title="Tạo giải đấu" icon="fa-solid fa-file-arrow-up" badge={tournamentName} />
+
+        <main className="flex-1 w-full">{this.renderWizardMode()}</main>
+
+        <AppFooter />
+
+        <PasswordModal
+          isOpen={showPasswordModal}
+          value={password}
+          onInput={this.inputPw}
+          onSubmit={this.verifyPassword}
+          onClose={this.hidePasswordModal}
+        />
+
+        <Modal
+          isOpen={showChooseArenaNoModal}
+          onClose={this.hideChooseInfoNoModal}
+          title="Chọn giải đấu"
+          icon="fa-solid fa-trophy"
+          footer={
+            <>
+              <Button variant="secondary" block onClick={this.hideChooseInfoNoModal}>Hủy</Button>
+              <Button variant="primary" block onClick={this.chooseInfoNo}>Xác nhận</Button>
+            </>
+          }
+        >
+          {tournamentsLoading ? (
+            <div className="flex items-center justify-center py-8 gap-3">
+              <span className="w-8 h-8 border-[3px] border-accent-100 border-t-accent-600 rounded-full animate-spin" />
+              <span className="text-slate-500">Đang tải danh sách...</span>
             </div>
-          </div>
-        </header>
-
-        {/* Wizard Mode - Chế độ từng bước */}
-        {this.renderWizardMode()}
-
-        {/* Password Modal */}
-        {showPasswordModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-              <div className="bg-gradient-to-r from-violet-500 to-purple-600 p-4">
-                <div className="flex items-center justify-between">
-                  <h5 className="text-white font-bold text-lg flex items-center gap-2">
-                    <i className="fa-solid fa-lock"></i>
-                    Vui lòng nhập mật khẩu
-                  </h5>
-                  <button onClick={this.hidePasswordModal} className="text-white/80 hover:text-white transition-colors">
-                    <i className="fa-solid fa-xmark text-xl"></i>
-                  </button>
-                </div>
-              </div>
-              
-              <div className="p-6">
-                <div className="flex items-center gap-2 mb-6">
-                  <div className="flex-1 relative">
-                    <i className="fa-solid fa-key absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                    <input type="password" className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl bg-slate-50 text-lg tracking-widest focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-                      placeholder="••••••" value={password} readOnly />
-                  </div>
-                  <button onClick={() => this.inputPw('-1')} className="p-3 bg-red-100 text-red-600 rounded-xl hover:bg-red-200 transition-colors">
-                    <i className="fas fa-trash-alt"></i>
-                  </button>
-                </div>
-                
-                <div className="grid grid-cols-5 gap-2 mb-4">
-                  {['1','2','3','4','5'].map(num => (
-                    <button key={num} onClick={() => this.inputPw(num)} className="p-4 text-xl font-bold bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">{num}</button>
-                  ))}
-                </div>
-                <div className="grid grid-cols-5 gap-2">
-                  {['6','7','8','9','0'].map(num => (
-                    <button key={num} onClick={() => this.inputPw(num)} className="p-4 text-xl font-bold bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">{num}</button>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="flex gap-3 p-4 bg-slate-50 border-t border-slate-100">
-                <button onClick={this.hidePasswordModal} className="flex-1 py-3 px-4 rounded-xl border border-slate-200 text-slate-600 font-medium hover:bg-slate-100 transition-colors">Hủy</button>
-                <button onClick={this.verifyPassword} className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white font-medium hover:from-violet-600 hover:to-purple-700 transition-colors shadow-lg">Xác nhận</button>
-              </div>
+          ) : this.tournaments && this.tournaments.length > 0 ? (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {this.tournaments.map((tournament, i) => (
+                <label
+                  key={tournament[0]}
+                  className={`flex items-center gap-3 p-3 border-2 rounded-control cursor-pointer transition-colors
+                    ${this.tournamentNoIndex === i
+                      ? 'border-accent-500 bg-accent-50'
+                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
+                >
+                  <input
+                    type="radio"
+                    name="tournamentRadio"
+                    checked={this.tournamentNoIndex === i}
+                    onChange={() => this.chooseTournament(i)}
+                    className="w-4 h-4 flex-shrink-0"
+                  />
+                  <span className="font-medium text-slate-700 whitespace-pre-line min-w-0">
+                    {tournament[1]}
+                  </span>
+                </label>
+              ))}
             </div>
-          </div>
-        )}
-
-        {/* Choose Arena Modal */}
-        {showChooseArenaNoModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-              <div className="bg-gradient-to-r from-violet-500 to-purple-600 p-4">
-                <div className="flex items-center justify-between">
-                  <h5 className="text-white font-bold text-lg flex items-center gap-2">
-                    <i className="fa-solid fa-id-badge"></i>
-                    Chọn thông tin
-                  </h5>
-                  <button onClick={this.hideChooseInfoNoModal} className="text-white/80 hover:text-white transition-colors">
-                    <i className="fa-solid fa-xmark text-xl"></i>
-                  </button>
-                </div>
-              </div>
-              
-              <div className="p-6">
-                <h6 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Chọn giải đấu</h6>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {this.state.tournamentsLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="w-8 h-8 border-3 border-violet-200 border-t-violet-600 rounded-full animate-spin"></div>
-                      <span className="ml-3 text-slate-500">Đang tải danh sách...</span>
-                    </div>
-                  ) : this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
-                    <label key={i} onClick={() => this.chooseTournament(i)}
-                      className="flex items-center gap-3 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-violet-50 hover:border-violet-300 transition-colors">
-                      <input type="radio" name="tournamentRadio" id={`tournamentRadio-${tournament[0]}`} value={tournament[1]} defaultChecked={i === 0} className="w-4 h-4 text-violet-500" />
-                      <span className="font-medium text-slate-700 whitespace-pre-line">{tournament[1]}</span>
-                    </label>
-                  )) : (
-                    <div className="text-center py-6">
-                      <i className="fa-solid fa-folder-open text-3xl text-slate-300 mb-2"></i>
-                      <p className="text-slate-400">Không có giải đấu</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex gap-3 p-4 bg-slate-50 border-t border-slate-100">
-                <button onClick={this.hideChooseInfoNoModal} className="flex-1 py-3 px-4 rounded-xl border border-slate-200 text-slate-600 font-medium hover:bg-slate-100 transition-colors">Hủy</button>
-                <button onClick={this.chooseInfoNo} className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white font-medium hover:from-violet-600 hover:to-purple-700 transition-colors shadow-lg">Xác nhận</button>
-              </div>
+          ) : (
+            <div className="text-center py-6 text-slate-400">
+              <i className="fa-solid fa-folder-open text-3xl mb-2 block" aria-hidden="true" />
+              <p className="m-0">Không có giải đấu</p>
             </div>
-          </div>
-        )}
+          )}
+        </Modal>
 
-        {/* Loading Overlay */}
-        {isLoading && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4">
-              <div className="w-16 h-16 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin"></div>
-              <p className="text-slate-700 font-medium">{loadingMessage || 'Đang xử lý...'}</p>
-            </div>
-          </div>
-        )}
+        <LoadingOverlay isOpen={isLoading} message={loadingMessage} />
 
-        {/* Confirmation Modal */}
-        {showConfirmModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-200">
-              <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <i className="fa-solid fa-triangle-exclamation"></i>
-                  {confirmTitle}
-                </h3>
-              </div>
-              <div className="p-6">
-                <p className="text-slate-600">{confirmMessage}</p>
-              </div>
-              <div className="flex gap-3 p-4 bg-slate-50 border-t border-slate-100">
-                <button onClick={this.hideConfirm} className="flex-1 py-3 px-4 rounded-xl border border-slate-200 text-slate-600 font-medium hover:bg-slate-100 transition-colors">
-                  <i className="fa-solid fa-times mr-2"></i>Hủy bỏ
-                </button>
-                <button onClick={this.handleConfirm} className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white font-medium hover:from-red-600 hover:to-red-700 transition-colors shadow-lg">
-                  <i className="fa-solid fa-check mr-2"></i>Xác nhận
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ConfirmModal
+          isOpen={showConfirmModal}
+          title={confirmTitle}
+          message={confirmMessage}
+          onConfirm={this.handleConfirm}
+          onCancel={this.hideConfirm}
+        />
 
-        <ToastContainer />
-      </div>
+        <Toast />
+      </PageShell>
     );
   }
 }

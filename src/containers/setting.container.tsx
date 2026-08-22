@@ -1,10 +1,13 @@
-import React, { Component, createRef, RefObject } from 'react';
+import React, { Component } from 'react';
 import { database } from '../firebase';
 import { ref, set, get, update, child, onValue, off, remove, DatabaseReference, Database } from "firebase/database";
-import logo from '../assets/img/logo.png';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { toast } from 'react-toastify';
 import { NavLink } from "react-router-dom";
+
+import {
+  PageShell, PageHeader, SectionCard, Button, Toggle, NumberField,
+  PasswordModal, ConfirmModal, Toast, AppFooter,
+} from '../components/ui';
 
 // Import constants
 import { DEFAULT_SETTING, DEFAULT_COMMON_SETTING } from '../constants/settings';
@@ -53,6 +56,8 @@ interface SettingContainerState {
   passwordGiamSat: string;
   showPasswordModal: boolean;
   selectedTournament: number;
+  /** Hop thoai xac nhan cho cac hanh dong khong hoan tac duoc */
+  confirm: { title: string; message: string; action: () => void } | null;
 }
 
 class SettingContainer extends Component<SettingContainerProps, SettingContainerState> {
@@ -89,7 +94,8 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
       passwordGiamDinh: '',
       passwordGiamSat: '',
       showPasswordModal: true,
-      selectedTournament: 0
+      selectedTournament: 0,
+      confirm: null
     };
 
     this.db = database;
@@ -390,476 +396,259 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     }
   }
 
+  askConfirm = (title: string, message: string, action: () => void) => {
+    this.setState({ confirm: { title, message, action } });
+  }
+
+  closeConfirm = () => this.setState({ confirm: null });
+
+  runConfirm = () => {
+    const { confirm } = this.state;
+    this.setState({ confirm: null }, () => confirm?.action());
+  }
+
+  confirmResetTournament = () => this.askConfirm(
+    'Cài lại trận đấu',
+    'Toàn bộ điểm số và diễn biến của giải đang chọn sẽ bị xoá về mặc định. Không thể hoàn tác.',
+    this.resetTournament
+  );
+
+  confirmResetSetting = () => this.askConfirm(
+    'Cài lại thiết đặt',
+    'Thời gian hiệp, số giám định và các tuỳ chọn hiển thị sẽ trở về mặc định.',
+    this.resetSetting
+  );
+
+  confirmResetPassword = () => this.askConfirm(
+    'Cài lại mật khẩu',
+    'Cả ba mật khẩu sẽ trở về giá trị mặc định.',
+    this.resetPassword
+  );
+
+  confirmDeleteTournament = () => this.askConfirm(
+    'Xoá giải đấu cuối',
+    'Giải đấu cuối cùng trong danh sách sẽ bị xoá vĩnh viễn cùng toàn bộ dữ liệu của nó.',
+    this.deleteTournament
+  );
+
+  hidePasswordModal = () => this.setState({ showPasswordModal: false });
+
   render() {
-    const { 
+    const {
       password, tournamentName, timeRound, timeBreak, timeExtra, timeExtraBreak,
       flexSwitchCountryFlagCombat, showCautionBoxCombat, quantityRefereeCombat, prioritizeUnitNameCombat,
       flexSwitchCountryFlagMartial, quantityRefereeMartial,
       passwordSetting, passwordGiamDinh, passwordGiamSat,
-      showPasswordModal, selectedTournament
+      showPasswordModal, selectedTournament, confirm
     } = this.state;
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-        {/* Header */}
-        <header className="bg-white/90 backdrop-blur-md shadow-sm sticky top-0 z-40 border-b border-slate-200">
-          <div className="max-w-6xl mx-auto px-4 py-3">
-            <div className="flex items-center justify-between">
-              {/* Left: Logo as Home button */}
-              <a 
-                href="/" 
-                title="Về Trang chủ" 
-                className="flex items-center p-2 bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-xl shadow-sm hover:shadow hover:border-slate-300 transition-all"
-              >
-                <img src={logo} alt="Logo" className="h-7" />
-              </a>
-              
-              {/* Center: Page Title */}
-              <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
-                  <i className="fa-solid fa-gear text-white text-sm"></i>
-                </div>
-                <h1 className="text-lg font-bold text-slate-800">Thiết đặt</h1>
-              </div>
-              
-              {/* Right: Tournament name badge */}
-              {tournamentName ? (
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg px-3 py-1.5 max-w-[300px]">
-                  <p className="text-xs text-blue-700 font-medium whitespace-pre-line" title={tournamentName}>
-                    {tournamentName}
-                  </p>
-                </div>
-              ) : (
-                <div className="w-[100px]"></div>
+      <PageShell accent="tool">
+        <PageHeader title="Thiết đặt" icon="fa-solid fa-gear" badge={tournamentName} />
+
+        <main className="flex-1 w-full max-w-4xl mx-auto px-3 sm:px-4 py-5 space-y-5">
+          <SectionCard title="Chọn giải đấu" icon="fa-solid fa-trophy">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 mb-5">
+              {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
+                <label
+                  key={tournament[0]}
+                  className={`flex items-center gap-3 p-3.5 border-2 rounded-control cursor-pointer transition-colors
+                    ${selectedTournament === i
+                      ? 'border-accent-500 bg-accent-50'
+                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
+                >
+                  <input
+                    type="radio"
+                    name="tournamentRadio"
+                    checked={selectedTournament === i}
+                    onChange={() => this.chooseTournament(i)}
+                    className="w-4 h-4 flex-shrink-0"
+                  />
+                  <span className="font-medium text-slate-700 whitespace-pre-line min-w-0">
+                    {tournament[1]}
+                  </span>
+                </label>
+              )) : (
+                <p className="text-slate-400 italic col-span-2 m-0">Không có giải đấu</p>
               )}
             </div>
-          </div>
-        </header>
 
-        <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-          {/* Tournament Selection Card */}
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-indigo-500 to-purple-500 px-6 py-4">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <i className="fa-solid fa-trophy"></i>
-                Chọn giải đấu
-              </h2>
+            <div className="flex flex-wrap gap-2.5">
+              <Button variant="success" icon="fa-solid fa-plus" onClick={this.addTournament}>
+                Thêm giải đấu
+              </Button>
+              <Button variant="danger" icon="fa-solid fa-trash-can" onClick={this.confirmDeleteTournament}>
+                Xoá giải đấu cuối
+              </Button>
             </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-                {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
-                  <label 
-                    key={i}
-                    onClick={() => this.chooseTournament(i)}
-                    className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all
-                      ${selectedTournament === i 
-                        ? 'border-indigo-500 bg-indigo-50' 
-                        : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50'}`}
-                  >
-                    <input 
-                      type="radio" 
-                      name="tournamentRadio" 
-                      checked={selectedTournament === i}
-                      onChange={() => this.chooseTournament(i)}
-                      className="w-4 h-4 text-indigo-500"
-                    />
-                    <span className="font-medium text-slate-700 whitespace-pre-line">{tournament[0]} - {tournament[1]}</span>
-                  </label>
-                )) : (
-                  <p className="text-slate-400 italic col-span-2">Không có giải đấu</p>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <button 
-                  type="button" 
-                  onClick={this.addTournament}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium transition-colors shadow-md"
-                >
-                  <i className="fas fa-plus"></i>
-                  Thêm giải đấu
-                </button>
-                <button 
-                  type="button" 
-                  onClick={this.deleteTournament}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors shadow-md"
-                >
-                  <i className="fas fa-trash-alt"></i>
-                  Xoá giải đấu cuối
-                </button>
-              </div>
-            </div>
-          </div>
+          </SectionCard>
 
-          {/* Tournament Settings Card */}
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-4">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <i className="fa-solid fa-sliders"></i>
-                Thiết đặt thông tin giải đấu
-              </h2>
-            </div>
-            <div className="p-6 space-y-6">
-              {/* Tournament Name */}
+          <SectionCard title="Thông tin giải đấu" icon="fa-solid fa-sliders">
+            <div className="space-y-6">
               <div>
-                <label className="block text-sm font-semibold text-slate-600 mb-2">Tên giải đấu</label>
-                <textarea 
-                  name="tournamentName" 
+                <label htmlFor="field-tournamentName" className="block text-sm font-semibold text-slate-600 mb-2">
+                  Tên giải đấu
+                </label>
+                <textarea
+                  id="field-tournamentName"
+                  name="tournamentName"
                   value={tournamentName}
                   onChange={this.handleInputChange}
                   rows={2}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all resize-none text-slate-800 bg-white placeholder:text-slate-400"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-control resize-none
+                    text-slate-800 bg-white placeholder:text-slate-400
+                    focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-shadow"
                   placeholder="Nhập tên giải đấu... (Enter để xuống dòng)"
                 />
+                <p className="text-xs text-slate-400 mt-1.5 mb-0">
+                  Tên này hiển thị trên màn hình trình chiếu, xuống dòng để tránh chữ quá nhỏ.
+                </p>
               </div>
 
-              {/* Combat Settings */}
-              <div className="bg-emerald-50 rounded-xl p-5 space-y-4">
-                <h3 className="font-bold text-emerald-700 flex items-center gap-2">
-                  <i className="fa-solid fa-hand-fist"></i>
-                  Thiết đặt đối kháng
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <label className="flex items-center gap-3 p-3 bg-white rounded-lg cursor-pointer hover:shadow-md transition-shadow">
-                    <input 
-                      type="checkbox"
-                      name="flexSwitchCountryFlagCombat"
-                      checked={flexSwitchCountryFlagCombat}
-                      onChange={this.handleInputChange}
-                      className="w-5 h-5 rounded text-emerald-500"
-                    />
-                    <span className="text-sm text-slate-700">Hiển thị cờ quốc gia</span>
-                  </label>
-                  <label className="flex items-center gap-3 p-3 bg-white rounded-lg cursor-pointer hover:shadow-md transition-shadow">
-                    <input 
-                      type="checkbox"
-                      name="showCautionBoxCombat"
-                      checked={showCautionBoxCombat}
-                      onChange={this.handleInputChange}
-                      className="w-5 h-5 rounded text-emerald-500"
-                    />
-                    <span className="text-sm text-slate-700">Hiển thị bảng nhắc nhở</span>
-                  </label>
-                  <label className="flex items-center gap-3 p-3 bg-white rounded-lg cursor-pointer hover:shadow-md transition-shadow">
-                    <input 
-                      type="checkbox"
-                      name="quantityRefereeCombat"
-                      checked={quantityRefereeCombat}
-                      onChange={this.handleInputChange}
-                      className="w-5 h-5 rounded text-emerald-500"
-                    />
-                    <span className="text-sm text-slate-700">Hiển thị 5 giám định</span>
-                  </label>
-                  <label className="flex items-center gap-3 p-3 bg-white rounded-lg cursor-pointer hover:shadow-md transition-shadow">
-                    <input 
-                      type="checkbox"
-                      name="prioritizeUnitNameCombat"
-                      checked={prioritizeUnitNameCombat}
-                      onChange={this.handleInputChange}
-                      className="w-5 h-5 rounded text-emerald-500"
-                    />
-                    <span className="text-sm text-slate-700">Ưu tiên hiển thị đơn vị</span>
-                  </label>
+              <fieldset className="border border-emerald-200 bg-emerald-50/50 rounded-card p-4 sm:p-5 m-0">
+                <legend className="px-2 font-bold text-emerald-700 flex items-center gap-2 text-sm">
+                  <i className="fa-solid fa-hand-back-fist" aria-hidden="true" />
+                  Đối kháng
+                </legend>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                  <Toggle name="flexSwitchCountryFlagCombat" checked={flexSwitchCountryFlagCombat}
+                    onChange={this.handleInputChange} label="Hiển thị cờ quốc gia" />
+                  <Toggle name="showCautionBoxCombat" checked={showCautionBoxCombat}
+                    onChange={this.handleInputChange} label="Hiển thị bảng nhắc nhở" />
+                  <Toggle name="quantityRefereeCombat" checked={quantityRefereeCombat}
+                    onChange={this.handleInputChange} label="Dùng 5 giám định"
+                    hint="Tắt để dùng 3 giám định" />
+                  <Toggle name="prioritizeUnitNameCombat" checked={prioritizeUnitNameCombat}
+                    onChange={this.handleInputChange} label="Ưu tiên hiển thị đơn vị"
+                    hint="Tên đơn vị to hơn tên vận động viên" />
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">Thời gian hiệp đấu</label>
-                    <div className="relative">
-                      <input 
-                        type="number" 
-                        name="timeRound" 
-                        value={timeRound}
-                        onChange={this.handleInputChange}
-                        className="w-full px-3 py-2 pr-12 border border-slate-200 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">giây</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">Nghỉ giữa hiệp</label>
-                    <div className="relative">
-                      <input 
-                        type="number" 
-                        name="timeBreak" 
-                        value={timeBreak}
-                        onChange={this.handleInputChange}
-                        className="w-full px-3 py-2 pr-12 border border-slate-200 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">giây</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">Thời gian hiệp phụ</label>
-                    <div className="relative">
-                      <input 
-                        type="number" 
-                        name="timeExtra" 
-                        value={timeExtra}
-                        onChange={this.handleInputChange}
-                        className="w-full px-3 py-2 pr-12 border border-slate-200 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">giây</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">Nghỉ hiệp phụ</label>
-                    <div className="relative">
-                      <input 
-                        type="number" 
-                        name="timeExtraBreak" 
-                        value={timeExtraBreak}
-                        onChange={this.handleInputChange}
-                        className="w-full px-3 py-2 pr-12 border border-slate-200 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">giây</span>
-                    </div>
-                  </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+                  <NumberField name="timeRound" label="Thời gian hiệp" value={timeRound}
+                    onChange={this.handleInputChange} unit="giây" />
+                  <NumberField name="timeBreak" label="Nghỉ giữa hiệp" value={timeBreak}
+                    onChange={this.handleInputChange} unit="giây" />
+                  <NumberField name="timeExtra" label="Thời gian hiệp phụ" value={timeExtra}
+                    onChange={this.handleInputChange} unit="giây" />
+                  <NumberField name="timeExtraBreak" label="Nghỉ hiệp phụ" value={timeExtraBreak}
+                    onChange={this.handleInputChange} unit="giây" />
                 </div>
-              </div>
+              </fieldset>
 
-              {/* Martial Settings */}
-              <div className="bg-amber-50 rounded-xl p-5 space-y-4">
-                <h3 className="font-bold text-amber-700 flex items-center gap-2">
-                  <i className="fa-solid fa-person-running"></i>
-                  Thiết đặt thi quyền
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <label className="flex items-center gap-3 p-3 bg-white rounded-lg cursor-pointer hover:shadow-md transition-shadow">
-                    <input 
-                      type="checkbox"
-                      name="flexSwitchCountryFlagMartial"
-                      checked={flexSwitchCountryFlagMartial}
-                      onChange={this.handleInputChange}
-                      className="w-5 h-5 rounded text-amber-500"
-                    />
-                    <span className="text-sm text-slate-700">Hiển thị cờ quốc gia</span>
-                  </label>
-                  <label className="flex items-center gap-3 p-3 bg-white rounded-lg cursor-pointer hover:shadow-md transition-shadow">
-                    <input 
-                      type="checkbox"
-                      name="quantityRefereeMartial"
-                      checked={quantityRefereeMartial}
-                      onChange={this.handleInputChange}
-                      className="w-5 h-5 rounded text-amber-500"
-                    />
-                    <span className="text-sm text-slate-700">Hiển thị 5 giám định</span>
-                  </label>
+              <fieldset className="border border-amber-200 bg-amber-50/50 rounded-card p-4 sm:p-5 m-0">
+                <legend className="px-2 font-bold text-amber-700 flex items-center gap-2 text-sm">
+                  <i className="fa-solid fa-hand-fist" aria-hidden="true" />
+                  Thi quyền
+                </legend>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                  <Toggle name="flexSwitchCountryFlagMartial" checked={flexSwitchCountryFlagMartial}
+                    onChange={this.handleInputChange} label="Hiển thị cờ quốc gia" />
+                  <Toggle name="quantityRefereeMartial" checked={quantityRefereeMartial}
+                    onChange={this.handleInputChange} label="Dùng 5 giám định"
+                    hint="Bỏ điểm cao nhất và thấp nhất" />
                 </div>
-              </div>
+              </fieldset>
 
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-100">
-                <button 
-                  type="button" 
-                  onClick={this.resetTournament}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors shadow-md"
-                >
-                  <i className="fa-solid fa-arrows-rotate"></i>
-                  Cài lại trận đấu
-                </button>
-                <button 
-                  type="button" 
-                  onClick={this.resetSetting}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium transition-colors shadow-md"
-                >
-                  <i className="fa-solid fa-rotate-left"></i>
+              <div className="flex flex-wrap gap-2.5 pt-4 border-t border-slate-100">
+                <Button variant="primary" icon="fa-solid fa-floppy-disk" onClick={this.updateSetting}>
+                  Lưu thiết đặt
+                </Button>
+                <Button variant="secondary" icon="fa-solid fa-rotate-left" onClick={this.confirmResetSetting}>
                   Cài lại thiết đặt
-                </button>
-                <button 
-                  type="button" 
-                  onClick={this.updateSetting}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium transition-colors shadow-md"
-                >
-                  <i className="fa-solid fa-floppy-disk"></i>
-                  Cập nhập
-                </button>
+                </Button>
+                <Button variant="danger" icon="fa-solid fa-arrows-rotate" onClick={this.confirmResetTournament}>
+                  Cài lại trận đấu
+                </Button>
               </div>
             </div>
-          </div>
+          </SectionCard>
 
-          {/* Password Settings Card */}
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-6 py-4">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <i className="fa-solid fa-key"></i>
-                Thiết đặt mật khẩu
-              </h2>
-            </div>
-            <div className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-600 mb-2">
-                    <i className="fa-solid fa-gear mr-1 text-slate-400"></i>
-                    Mật khẩu Thiết đặt
-                  </label>
-                  <input 
-                    type="number" 
-                    name="passwordSetting" 
-                    value={passwordSetting}
-                    onChange={this.handleInputChange}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent transition-all text-center tracking-widest"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-600 mb-2">
-                    <i className="fa-solid fa-eye mr-1 text-blue-400"></i>
-                    Mật khẩu Giám sát
-                  </label>
-                  <input 
-                    type="number" 
-                    name="passwordGiamSat" 
-                    value={passwordGiamSat}
-                    onChange={this.handleInputChange}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-center tracking-widest"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-600 mb-2">
-                    <i className="fa-solid fa-user-check mr-1 text-emerald-400"></i>
-                    Mật khẩu Giám định
-                  </label>
-                  <input 
-                    type="number" 
-                    name="passwordGiamDinh" 
-                    value={passwordGiamDinh}
-                    onChange={this.handleInputChange}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-center tracking-widest"
-                  />
-                </div>
+          <SectionCard title="Mật khẩu" icon="fa-solid fa-key" tone="neutral">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label htmlFor="field-passwordSetting" className="block text-sm font-semibold text-slate-600 mb-2">
+                  <i className="fa-solid fa-gear mr-1.5 text-slate-400" aria-hidden="true" />
+                  Thiết đặt
+                </label>
+                <input id="field-passwordSetting" type="number" inputMode="numeric" name="passwordSetting"
+                  value={passwordSetting} onChange={this.handleInputChange}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-control text-center
+                    tracking-[0.3em] tabular-nums text-slate-800
+                    focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-shadow" />
               </div>
-
-              <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-100">
-                <button 
-                  type="button" 
-                  onClick={this.resetPassword}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium transition-colors shadow-md"
-                >
-                  <i className="fa-solid fa-rotate-left"></i>
-                  Cài lại mật khẩu
-                </button>
-                <button 
-                  type="button" 
-                  onClick={this.updatePassword}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium transition-colors shadow-md"
-                >
-                  <i className="fa-solid fa-floppy-disk"></i>
-                  Cập nhập mật khẩu
-                </button>
+              <div>
+                <label htmlFor="field-passwordGiamSat" className="block text-sm font-semibold text-slate-600 mb-2">
+                  <i className="fa-solid fa-tv mr-1.5 text-slate-400" aria-hidden="true" />
+                  Giám sát
+                </label>
+                <input id="field-passwordGiamSat" type="number" inputMode="numeric" name="passwordGiamSat"
+                  value={passwordGiamSat} onChange={this.handleInputChange}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-control text-center
+                    tracking-[0.3em] tabular-nums text-slate-800
+                    focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-shadow" />
+              </div>
+              <div>
+                <label htmlFor="field-passwordGiamDinh" className="block text-sm font-semibold text-slate-600 mb-2">
+                  <i className="fa-solid fa-user-check mr-1.5 text-slate-400" aria-hidden="true" />
+                  Giám định
+                </label>
+                <input id="field-passwordGiamDinh" type="number" inputMode="numeric" name="passwordGiamDinh"
+                  value={passwordGiamDinh} onChange={this.handleInputChange}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-control text-center
+                    tracking-[0.3em] tabular-nums text-slate-800
+                    focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-shadow" />
               </div>
             </div>
-          </div>
 
-          {/* Footer Navigation */}
-          <footer className="pt-8 pb-4">
-            <div className="flex flex-wrap justify-center gap-4 text-sm border-t border-slate-200 pt-6">
-              <NavLink to="/" className="text-slate-500 hover:text-blue-600 transition-colors">
-                <i className="fa-solid fa-home mr-1"></i> Home
-              </NavLink>
-              <NavLink to="giam-sat-doi-khang" className="text-slate-500 hover:text-emerald-600 transition-colors">
-                Giám sát đối kháng
-              </NavLink>
-              <NavLink to="giam-dinh-doi-khang" className="text-slate-500 hover:text-emerald-600 transition-colors">
-                Giám định đối kháng
-              </NavLink>
-              <NavLink to="giam-sat-thi-quyen" className="text-slate-500 hover:text-amber-600 transition-colors">
-                Giám sát thi quyền
-              </NavLink>
-              <NavLink to="giam-dinh-thi-quyen" className="text-slate-500 hover:text-amber-600 transition-colors">
-                Giám định thi quyền
-              </NavLink>
-              <NavLink to="thong-tin-doi-khang" className="text-slate-500 hover:text-blue-600 transition-colors">
-                Thông tin đối kháng
-              </NavLink>
+            <div className="flex flex-wrap gap-2.5 pt-5 mt-5 border-t border-slate-100">
+              <Button variant="primary" icon="fa-solid fa-floppy-disk" onClick={this.updatePassword}>
+                Lưu mật khẩu
+              </Button>
+              <Button variant="secondary" icon="fa-solid fa-rotate-left" onClick={this.confirmResetPassword}>
+                Cài lại mật khẩu
+              </Button>
             </div>
-            <p className="text-center text-slate-400 text-sm mt-4">©Tuân 2022</p>
-          </footer>
-        </div>
+          </SectionCard>
 
-        {/* Password Modal */}
-        {showPasswordModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
-                <div className="flex items-center justify-between">
-                  <h5 className="text-white font-bold text-lg flex items-center gap-2">
-                    <i className="fa-solid fa-lock"></i>
-                    Vui lòng nhập mật khẩu
-                  </h5>
-                  <button 
-                    onClick={() => this.setState({ showPasswordModal: false })}
-                    className="text-white/80 hover:text-white transition-colors"
-                  >
-                    <i className="fa-solid fa-xmark text-xl"></i>
-                  </button>
-                </div>
-              </div>
-              
-              <div className="p-6">
-                <div className="flex items-center gap-2 mb-6">
-                  <div className="flex-1 relative">
-                    <i className="fa-solid fa-key absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                    <input 
-                      type="password" 
-                      className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl bg-slate-50 text-lg tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="••••••"
-                      value={password}
-                      readOnly
-                    />
-                  </div>
-                  <button 
-                    onClick={() => this.inputPw('-1')}
-                    className="p-3 bg-red-100 text-red-600 rounded-xl hover:bg-red-200 transition-colors"
-                  >
-                    <i className="fas fa-trash-alt"></i>
-                  </button>
-                </div>
-                
-                <div className="grid grid-cols-5 gap-2 mb-4">
-                  {['1','2','3','4','5'].map(num => (
-                    <button 
-                      key={num}
-                      onClick={() => this.inputPw(num)}
-                      className="p-4 text-xl font-bold bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
-                    >
-                      {num}
-                    </button>
-                  ))}
-                </div>
-                <div className="grid grid-cols-5 gap-2">
-                  {['6','7','8','9','0'].map(num => (
-                    <button 
-                      key={num}
-                      onClick={() => this.inputPw(num)}
-                      className="p-4 text-xl font-bold bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
-                    >
-                      {num}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="flex gap-3 p-4 bg-slate-50 border-t border-slate-100">
-                <button 
-                  onClick={() => this.setState({ showPasswordModal: false })}
-                  className="flex-1 py-3 px-4 rounded-xl border border-slate-200 text-slate-600 font-medium hover:bg-slate-100 transition-colors"
-                >
-                  Hủy
-                </button>
-                <button 
-                  onClick={this.verifyPassword}
-                  className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium hover:from-blue-600 hover:to-indigo-700 transition-colors shadow-lg"
-                >
-                  Xác nhận
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+          <nav className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm pt-2">
+            {[
+              { to: '/', label: 'Trang chủ' },
+              { to: '/giam-sat-doi-khang', label: 'Giám sát đối kháng' },
+              { to: '/giam-dinh-doi-khang', label: 'Giám định đối kháng' },
+              { to: '/giam-sat-thi-quyen', label: 'Giám sát thi quyền' },
+              { to: '/giam-dinh-thi-quyen', label: 'Giám định thi quyền' },
+              { to: '/tao-giai', label: 'Tạo giải' },
+            ].map((link) => (
+              <NavLink key={link.to} to={link.to}
+                className="text-slate-500 hover:text-accent-700 transition-colors">
+                {link.label}
+              </NavLink>
+            ))}
+          </nav>
+        </main>
 
-        <ToastContainer />
-      </div>
+        <AppFooter />
+
+        <PasswordModal
+          isOpen={showPasswordModal}
+          value={password}
+          onInput={this.inputPw}
+          onSubmit={this.verifyPassword}
+          onClose={this.hidePasswordModal}
+        />
+
+        <ConfirmModal
+          isOpen={confirm !== null}
+          title={confirm?.title || ''}
+          message={confirm?.message || ''}
+          onConfirm={this.runConfirm}
+          onCancel={this.closeConfirm}
+        />
+
+        <Toast />
+      </PageShell>
     );
   }
 }

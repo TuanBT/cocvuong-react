@@ -1,9 +1,8 @@
 import React, { Component } from 'react';
 import { database } from '../firebase';
 import { ref, get, child, Database } from "firebase/database";
-import logo from '../assets/img/logo.png';
-import '../assets/lib/table/style.css';
-import '../assets/lib/table/basictable.css';
+import { PageShell, PageHeader, ChipGroup, DataTable, AppFooter } from '../components/ui';
+import type { Column } from '../components/ui';
 
 interface InformationTqContainerProps {}
 
@@ -209,211 +208,145 @@ class InformationTqContainer extends Component<InformationTqContainerProps, Info
     }
   }
 
+  /** Cot bang diem. So cot doi theo giai dung 3 hay 5 giam dinh. */
+  buildColumns(isShowFiveReferee: boolean): Column<any[]>[] {
+    const refereeCount = isShowFiveReferee ? 5 : 3;
+    const refereeColumns: Column<any[]>[] = [];
+
+    for (let position = 1; position <= refereeCount; position += 1) {
+      const cellIndex = 3 + position; // martial[4] la GD1
+      refereeColumns.push({
+        key: `gd${position}`,
+        header: `GĐ ${position}`,
+        align: 'center',
+        mobileLabel: `GĐ ${position}`,
+        render: (row) => <span className="text-slate-600 font-medium">{row[cellIndex] || '—'}</span>,
+      });
+    }
+
+    return [
+      {
+        key: 'no',
+        header: 'STT',
+        align: 'center',
+        primary: true,
+        render: (row) =>
+          row[0] ? (
+            <span className="bg-slate-200 text-slate-700 px-2 py-1 rounded font-mono text-sm">{row[0]}</span>
+          ) : null,
+      },
+      {
+        key: 'name',
+        header: 'Họ và tên',
+        primary: true,
+        render: (row) => <span className="font-semibold text-slate-800">{row[1]}</span>,
+      },
+      {
+        key: 'code',
+        header: 'MSSV / Đơn vị',
+        mobileLabel: 'MSSV / Đơn vị',
+        render: (row) => <span className="text-sm text-slate-500">{row[2]}</span>,
+      },
+      {
+        key: 'content',
+        header: 'Nội dung',
+        mobileLabel: 'Nội dung',
+        render: (row) =>
+          row[3] ? (
+            <span className="bg-accent-50 text-accent-700 border border-accent-200 px-2 py-1 rounded text-sm font-medium">
+              {row[3]}
+            </span>
+          ) : null,
+      },
+      ...refereeColumns,
+      {
+        key: 'total',
+        header: (
+          <span className="inline-flex items-center gap-1.5">
+            <i className="fa-solid fa-calculator" aria-hidden="true" />Tổng
+          </span>
+        ),
+        align: 'center',
+        mobileLabel: 'Tổng điểm',
+        render: (row) =>
+          row[9] ? (
+            <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded font-bold">{row[9]}</span>
+          ) : null,
+      },
+      {
+        key: 'rank',
+        header: (
+          <span className="inline-flex items-center gap-1.5">
+            <i className="fa-solid fa-medal" aria-hidden="true" />Hạng
+          </span>
+        ),
+        align: 'center',
+        mobileLabel: 'Xếp hạng',
+        render: (row) => this.renderRank(row[10]),
+      },
+    ];
+  }
+
+  /** Ba hang dau co huy hieu rieng de doc luot van thay ngay ai nhat nhi ba. */
+  renderRank(rank: number) {
+    const MEDALS: { [key: number]: { icon: string; className: string } } = {
+      1: { icon: 'fa-solid fa-trophy', className: 'bg-amber-100 text-amber-700' },
+      2: { icon: 'fa-solid fa-medal', className: 'bg-slate-200 text-slate-700' },
+      3: { icon: 'fa-solid fa-award', className: 'bg-orange-100 text-orange-700' },
+    };
+
+    const medal = MEDALS[rank];
+    if (medal) {
+      return (
+        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded font-bold ${medal.className}`}>
+          <i className={`${medal.icon} text-xs`} aria-hidden="true" />
+          {rank}
+        </span>
+      );
+    }
+
+    return rank ? <span className="text-slate-500">{rank}</span> : null;
+  }
+
   render() {
-    const { tournaments, categoryArray, martialArray, tournamentName, isShowFiveReferee, selectedTournament, selectedCategory } = this.state;
-    
+    const { tournaments, categoryArray, martialArray, tournamentName, isShowFiveReferee,
+      selectedTournament, selectedCategory } = this.state;
+
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-        {/* Header */}
-        <header className="bg-white/90 backdrop-blur-md shadow-sm border-b border-slate-200 sticky top-0 z-10">
-          <div className="max-w-7xl mx-auto px-4 py-3">
-            <div className="flex items-center justify-between">
-              {/* Left: Logo as Home button */}
-              <a 
-                href="/" 
-                title="Về Trang chủ" 
-                className="flex items-center p-2 bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-xl shadow-sm hover:shadow hover:border-slate-300 transition-all"
-              >
-                <img src={logo} alt="Logo" className="h-7" />
-              </a>
-              
-              {/* Center: Page Title */}
-              <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center shadow-md">
-                  <i className="fa-solid fa-hand-fist text-white text-sm"></i>
-                </div>
-                <h1 className="text-lg font-bold text-slate-800">Thông tin Thi Quyền</h1>
-              </div>
-              
-              {/* Right: Tournament name badge */}
-              {tournamentName ? (
-                <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg px-3 py-1.5 max-w-[300px]">
-                  <p className="text-xs text-emerald-700 font-medium whitespace-pre-line" title={tournamentName}>
-                    {tournamentName}
-                  </p>
-                </div>
-              ) : (
-                <div className="w-[100px]"></div>
-              )}
-            </div>
-          </div>
-        </header>
+      <PageShell accent="martial">
+        <PageHeader title="Thông tin thi quyền" icon="fa-solid fa-table-list" badge={tournamentName}>
+          <ChipGroup
+            label="Giải đấu:"
+            icon="fa-solid fa-trophy"
+            options={tournaments.map((tournament, i) => ({ value: i, label: tournament[1] }))}
+            selected={selectedTournament}
+            onSelect={this.chooseTournament}
+            emphasis
+          />
+          <ChipGroup
+            label="Nội dung:"
+            icon="fa-solid fa-filter"
+            options={categoryArray.map((category) => ({
+              value: category,
+              label: category === 'ALL' ? 'Tất cả' : category,
+            }))}
+            selected={selectedCategory}
+            onSelect={this.chooseCategory}
+          />
+        </PageHeader>
 
-        {/* Tournament Selection */}
-        {tournaments.length > 0 && (
-          <div className="bg-white border-b border-slate-200">
-            <div className="max-w-7xl mx-auto px-4 py-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm text-slate-500 font-medium mr-2">
-                  <i className="fa-solid fa-trophy mr-1"></i>
-                  Giải đấu:
-                </span>
-                {tournaments.map((tournament, i) => (
-                  <button 
-                    key={i}
-                    onClick={() => this.chooseTournament(i)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-pre-line transition-all ${
-                      selectedTournament === i 
-                        ? 'bg-amber-500 text-white shadow-md' 
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    {tournament[1]}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+        <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 py-4">
+          <DataTable
+            columns={this.buildColumns(isShowFiveReferee)}
+            rows={martialArray}
+            rowKey={(row, i) => `${row[0]}-${i}`}
+            emptyTitle="Chưa có dữ liệu thi quyền"
+            emptyHint="Hãy tạo giải và nhập danh sách thi quyền ở trang Tạo giải."
+          />
+        </main>
 
-        {/* Category Filter */}
-        {categoryArray.length > 0 && (
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm text-slate-500 font-medium mr-2">
-                <i className="fa-solid fa-filter mr-1"></i>
-                Nội dung:
-              </span>
-              {categoryArray.map((category, i) => (
-                <button 
-                  key={i}
-                  onClick={() => this.chooseCategory(category)}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                    selectedCategory === category 
-                      ? 'bg-orange-500 text-white shadow-md' 
-                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                  }`}
-                >
-                  {category === 'ALL' ? 'Tất cả' : category}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Martial Table */}
-        <div className="max-w-7xl mx-auto px-4 pb-6">
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-200">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gradient-to-r from-orange-500 to-amber-500 text-white">
-                    <th className="px-4 py-3 text-center text-sm font-semibold whitespace-nowrap">STT</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold whitespace-nowrap">Họ và Tên</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold whitespace-nowrap">MSSV/Đơn vị</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold whitespace-nowrap">Nội dung</th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold whitespace-nowrap">GĐ 1</th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold whitespace-nowrap">GĐ 2</th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold whitespace-nowrap">GĐ 3</th>
-                    {isShowFiveReferee && (
-                      <>
-                        <th className="px-4 py-3 text-center text-sm font-semibold whitespace-nowrap">GĐ 4</th>
-                        <th className="px-4 py-3 text-center text-sm font-semibold whitespace-nowrap">GĐ 5</th>
-                      </>
-                    )}
-                    <th className="px-4 py-3 text-center text-sm font-semibold whitespace-nowrap">
-                      <i className="fa-solid fa-calculator mr-1"></i>
-                      Tổng
-                    </th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold whitespace-nowrap">
-                      <i className="fa-solid fa-medal mr-1"></i>
-                      Hạng
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {martialArray.length > 0 ? martialArray.map((martial, i) => (
-                    <tr key={i} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
-                      <td className="px-4 py-3 text-center">
-                        {martial[0] ? (
-                          <span className="bg-slate-200 text-slate-700 px-2 py-1 rounded font-mono text-sm">{martial[0]}</span>
-                        ) : null}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="font-medium text-slate-700">{martial[1]}</span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-slate-500">{martial[2]}</td>
-                      <td className="px-4 py-3">
-                        {martial[3] ? (
-                          <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded text-sm font-medium">{martial[3]}</span>
-                        ) : null}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="text-slate-600 font-medium">{martial[4] || '—'}</span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="text-slate-600 font-medium">{martial[5] || '—'}</span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="text-slate-600 font-medium">{martial[6] || '—'}</span>
-                      </td>
-                      {isShowFiveReferee && (
-                        <>
-                          <td className="px-4 py-3 text-center">
-                            <span className="text-slate-600 font-medium">{martial[7] || '—'}</span>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <span className="text-slate-600 font-medium">{martial[8] || '—'}</span>
-                          </td>
-                        </>
-                      )}
-                      <td className="px-4 py-3 text-center">
-                        {martial[9] ? (
-                          <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded font-bold">{martial[9]}</span>
-                        ) : null}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {martial[10] === 1 ? (
-                          <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-1 rounded font-bold">
-                            <i className="fa-solid fa-trophy text-xs"></i>
-                            1
-                          </span>
-                        ) : martial[10] === 2 ? (
-                          <span className="inline-flex items-center gap-1 bg-slate-200 text-slate-700 px-2 py-1 rounded font-bold">
-                            <i className="fa-solid fa-medal text-xs"></i>
-                            2
-                          </span>
-                        ) : martial[10] === 3 ? (
-                          <span className="inline-flex items-center gap-1 bg-orange-100 text-orange-700 px-2 py-1 rounded font-bold">
-                            <i className="fa-solid fa-award text-xs"></i>
-                            3
-                          </span>
-                        ) : martial[10] ? (
-                          <span className="text-slate-500">{martial[10]}</span>
-                        ) : null}
-                      </td>
-                    </tr>
-                  )) : (
-                    <tr>
-                      <td colSpan={isShowFiveReferee ? 11 : 9} className="px-4 py-12 text-center text-slate-400">
-                        <i className="fa-solid fa-inbox text-4xl mb-2"></i>
-                        <p>Chưa có dữ liệu thi quyền</p>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <footer className="bg-white border-t border-slate-200 mt-auto">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <p className="text-center text-sm text-slate-400">©Tuân 2022</p>
-          </div>
-        </footer>
-      </div>
+        <AppFooter />
+      </PageShell>
     );
   }
 }

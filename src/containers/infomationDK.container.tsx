@@ -1,9 +1,9 @@
 import React, { Component, createRef, RefObject } from 'react';
 import { database } from '../firebase';
 import { ref, get, child, Database } from "firebase/database";
-import logo from '../assets/img/logo.png';
-import '../assets/lib/table/style.css';
-import '../assets/lib/table/basictable.css';
+import '../assets/css/bracket.css';
+import { PageShell, PageHeader, ChipGroup, DataTable, AppFooter } from '../components/ui';
+import type { Column } from '../components/ui';
 import { 
   BRACKET_TEMPLATES, 
   updateBracketMatchInfo, 
@@ -207,197 +207,153 @@ class InformationDkContainer extends Component<InformationDkContainerProps, Info
     this.setState({ combatArray, bracketHtml });
   }
 
+  /** Cot cua bang tran dau. Dinh nghia mot lan, dung cho ca bang va the mobile. */
+  columns: Column<any[]>[] = [
+    {
+      key: 'no',
+      header: 'Mã',
+      align: 'center',
+      primary: true,
+      render: (row) => (
+        <span className="bg-slate-200 text-slate-700 px-2 py-1 rounded font-mono text-sm">{row[0]}</span>
+      ),
+    },
+    {
+      key: 'type',
+      header: 'Trận',
+      mobileLabel: 'Trận',
+      render: (row) => <span className="text-sm text-slate-600">{row[1]}</span>,
+    },
+    {
+      key: 'category',
+      header: 'Hạng cân',
+      mobileLabel: 'Hạng cân',
+      primary: true,
+      render: (row) => (
+        <span className="bg-accent-50 text-accent-700 border border-accent-200 px-2 py-1 rounded text-sm font-medium">
+          {row[2]}
+        </span>
+      ),
+    },
+    {
+      key: 'redName',
+      header: (
+        <span className="inline-flex items-center gap-1.5">
+          <span className="w-2 h-2 bg-red-400 rounded-full" />VĐV Đỏ
+        </span>
+      ),
+      mobileLabel: 'VĐV Đỏ',
+      render: (row) => <span className="font-medium text-red-600">{row[3]}</span>,
+    },
+    {
+      key: 'redCode',
+      header: 'MSSV',
+      mobileLabel: 'MSSV đỏ',
+      render: (row) => <span className="text-sm text-slate-500">{row[4]}</span>,
+    },
+    {
+      key: 'redCountry',
+      header: 'Quốc gia',
+      hideOnMobile: true,
+      render: (row) => <span className="text-sm text-slate-500">{row[5]}</span>,
+    },
+    {
+      key: 'blueName',
+      header: (
+        <span className="inline-flex items-center gap-1.5">
+          <span className="w-2 h-2 bg-blue-400 rounded-full" />VĐV Xanh
+        </span>
+      ),
+      mobileLabel: 'VĐV Xanh',
+      render: (row) => <span className="font-medium text-blue-600">{row[6]}</span>,
+    },
+    {
+      key: 'blueCode',
+      header: 'MSSV',
+      mobileLabel: 'MSSV xanh',
+      render: (row) => <span className="text-sm text-slate-500">{row[7]}</span>,
+    },
+    {
+      key: 'blueCountry',
+      header: 'Quốc gia',
+      hideOnMobile: true,
+      render: (row) => <span className="text-sm text-slate-500">{row[8]}</span>,
+    },
+    {
+      key: 'win',
+      header: (
+        <span className="inline-flex items-center gap-1.5">
+          <i className="fa-solid fa-trophy text-amber-300" aria-hidden="true" />Thắng
+        </span>
+      ),
+      align: 'center',
+      mobileLabel: 'Thắng',
+      render: (row) =>
+        row[9] ? (
+          <span
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-semibold
+              ${row[9] === row[3] ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}
+          >
+            <i className="fa-solid fa-trophy text-xs" aria-hidden="true" />
+            {row[9]}
+          </span>
+        ) : (
+          <span className="text-slate-400 text-sm">—</span>
+        ),
+    },
+  ];
+
   render() {
     const { tournaments, categoryArray, combatArray, tournamentName, selectedTournament, selectedCategory } = this.state;
-    
+
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-        {/* Header */}
-        <header className="bg-white/90 backdrop-blur-md shadow-sm border-b border-slate-200 sticky top-0 z-10">
-          <div className="max-w-7xl mx-auto px-4 py-3">
-            <div className="flex items-center justify-between">
-              {/* Left: Logo as Home button */}
-              <a 
-                href="/" 
-                title="Về Trang chủ" 
-                className="flex items-center p-2 bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-xl shadow-sm hover:shadow hover:border-slate-300 transition-all"
-              >
-                <img src={logo} alt="Logo" className="h-7" />
-              </a>
-              
-              {/* Center: Page Title */}
-              <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center shadow-md">
-                  <i className="fa-solid fa-fist-raised text-white text-sm"></i>
-                </div>
-                <h1 className="text-lg font-bold text-slate-800">Thông tin Đối Kháng</h1>
+      <PageShell accent="combat">
+        <PageHeader title="Thông tin đối kháng" icon="fa-solid fa-sitemap" badge={tournamentName}>
+          <ChipGroup
+            label="Giải đấu:"
+            icon="fa-solid fa-trophy"
+            options={tournaments.map((tournament, i) => ({ value: i, label: tournament[1] }))}
+            selected={selectedTournament}
+            onSelect={this.chooseTournament}
+            emphasis
+          />
+          <ChipGroup
+            label="Hạng cân:"
+            icon="fa-solid fa-filter"
+            options={categoryArray.map((category) => ({
+              value: category,
+              label: category === 'ALL' ? 'Tất cả' : category,
+            }))}
+            selected={selectedCategory}
+            onSelect={this.chooseCategory}
+          />
+        </PageHeader>
+
+        <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 py-4 space-y-4">
+          <DataTable
+            columns={this.columns}
+            rows={combatArray}
+            rowKey={(row, i) => `${row[0]}-${i}`}
+            emptyTitle="Chưa có dữ liệu trận đấu"
+            emptyHint="Hãy tạo giải và nhập danh sách vận động viên ở trang Tạo giải."
+          />
+
+          {/* So do chi ve duoc khi da chon mot hang can cu the */}
+          {selectedCategory !== 'ALL' && selectedCategory !== '' && (
+            <section>
+              <h2 className="text-base font-bold text-slate-700 mb-2 flex items-center gap-2">
+                <i className="fa-solid fa-sitemap text-accent-600" aria-hidden="true" />
+                Sơ đồ thi đấu - {selectedCategory}
+              </h2>
+              <div className="bg-white rounded-card shadow-card border border-slate-100 p-2 sm:p-3">
+                <div ref={this.bracketRef} id="schema-bracket" className="scroll-x" />
               </div>
-              
-              {/* Right: Tournament name badge */}
-              {tournamentName ? (
-                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg px-3 py-1.5 max-w-[300px]">
-                  <p className="text-xs text-amber-700 font-medium whitespace-pre-line" title={tournamentName}>
-                    {tournamentName}
-                  </p>
-                </div>
-              ) : (
-                <div className="w-[100px]"></div>
-              )}
-            </div>
-          </div>
-        </header>
+            </section>
+          )}
+        </main>
 
-        {/* Tournament Selection */}
-        {tournaments.length > 0 && (
-          <div className="bg-white border-b border-slate-200">
-            <div className="max-w-7xl mx-auto px-4 py-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm text-slate-500 font-medium mr-2">
-                  <i className="fa-solid fa-trophy mr-1"></i>
-                  Giải đấu:
-                </span>
-                {tournaments.map((tournament, i) => (
-                  <button 
-                    key={i}
-                    onClick={() => this.chooseTournament(i)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-pre-line transition-all ${
-                      selectedTournament === i 
-                        ? 'bg-amber-500 text-white shadow-md' 
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    {tournament[1]}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Category Filter */}
-        {categoryArray.length > 0 && (
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm text-slate-500 font-medium mr-2">
-                <i className="fa-solid fa-filter mr-1"></i>
-                Hạng cân:
-              </span>
-              {categoryArray.map((category, i) => (
-                <button 
-                  key={i}
-                  onClick={() => this.chooseCategory(category)}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                    selectedCategory === category 
-                      ? 'bg-emerald-500 text-white shadow-md' 
-                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                  }`}
-                >
-                  {category === 'ALL' ? 'Tất cả' : category}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Match Table */}
-        <div className="max-w-7xl mx-auto px-4 pb-6">
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-200">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gradient-to-r from-slate-700 to-slate-800 text-white">
-                    <th className="px-4 py-3 text-center text-sm font-semibold whitespace-nowrap">Mã</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold whitespace-nowrap">Trận</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold whitespace-nowrap">Hạng cân</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1">
-                        <span className="w-2 h-2 bg-red-400 rounded-full"></span>
-                        VĐV Đỏ
-                      </span>
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold whitespace-nowrap">MSSV</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold whitespace-nowrap">Quốc gia</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1">
-                        <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
-                        VĐV Xanh
-                      </span>
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold whitespace-nowrap">MSSV</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold whitespace-nowrap">Quốc gia</th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold whitespace-nowrap">
-                      <i className="fa-solid fa-trophy text-amber-400 mr-1"></i>
-                      Thắng
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {combatArray.length > 0 ? combatArray.map((combat, i) => (
-                    <tr key={i} className={`border-b border-slate-100 hover:bg-slate-50 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
-                      <td className="px-4 py-3 text-center">
-                        <span className="bg-slate-200 text-slate-700 px-2 py-1 rounded font-mono text-sm">{combat[0]}</span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{combat[1]}</td>
-                      <td className="px-4 py-3">
-                        <span className="bg-amber-100 text-amber-700 px-2 py-1 rounded text-sm font-medium">{combat[2]}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="font-medium text-red-600">{combat[3]}</span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-slate-500">{combat[4]}</td>
-                      <td className="px-4 py-3 text-sm text-slate-500">{combat[5]}</td>
-                      <td className="px-4 py-3">
-                        <span className="font-medium text-blue-600">{combat[6]}</span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-slate-500">{combat[7]}</td>
-                      <td className="px-4 py-3 text-sm text-slate-500">{combat[8]}</td>
-                      <td className="px-4 py-3 text-center">
-                        {combat[9] ? (
-                          <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${
-                            combat[9] === combat[3] 
-                              ? 'bg-red-100 text-red-700' 
-                              : 'bg-blue-100 text-blue-700'
-                          }`}>
-                            <i className="fa-solid fa-trophy text-xs"></i>
-                            {combat[9]}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 text-sm">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  )) : (
-                    <tr>
-                      <td colSpan={10} className="px-4 py-12 text-center text-slate-400">
-                        <i className="fa-solid fa-inbox text-4xl mb-2"></i>
-                        <p>Chưa có dữ liệu trận đấu</p>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        {/* Bracket Section - only show when a specific category is selected */}
-        {selectedCategory !== 'ALL' && (
-          <div className="max-w-7xl mx-auto px-4 pb-6">
-            <h3 className="text-lg font-bold text-slate-700 mb-3">
-              <i className="fa-solid fa-sitemap mr-2 text-amber-500"></i>
-              Sơ đồ thi đấu - {selectedCategory}
-            </h3>
-            <div ref={this.bracketRef} id="schema-bracket" className="bg-white rounded-2xl shadow-lg p-4 border border-slate-200 overflow-x-auto"></div>
-          </div>
-        )}
-
-        {/* Footer */}
-        <footer className="bg-white border-t border-slate-200 mt-auto">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <p className="text-center text-sm text-slate-400">©Tuân 2022</p>
-          </div>
-        </footer>
-      </div>
+        <AppFooter />
+      </PageShell>
     );
   }
 }
