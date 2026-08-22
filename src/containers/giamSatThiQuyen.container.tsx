@@ -1078,7 +1078,7 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
               <i className="fa fa-caret-left"></i>
             </button>
             <div className="flex-1 min-w-0 flex items-center justify-center">
-              <FitText maxVh={5.5} minVh={2} className="text-center" innerClassName="font-bold text-slate-800 leading-none">
+              <FitText maxVh={5.5} minVh={2} className="text-center" innerClassName="font-bold text-slate-800 leading-[1.15]">
                 {matchMartialName}
                 <span className="text-slate-400 font-medium"> · Lượt {matchMartialNo}</span>
               </FitText>
@@ -1096,14 +1096,14 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
             {countryFlag && (
               <img className="absolute left-[2vh] top-1/2 -translate-y-1/2 h-[55%] rounded shadow border-2 border-white/30" src={countryFlag} alt="flag" />
             )}
-            <FitText maxVh={8} minVh={2.5} className="text-center" innerClassName="font-bold text-white tracking-wide leading-none">
+            <FitText maxVh={8} minVh={2.5} className="text-center" innerClassName="font-bold text-white tracking-wide leading-[1.15]">
               {matchMartialCode}
             </FitText>
           </div>
 
           {/* Row 3: Ten VDV - tat ca tren mot dong, tu co cho vua */}
           <div className="bg-white rounded-xl shadow px-[3vh] flex items-center justify-center" style={{ height: '15%' }}>
-            <FitText maxVh={fighterNameMaxVh} minVh={2} className="text-center" innerClassName="font-bold text-slate-800 leading-none">
+            <FitText maxVh={fighterNameMaxVh} minVh={2} className="text-center" innerClassName="font-bold text-slate-800 leading-[1.15]">
               {matchMartialTeam.map((fighterData, i) => (
                 <React.Fragment key={i}>
                   {i > 0 && <span className="text-slate-300 mx-[0.35em]">•</span>}
@@ -1114,25 +1114,129 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
             </FitText>
           </div>
 
-          {/* Row 4: Dong ho | Diem tong | Diem giam dinh */}
+          {/* Row 4: Dong ho + BXH | Diem tong | Diem giam dinh */}
           <div className="flex items-stretch gap-2" style={{ height: '55%' }}>
 
-            {/* Cot trai: dong ho - khoi mau bao trang thai, thu nho de nhuong cho cho diem */}
-            <div
-              onClick={this.startTimer}
-              className="rounded-xl shadow-lg flex items-center justify-center px-[1.5vh] cursor-pointer select-none transition-transform hover:scale-[1.02]"
-              style={{ width: '18%', backgroundColor: timerBgColor || '#334155' }}
-            >
-              <FitText
-                maxVh={14}
-                minVh={3}
-                className="text-center"
-                innerClassName="font-bold text-white leading-none"
-                innerStyle={{ fontFamily: 'clockicons, monospace' }}
-              >
-                {matchTime}
-              </FitText>
-            </div>
+            {/* Cot trai: dong ho (tren) + bang xep hang (duoi) */}
+            {(() => {
+              // Compute ranking for current match content
+              const currentMatchContent = this.martialObj && this.matchMartialNoCurrent > 0
+                ? this.martialObj[this.matchMartialNoCurrent - 1]
+                : null;
+              const currentMatchName = currentMatchContent?.match?.name || '';
+
+              // Gather all teams within the current match (same martial[i].team)
+              const allTeamsInContent: { no: number; finalScore: number; code: string; fighters: string[] }[] = [];
+              if (currentMatchContent?.team) {
+                currentMatchContent.team.forEach((t: any) => {
+                  const fighters: string[] = [];
+                  if (t.fighters) {
+                    t.fighters.forEach((f: any) => {
+                      if (f.fighter?.name) fighters.push(f.fighter.name);
+                    });
+                  }
+                  allTeamsInContent.push({
+                    no: t.no,
+                    finalScore: t.finalScore || 0,
+                    code: t.code || (t.fighters?.[0]?.fighter?.code || ''),
+                    fighters
+                  });
+                });
+              }
+
+              // Only rank teams that have competed (finalScore > 0)
+              const sorted = [...allTeamsInContent].filter(t => t.finalScore > 0).sort((a, b) => b.finalScore - a.finalScore);
+
+              // Compute ranks (handle ties: same score = same rank)
+              const ranked: (typeof sorted[0] & { rank: number })[] = [];
+              for (let idx = 0; idx < sorted.length; idx++) {
+                const team = sorted[idx];
+                let rank = idx + 1;
+                if (idx > 0 && team.finalScore === sorted[idx - 1].finalScore) {
+                  rank = ranked[idx - 1].rank;
+                }
+                ranked.push({ ...team, rank });
+              }
+
+              // Current team's no to highlight
+              const currentTeamNo = currentMatchContent?.team?.[this.teamMartialNoCurrent - 1]?.no;
+
+              // Rank badge color
+              const rankColor = (rank: number) => {
+                switch (rank) {
+                  case 1: return 'bg-yellow-400 text-yellow-900';
+                  case 2: return 'bg-slate-300 text-slate-700';
+                  case 3: return 'bg-amber-600 text-white';
+                  default: return 'bg-slate-200 text-slate-600';
+                }
+              };
+
+              return (
+                <div className="flex flex-col gap-2" style={{ width: '18%' }}>
+                  {/* Dong ho - phan tren */}
+                  <div
+                    onClick={this.startTimer}
+                    className="rounded-xl shadow-lg flex items-center justify-center px-[1.5vh] cursor-pointer select-none transition-transform hover:scale-[1.02]"
+                    style={{ height: '25%', backgroundColor: timerBgColor || '#334155' }}
+                  >
+                    <FitText
+                      maxVh={8}
+                      minVh={3}
+                      className="text-center"
+                      innerClassName="font-bold text-white leading-none"
+                      innerStyle={{ fontFamily: 'clockicons, monospace' }}
+                    >
+                      {matchTime}
+                    </FitText>
+                  </div>
+
+                  {/* Bang xep hang - phan duoi */}
+                  <div className="bg-white rounded-xl shadow flex-1 flex flex-col overflow-hidden">
+                    {/* Header */}
+                    <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-2 py-[0.4vh] flex items-center justify-center flex-shrink-0">
+                      <span className="text-white font-bold text-[1.4vh] uppercase tracking-wider">⭐ Xếp hạng</span>
+                    </div>
+                    {/* Rankings - show all teams */}
+                    <div className="flex-1 flex flex-col divide-y divide-slate-100 overflow-y-auto">
+                      {ranked.length > 0 ? ranked.map((team, idx) => {
+                        const isCurrentTeam = team.no === currentTeamNo;
+                        const fighterNames = team.fighters.join(', ');
+                        return (
+                          <div 
+                            key={idx} 
+                            className={`flex-1 min-h-0 flex items-center gap-[0.5vh] px-[0.8vh] ${isCurrentTeam ? 'bg-amber-50' : ''}`}
+                          >
+                            {/* Rank number badge */}
+                            <span className={`flex-shrink-0 w-[3vh] h-[3vh] rounded-full flex items-center justify-center text-[1.6vh] font-bold ${rankColor(team.rank)}`}>
+                              {team.rank}
+                            </span>
+                            {/* Code (don vi) on top, Name below */}
+                            <div className="min-w-0 flex-1 overflow-hidden">
+                              {team.code && (
+                                <div className={`text-[1.6vh] truncate leading-tight font-semibold ${isCurrentTeam ? 'text-amber-700' : 'text-slate-700'}`}>
+                                  {team.code}
+                                </div>
+                              )}
+                              <div className={`text-[1.4vh] leading-tight ${isCurrentTeam ? 'text-amber-500' : 'text-slate-400'}`}>
+                                {fighterNames || `Lượt ${team.no}`}
+                              </div>
+                            </div>
+                            {/* Score */}
+                            <span className={`ml-auto flex-shrink-0 text-[1.8vh] font-bold tabular-nums ${team.finalScore > 0 ? 'text-slate-700' : 'text-slate-300'}`}>
+                              {team.finalScore > 0 ? String(team.finalScore).padStart(3, '0') : '—'}
+                            </span>
+                          </div>
+                        );
+                      }) : (
+                        <div className="flex-1 flex items-center justify-center text-[1.2vh] text-slate-400">
+                          —
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Cot giua: diem tong - khoi mau cam om sat con so */}
             <div className="flex-1 min-w-0 flex items-center justify-center">
@@ -1150,7 +1254,7 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
             <div className="bg-white rounded-xl shadow flex flex-col divide-y divide-slate-100 overflow-hidden" style={{ width: '20%' }}>
               {refereeList.map(i => (
                 <div key={i} className="flex-1 min-h-0 flex items-center justify-between px-[1.5vh]">
-                  <span className="text-[2vh] font-bold text-slate-400 leading-none whitespace-nowrap">Giám định {i}</span>
+                  <span className="text-[2vh] font-bold text-slate-400 leading-[1.15] whitespace-nowrap">Giám định {i}</span>
                   <span className={`${isShowFiveReferee ? 'text-[7vh]' : 'text-[10vh]'} font-bold text-slate-700 leading-none tabular-nums`}>
                     {refereeScores[i - 1] || '00'}
                   </span>

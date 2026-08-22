@@ -84,7 +84,7 @@ const FitText: React.FC<FitTextProps> = ({
     <div ref={containerRef} className={`w-full min-w-0 overflow-hidden ${className}`}>
       <span
         ref={textRef}
-        className={`inline-block ${hasCustomWhitespace ? '' : 'whitespace-nowrap'} ${innerClassName}`}
+        className={`inline-block py-[0.05em] ${hasCustomWhitespace ? '' : 'whitespace-nowrap'} ${innerClassName}`}
         style={innerStyle}
       >
         {children}
