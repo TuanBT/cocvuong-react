@@ -14,6 +14,7 @@ import FitText from '../components/common/FitText';
 
 // Import utils
 import { convertWinLoseFormat, getModes, resizeTextToFit } from '../utils/helpers';
+import { getReadableTextColor } from '../utils/contrast';
 
 // Import Score Sync utilities
 import { subscribeScoreForGiamSat } from '../utils/scoreSync';
@@ -316,15 +317,15 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         this.extraRound = ROUNDS.EXTRA;
 
         // Colors from constants
-        this.greenColor = COLORS.GREEN;
+        this.greenColor = '#15803d';   // green-700, dam hon COLORS.GREEN cho du tuong phan
         this.yellowColor = COLORS.YELLOW;
-        this.redColor = COLORS.RED;
+        this.redColor = '#c0392b';     // Pomegranate, dam hon COLORS.RED cho du tuong phan
         this.grayColor = COLORS.GRAY;
         this.whiteColor = COLORS.WHITE;
         this.blackColor = COLORS.BLACK;
         this.orangeColor = COLORS.ORANGE;
         this.bodyBgColor = COLORS.BODY_BG;
-        this.silverColor = COLORS.SILVER;
+        this.silverColor = '#94a3b8';  // slate-400, dam hon COLORS.SILVER cho du tuong phan
 
         this.timeScore = TIME_SCORE;
         this.numReferee = REFEREE_COUNT.DEFAULT;
@@ -1884,7 +1885,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                                 className="rounded-2xl shadow-xl cursor-pointer transition-transform hover:scale-105 hover:z-10 px-4 py-1 relative"
                                 style={{ backgroundColor: timerBgColor || '#1e293b' }}
                             >
-                                <div className="text-[16vh] font-bold text-white font-mono leading-none" id="match-time" style={{ fontFamily: 'clockicons, monospace' }}>
+                                <div className="text-[16vh] font-bold font-mono leading-none" id="match-time" style={{ fontFamily: 'clockicons, monospace', color: getReadableTextColor(timerBgColor || '#1e293b') }}>
                                     {matchTime}
                                 </div>
                             </div>

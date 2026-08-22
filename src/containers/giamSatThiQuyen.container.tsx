@@ -7,6 +7,9 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import FitText from '../components/common/FitText';
 
+// Import utils
+import { getReadableTextColor } from '../utils/contrast';
+
 // Import Offline Service
 import {
   isOnline,
@@ -67,6 +70,15 @@ interface TournamentData {
   setting: TournamentSettingData;
 }
 
+// Mot dong trong bang xep hang
+interface RankedTeam {
+  no: number;
+  finalScore: number;
+  code: string;
+  fighters: string[];
+  rank: number;
+}
+
 // Props and State interfaces
 interface GiamSatThiQuyenProps {}
 
@@ -102,6 +114,7 @@ interface GiamSatThiQuyenState {
   specScoreWidth: string;
   // Connection status tracking
   showHelpModal: boolean;
+  showRankingModal: boolean;
   // Offline mode
   isOffline: boolean;
   pendingWritesCount: number;
@@ -220,7 +233,7 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     this.secondRound = "Hiệp 2";
     this.breakExtraRound = "Nghỉ hiệp phụ";
     this.extraRound = "Hiệp phụ";
-    this.greenColor = "#27ae60";
+    this.greenColor = "#15803d";
     this.yellowColor = "#f1c40f";
     this.redColor = "#e74c3c";
     this.grayColor = "#95a5a6";
@@ -228,7 +241,7 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     this.blackColor = "#000000";
     this.orangeColor = "#e67e22";
     this.bodyBgColor = "#ecf0f1";
-    this.silverColor = "#bdc3c7";
+    this.silverColor = "#94a3b8";
     this.timeScore = 4;
     this.numReferee = 3;
 
@@ -308,6 +321,7 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       specScoreWidth: '',
       // Connection status
       showHelpModal: false,
+      showRankingModal: false,
       // Offline mode
       isOffline: !isOnline(),
       pendingWritesCount: getPendingWritesCount()
@@ -564,8 +578,10 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
   _handleKeyDown = (e: KeyboardEvent): void => {
     // ESC - Đóng modal đang mở
     if (e.which === 27) {
-      const { showPasswordModal, showChooseArenaNoModal, showModalChooseMatch, showModalConfirm, showTakeMainScoreModal, showHelpModal } = this.state;
-      if (showPasswordModal) {
+      const { showPasswordModal, showChooseArenaNoModal, showModalChooseMatch, showModalConfirm, showTakeMainScoreModal, showHelpModal, showRankingModal } = this.state;
+      if (showRankingModal) {
+        this.setState({ showRankingModal: false });
+      } else if (showPasswordModal) {
         this.setState({ showPasswordModal: false });
       } else if (showChooseArenaNoModal) {
         this.setState({ showChooseArenaNoModal: false });
@@ -580,6 +596,8 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       }
       return;
     }
+    // Dang xem bang xep hang thi khong nhan phim dieu khien (tranh lo bam Space chay dong ho)
+    if (this.state.showRankingModal) return;
     // Space - Bắt đầu/Dừng đồng hồ
     if (e.which === 32) {
       this.startTimer();
@@ -768,6 +786,69 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     toast.success("Chấm điểm thành công!");
   }
 
+  // Xep hang cac doi trong cung noi dung thi hien tai
+  computeRanking(): { ranked: RankedTeam[]; pending: RankedTeam[]; currentTeamNo: number | undefined; matchName: string } {
+    const currentMatchContent = this.martialObj && this.matchMartialNoCurrent > 0
+      ? this.martialObj[this.matchMartialNoCurrent - 1]
+      : null;
+
+    // Gom tat ca doi trong noi dung thi hien tai
+    const allTeams: Omit<RankedTeam, 'rank'>[] = [];
+    if (currentMatchContent?.team) {
+      currentMatchContent.team.forEach((t: any) => {
+        const fighters: string[] = [];
+        if (t.fighters) {
+          t.fighters.forEach((f: any) => {
+            if (f.fighter?.name) fighters.push(f.fighter.name);
+          });
+        }
+        allTeams.push({
+          no: t.no,
+          finalScore: t.finalScore || 0,
+          code: t.code || (t.fighters?.[0]?.fighter?.code || ''),
+          fighters
+        });
+      });
+    }
+
+    // Chi xep hang doi da thi (finalScore > 0)
+    const sorted = allTeams.filter(t => t.finalScore > 0).sort((a, b) => b.finalScore - a.finalScore);
+
+    // Tinh hang, dong diem thi dong hang
+    const ranked: RankedTeam[] = [];
+    for (let idx = 0; idx < sorted.length; idx++) {
+      const team = sorted[idx];
+      let rank = idx + 1;
+      if (idx > 0 && team.finalScore === sorted[idx - 1].finalScore) {
+        rank = ranked[idx - 1].rank;
+      }
+      ranked.push({ ...team, rank });
+    }
+
+    // Doi chua thi, giu nguyen thu tu luot
+    const pending: RankedTeam[] = allTeams
+      .filter(t => t.finalScore <= 0)
+      .sort((a, b) => a.no - b.no)
+      .map(t => ({ ...t, rank: 0 }));
+
+    return {
+      ranked,
+      pending,
+      currentTeamNo: currentMatchContent?.team?.[this.teamMartialNoCurrent - 1]?.no,
+      matchName: currentMatchContent?.match?.name || ''
+    };
+  }
+
+  // Mau huy hieu theo hang
+  rankColor(rank: number): string {
+    switch (rank) {
+      case 1: return 'bg-yellow-400 text-yellow-900';
+      case 2: return 'bg-slate-300 text-slate-700';
+      case 3: return 'bg-amber-800 text-white';
+      default: return 'bg-slate-200 text-slate-600';
+    }
+  }
+
   startTimer = (): void => {
     if (this.timer) {
       this.stopTimer();
@@ -871,7 +952,8 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       selectedTournament,
       selectedArena,
       specScoreWidth,
-      showHelpModal
+      showHelpModal,
+      showRankingModal
     } = this.state;
 
     // Get country flag for first fighter
@@ -935,10 +1017,10 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     });
 
     return (
-      <div className="h-screen w-screen bg-slate-100 flex flex-col overflow-hidden relative">
+      <div className="h-screen w-screen bg-slate-200 flex flex-col overflow-hidden relative">
         {/* Loading Skeleton when no match data - covers entire screen */}
         {(!matchMartialNo || matchMartialNo === '') && (
-          <div className="absolute inset-0 z-30 flex flex-col overflow-hidden bg-slate-100">
+          <div className="absolute inset-0 z-30 flex flex-col overflow-hidden bg-slate-200">
             {/* Skeleton Header */}
             <div className="bg-white border-b border-slate-200 px-4 flex items-center justify-between" style={{ height: '6%' }}>
               <div className="flex items-center gap-3 flex-1">
@@ -953,10 +1035,10 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
             <div className="p-3 flex flex-col gap-2" style={{ height: '94%' }}>
               {/* Skeleton Row 1: Noi dung (12%) */}
               <div className="bg-slate-300 rounded-xl" style={{ height: '12%' }}></div>
-              {/* Skeleton Row 2: Don vi (11%) */}
-              <div className="bg-slate-400 rounded-xl" style={{ height: '11%' }}></div>
-              {/* Skeleton Row 3: Ten VDV (15%) */}
-              <div className="bg-slate-300 rounded-xl" style={{ height: '15%' }}></div>
+              {/* Skeleton Row 2: Ten VDV (15%) */}
+              <div className="bg-slate-400 rounded-xl" style={{ height: '15%' }}></div>
+              {/* Skeleton Row 3: Don vi (11%) */}
+              <div className="bg-slate-300 rounded-xl" style={{ height: '11%' }}></div>
               {/* Skeleton Row 4: Dong ho | Diem tong | Giam dinh (55%) */}
               <div className="flex items-stretch gap-2" style={{ height: '55%' }}>
                 <div className="bg-slate-300 rounded-xl" style={{ width: '18%' }}></div>
@@ -1080,7 +1162,7 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
             <div className="flex-1 min-w-0 flex items-center justify-center">
               <FitText maxVh={5.5} minVh={2} className="text-center" innerClassName="font-bold text-slate-800 leading-[1.15]">
                 {matchMartialName}
-                <span className="text-slate-400 font-medium"> · Lượt {matchMartialNo}</span>
+                <span className="text-slate-500 font-medium"> · Lượt {matchMartialNo}</span>
               </FitText>
             </div>
             <button onClick={this.nextMatchMartial} className="w-9 h-9 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center text-lg transition-colors flex-shrink-0">
@@ -1088,29 +1170,29 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
             </button>
           </div>
 
-          {/* Row 2: Don vi - mot dong, tu co cho vua */}
-          <div
-            className={`relative bg-slate-700 rounded-xl shadow flex items-center justify-center ${countryFlag ? 'px-[11vh]' : 'px-[3vh]'}`}
-            style={{ height: '11%' }}
-          >
-            {countryFlag && (
-              <img className="absolute left-[2vh] top-1/2 -translate-y-1/2 h-[55%] rounded shadow border-2 border-white/30" src={countryFlag} alt="flag" />
-            )}
-            <FitText maxVh={8} minVh={2.5} className="text-center" innerClassName="font-bold text-white tracking-wide leading-[1.15]">
-              {matchMartialCode}
-            </FitText>
-          </div>
-
-          {/* Row 3: Ten VDV - tat ca tren mot dong, tu co cho vua */}
-          <div className="bg-white rounded-xl shadow px-[3vh] flex items-center justify-center" style={{ height: '15%' }}>
-            <FitText maxVh={fighterNameMaxVh} minVh={2} className="text-center" innerClassName="font-bold text-slate-800 leading-[1.15]">
+          {/* Row 2: Ten VDV - tat ca tren mot dong, tu co cho vua */}
+          <div className="bg-slate-800 rounded-xl shadow-lg px-[3vh] flex items-center justify-center" style={{ height: '15%' }}>
+            <FitText maxVh={fighterNameMaxVh} minVh={2} className="text-center" innerClassName="font-bold text-white leading-[1.15]">
               {matchMartialTeam.map((fighterData, i) => (
                 <React.Fragment key={i}>
-                  {i > 0 && <span className="text-slate-300 mx-[0.35em]">•</span>}
+                  {i > 0 && <span className="text-slate-500 mx-[0.35em]">•</span>}
                   {fighterCount > 2 && <span className="text-slate-400 font-medium">{i + 1}. </span>}
                   {fighterData.fighter.name}
                 </React.Fragment>
               ))}
+            </FitText>
+          </div>
+
+          {/* Row 3: Don vi - mot dong, tu co cho vua */}
+          <div
+            className={`relative bg-white rounded-xl shadow flex items-center justify-center ${countryFlag ? 'px-[11vh]' : 'px-[3vh]'}`}
+            style={{ height: '11%' }}
+          >
+            {countryFlag && (
+              <img className="absolute left-[2vh] top-1/2 -translate-y-1/2 h-[55%] rounded shadow border-2 border-slate-200" src={countryFlag} alt="flag" />
+            )}
+            <FitText maxVh={6} minVh={2.5} className="text-center" innerClassName="font-bold text-slate-600 tracking-wide leading-[1.15]">
+              {matchMartialCode}
             </FitText>
           </div>
 
@@ -1119,57 +1201,8 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
 
             {/* Cot trai: dong ho (tren) + bang xep hang (duoi) */}
             {(() => {
-              // Compute ranking for current match content
-              const currentMatchContent = this.martialObj && this.matchMartialNoCurrent > 0
-                ? this.martialObj[this.matchMartialNoCurrent - 1]
-                : null;
-              const currentMatchName = currentMatchContent?.match?.name || '';
-
-              // Gather all teams within the current match (same martial[i].team)
-              const allTeamsInContent: { no: number; finalScore: number; code: string; fighters: string[] }[] = [];
-              if (currentMatchContent?.team) {
-                currentMatchContent.team.forEach((t: any) => {
-                  const fighters: string[] = [];
-                  if (t.fighters) {
-                    t.fighters.forEach((f: any) => {
-                      if (f.fighter?.name) fighters.push(f.fighter.name);
-                    });
-                  }
-                  allTeamsInContent.push({
-                    no: t.no,
-                    finalScore: t.finalScore || 0,
-                    code: t.code || (t.fighters?.[0]?.fighter?.code || ''),
-                    fighters
-                  });
-                });
-              }
-
-              // Only rank teams that have competed (finalScore > 0)
-              const sorted = [...allTeamsInContent].filter(t => t.finalScore > 0).sort((a, b) => b.finalScore - a.finalScore);
-
-              // Compute ranks (handle ties: same score = same rank)
-              const ranked: (typeof sorted[0] & { rank: number })[] = [];
-              for (let idx = 0; idx < sorted.length; idx++) {
-                const team = sorted[idx];
-                let rank = idx + 1;
-                if (idx > 0 && team.finalScore === sorted[idx - 1].finalScore) {
-                  rank = ranked[idx - 1].rank;
-                }
-                ranked.push({ ...team, rank });
-              }
-
-              // Current team's no to highlight
-              const currentTeamNo = currentMatchContent?.team?.[this.teamMartialNoCurrent - 1]?.no;
-
-              // Rank badge color
-              const rankColor = (rank: number) => {
-                switch (rank) {
-                  case 1: return 'bg-yellow-400 text-yellow-900';
-                  case 2: return 'bg-slate-300 text-slate-700';
-                  case 3: return 'bg-amber-600 text-white';
-                  default: return 'bg-slate-200 text-slate-600';
-                }
-              };
+              const { ranked, pending, currentTeamNo } = this.computeRanking();
+              const hiddenCount = Math.max(0, ranked.length - 4) + pending.length;
 
               return (
                 <div className="flex flex-col gap-2" style={{ width: '18%' }}>
@@ -1183,56 +1216,65 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
                       maxVh={8}
                       minVh={3}
                       className="text-center"
-                      innerClassName="font-bold text-white leading-none"
-                      innerStyle={{ fontFamily: 'clockicons, monospace' }}
+                      innerClassName="font-bold leading-none"
+                      innerStyle={{ fontFamily: 'clockicons, monospace', color: getReadableTextColor(timerBgColor || '#334155') }}
                     >
                       {matchTime}
                     </FitText>
                   </div>
 
-                  {/* Bang xep hang - phan duoi */}
-                  <div className="bg-white rounded-xl shadow flex-1 flex flex-col overflow-hidden">
+                  {/* Bang xep hang - phan duoi, bam de xem day du */}
+                  <div
+                    onClick={() => this.setState({ showRankingModal: true })}
+                    className="bg-white rounded-xl shadow flex-1 flex flex-col overflow-hidden cursor-pointer transition-shadow hover:shadow-lg"
+                  >
                     {/* Header */}
-                    <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-2 py-[0.4vh] flex items-center justify-center flex-shrink-0">
-                      <span className="text-white font-bold text-[1.4vh] uppercase tracking-wider">⭐ Xếp hạng</span>
+                    <div className="bg-slate-700 px-2 py-[0.5vh] flex items-center justify-center gap-[0.8vh] flex-shrink-0">
+                      <span className="text-white font-bold text-[1.8vh] uppercase tracking-wider">Xếp hạng</span>
+                      <i className="fa fa-expand text-white/60 text-[1.3vh]"></i>
                     </div>
                     {/* Rankings - show all teams */}
                     <div className="flex-1 flex flex-col divide-y divide-slate-100 overflow-y-auto">
-                      {ranked.length > 0 ? ranked.map((team, idx) => {
+                      {ranked.length > 0 ? ranked.slice(0, 4).map((team, idx) => {
                         const isCurrentTeam = team.no === currentTeamNo;
                         const fighterNames = team.fighters.join(', ');
                         return (
                           <div 
                             key={idx} 
-                            className={`flex-1 min-h-0 flex items-center gap-[0.5vh] px-[0.8vh] ${isCurrentTeam ? 'bg-amber-50' : ''}`}
+                            className={`flex-1 min-h-0 flex items-center gap-[0.6vh] px-[0.8vh] border-l-[0.6vh] ${isCurrentTeam ? 'bg-amber-50 border-amber-500' : 'border-transparent'}`}
                           >
                             {/* Rank number badge */}
-                            <span className={`flex-shrink-0 w-[3vh] h-[3vh] rounded-full flex items-center justify-center text-[1.6vh] font-bold ${rankColor(team.rank)}`}>
+                            <span className={`flex-shrink-0 w-[3.4vh] h-[3.4vh] rounded-full flex items-center justify-center text-[2vh] font-bold ${this.rankColor(team.rank)}`}>
                               {team.rank}
                             </span>
-                            {/* Code (don vi) on top, Name below */}
+                            {/* Name (VDV) on top, Code (don vi) below */}
                             <div className="min-w-0 flex-1 overflow-hidden">
+                              <div className={`text-[2.2vh] leading-tight font-semibold line-clamp-2 ${isCurrentTeam ? 'text-amber-700' : 'text-slate-800'}`}>
+                                {fighterNames || `Lượt ${team.no}`}
+                              </div>
                               {team.code && (
-                                <div className={`text-[1.6vh] truncate leading-tight font-semibold ${isCurrentTeam ? 'text-amber-700' : 'text-slate-700'}`}>
+                                <div className={`text-[1.8vh] leading-tight truncate ${isCurrentTeam ? 'text-amber-600' : 'text-slate-500'}`}>
                                   {team.code}
                                 </div>
                               )}
-                              <div className={`text-[1.4vh] leading-tight ${isCurrentTeam ? 'text-amber-500' : 'text-slate-400'}`}>
-                                {fighterNames || `Lượt ${team.no}`}
-                              </div>
                             </div>
                             {/* Score */}
-                            <span className={`ml-auto flex-shrink-0 text-[1.8vh] font-bold tabular-nums ${team.finalScore > 0 ? 'text-slate-700' : 'text-slate-300'}`}>
+                            <span className={`ml-auto flex-shrink-0 text-[2.4vh] font-bold tabular-nums ${team.finalScore > 0 ? 'text-slate-800' : 'text-slate-400'}`}>
                               {team.finalScore > 0 ? String(team.finalScore).padStart(3, '0') : '—'}
                             </span>
                           </div>
                         );
                       }) : (
-                        <div className="flex-1 flex items-center justify-center text-[1.2vh] text-slate-400">
+                        <div className="flex-1 flex items-center justify-center text-[1.8vh] text-slate-500">
                           —
                         </div>
                       )}
                     </div>
+                    {hiddenCount > 0 && (
+                      <div className="bg-slate-100 border-t border-slate-200 px-2 py-[0.3vh] text-center text-[1.4vh] font-medium text-slate-500 flex-shrink-0">
+                        +{hiddenCount} đội · bấm để xem
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -1242,7 +1284,7 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
             <div className="flex-1 min-w-0 flex items-center justify-center">
               <div
                 onClick={this.takeMainScore}
-                className="h-full max-w-full bg-amber-500 rounded-[4vh] shadow-lg px-[6vh] inline-flex items-center justify-center cursor-pointer select-none transition-transform hover:scale-[1.02]"
+                className="h-full max-w-full bg-amber-600 rounded-[4vh] shadow-lg px-[6vh] inline-flex items-center justify-center cursor-pointer select-none transition-transform hover:scale-[1.02]"
               >
                 <div className="text-[min(40vh,24vw)] font-black text-white leading-none tabular-nums">
                   {averageScore}
@@ -1254,8 +1296,8 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
             <div className="bg-white rounded-xl shadow flex flex-col divide-y divide-slate-100 overflow-hidden" style={{ width: '20%' }}>
               {refereeList.map(i => (
                 <div key={i} className="flex-1 min-h-0 flex items-center justify-between px-[1.5vh]">
-                  <span className="text-[2vh] font-bold text-slate-400 leading-[1.15] whitespace-nowrap">Giám định {i}</span>
-                  <span className={`${isShowFiveReferee ? 'text-[7vh]' : 'text-[10vh]'} font-bold text-slate-700 leading-none tabular-nums`}>
+                  <span className="text-[2vh] font-bold text-slate-600 leading-[1.15] whitespace-nowrap">Giám định {i}</span>
+                  <span className={`${isShowFiveReferee ? 'text-[7vh]' : 'text-[10vh]'} font-bold text-slate-800 leading-none tabular-nums`}>
                     {refereeScores[i - 1] || '00'}
                   </span>
                 </div>
@@ -1503,6 +1545,93 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
             </div>
           </div>
         </div>
+
+        {/* Ranking Modal - xem day du bang xep hang, khong phai mo man hinh khac */}
+        {showRankingModal && (() => {
+          const { ranked, pending, currentTeamNo, matchName } = this.computeRanking();
+          return (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => this.setState({ showRankingModal: false })}>
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[88vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                {/* Header */}
+                <div className="bg-slate-700 px-5 py-3 flex items-center justify-between flex-shrink-0">
+                  <div className="min-w-0">
+                    <h5 className="text-white font-bold text-xl">Bảng xếp hạng</h5>
+                    {matchName && <p className="text-slate-300 text-sm truncate">{matchName}</p>}
+                  </div>
+                  <button onClick={() => this.setState({ showRankingModal: false })} className="text-white/80 hover:text-white transition-colors flex-shrink-0 ml-3">
+                    <i className="fa-solid fa-xmark text-2xl"></i>
+                  </button>
+                </div>
+
+                {/* Body */}
+                <div className="flex-1 overflow-y-auto">
+                  {ranked.length > 0 ? (
+                    <div className="divide-y divide-slate-100">
+                      {ranked.map((team, idx) => {
+                        const isCurrentTeam = team.no === currentTeamNo;
+                        return (
+                          <div key={idx} className={`flex items-center gap-3 px-4 py-3 border-l-4 ${isCurrentTeam ? 'bg-amber-50 border-amber-500' : 'border-transparent'}`}>
+                            <span className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-xl font-bold ${this.rankColor(team.rank)}`}>
+                              {team.rank}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className={`text-lg font-semibold leading-snug ${isCurrentTeam ? 'text-amber-800' : 'text-slate-800'}`}>
+                                {team.fighters.length > 0 ? team.fighters.join(', ') : `Lượt ${team.no}`}
+                              </div>
+                              <div className="text-base text-slate-500 leading-snug">
+                                {team.code || '—'} · Lượt {team.no}
+                              </div>
+                            </div>
+                            <span className="flex-shrink-0 text-3xl font-bold tabular-nums text-slate-800">
+                              {String(team.finalScore).padStart(3, '0')}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="px-4 py-10 text-center text-slate-400">Chưa có đội nào được chấm điểm</div>
+                  )}
+
+                  {pending.length > 0 && (
+                    <div className="border-t border-slate-200">
+                      <div className="px-4 py-2 bg-slate-50 text-sm font-semibold text-slate-500 uppercase tracking-wide sticky top-0">
+                        Chưa thi ({pending.length})
+                      </div>
+                      <div className="divide-y divide-slate-100">
+                        {pending.map((team, idx) => {
+                          const isCurrentTeam = team.no === currentTeamNo;
+                          return (
+                            <div key={idx} className={`flex items-center gap-3 px-4 py-3 border-l-4 ${isCurrentTeam ? 'bg-amber-50 border-amber-500' : 'border-transparent'}`}>
+                              <span className="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-base font-bold bg-slate-100 text-slate-400">
+                                —
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <div className={`text-lg font-semibold leading-snug ${isCurrentTeam ? 'text-amber-800' : 'text-slate-600'}`}>
+                                  {team.fighters.length > 0 ? team.fighters.join(', ') : `Lượt ${team.no}`}
+                                </div>
+                                <div className="text-base text-slate-400 leading-snug">
+                                  {team.code || '—'} · Lượt {team.no}
+                                </div>
+                              </div>
+                              <span className="flex-shrink-0 text-2xl font-bold tabular-nums text-slate-300">—</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="px-5 py-3 bg-slate-50 border-t flex-shrink-0">
+                  <button onClick={() => this.setState({ showRankingModal: false })}
+                    className="w-full py-2.5 rounded-xl bg-slate-700 text-white font-medium hover:bg-slate-800 transition-colors">Đóng</button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Help Modal */}
         {showHelpModal && (
