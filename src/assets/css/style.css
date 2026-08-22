@@ -17,6 +17,18 @@
     font-display: swap;
 }
 
+/* Bang gio thi dau.
+   clockicons chi co mot do day (400). Neu de font-weight: 700 thi trinh duyet
+   phai gia lap dam bang cach lam day net, cac khe cua chu so 7 doan bi lap day
+   va mat dang dong ho dien tu. Khoa do day o 400 va tat luon font-synthesis
+   de khong ai vo tinh dat lai bang class font-bold. */
+.clock-face {
+    font-family: clockicons, ui-monospace, monospace;
+    font-weight: 400;
+    font-synthesis: none;
+    -webkit-font-synthesis: none;
+}
+
 /* Man hinh trinh chieu: khong cho boi den chu khi cham nham.
    Cac trang doc/nhap lieu bat lai bang class `select-text` o the goc. */
 html {

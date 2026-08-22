@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { database } from '../firebase';
-import { ref, set, get, update, child, onValue, off, remove, DatabaseReference, Database } from "firebase/database";
+import { ref, set, get, update, child, onValue, off, DatabaseReference, Database } from "firebase/database";
 import { toast } from 'react-toastify';
 import { NavLink } from "react-router-dom";
 
@@ -345,35 +345,6 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     this.main();
   }
 
-  addTournament = () => {
-    get(child(ref(this.db), 'tournament')).then((snapshot) => {
-      this.tournamentObj = snapshot.val();
-      if (this.tournamentObj) {
-        this.tournamentNoIndex = this.tournamentObj.length;
-        this.resetSetting();
-        this.main();
-      }
-    });
-  }
-
-  deleteTournament = () => {
-    get(child(ref(this.db), 'tournament')).then((snapshot) => {
-      this.tournamentObj = snapshot.val();
-      if (this.tournamentObj) {
-        this.tournamentNoIndex = this.tournamentObj.length - 1;
-        if (this.tournamentObj.length > 1) {
-          remove(ref(this.db, 'tournament/' + this.tournamentNoIndex)).then(() => {
-            this.tournamentNoIndex--;
-            this.main();
-            toast.success("Xoá giải đấu thành công!");
-          });
-        } else {
-          toast.error("Không thể xoá giải đấu duy nhất!");
-        }
-      }
-    });
-  }
-
   inputPw = (value: string) => {
     if (value === "-1") {
       this.setState({ password: '' });
@@ -425,12 +396,6 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     this.resetPassword
   );
 
-  confirmDeleteTournament = () => this.askConfirm(
-    'Xoá giải đấu cuối',
-    'Giải đấu cuối cùng trong danh sách sẽ bị xoá vĩnh viễn cùng toàn bộ dữ liệu của nó.',
-    this.deleteTournament
-  );
-
   hidePasswordModal = () => this.setState({ showPasswordModal: false });
 
   render() {
@@ -447,7 +412,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
         <PageHeader title="Thiết đặt" icon="fa-solid fa-gear" badge={tournamentName} />
 
         <main className="flex-1 w-full max-w-4xl mx-auto px-3 sm:px-4 py-5 space-y-5">
-          <SectionCard title="Chọn giải đấu" icon="fa-solid fa-trophy">
+          <SectionCard title="Giải đang cấu hình" icon="fa-solid fa-trophy">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 mb-5">
               {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
                 <label
@@ -473,14 +438,17 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
               )}
             </div>
 
-            <div className="flex flex-wrap gap-2.5">
-              <Button variant="success" icon="fa-solid fa-plus" onClick={this.addTournament}>
-                Thêm giải đấu
-              </Button>
-              <Button variant="danger" icon="fa-solid fa-trash-can" onClick={this.confirmDeleteTournament}>
-                Xoá giải đấu cuối
-              </Button>
-            </div>
+            {/* Them / xoa giai da chuyen sang trang Tao giai: trang nay chi
+                cau hinh giai da co, khong tao hay xoa giai */}
+            <p className="text-xs text-slate-500 m-0 bg-slate-50 border border-slate-200
+              rounded-control px-3 py-2.5">
+              <i className="fa-solid fa-circle-info mr-1.5 text-slate-400" aria-hidden="true" />
+              Thiết đặt bên dưới áp dụng cho giải đang chọn. Thêm giải mới, xoá giải hoặc nhập
+              danh sách vận động viên ở trang{' '}
+              <NavLink to="/tao-giai" className="text-accent-700 font-medium underline">
+                Tạo giải
+              </NavLink>.
+            </p>
           </SectionCard>
 
           <SectionCard title="Thông tin giải đấu" icon="fa-solid fa-sliders">

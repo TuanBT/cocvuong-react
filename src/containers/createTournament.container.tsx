@@ -1,15 +1,16 @@
 import React, { Component } from 'react';
 import { database } from '../firebase';
-import { ref, get, update, child, onValue, Database } from "firebase/database";
+import { ref, get, update, remove, child, onValue, Database } from "firebase/database";
 import { toast } from 'react-toastify';
 
 import {
-  PageShell, PageHeader, Button, PasswordModal, ConfirmModal,
+  PageShell, PageHeader, Button, SectionCard, PasswordModal, ConfirmModal,
   LoadingOverlay, Modal, Toast, AppFooter,
 } from '../components/ui';
 import { read, write, utils } from 'xlsx';
 import FileSaver from "file-saver";
 import { NavLink } from "react-router-dom";
+import { DEFAULT_SETTING } from '../constants/settings';
 import mauchuandoikhang from '../assets/template/1-Mau_Chuan_Doi_Khang.xlsx';
 import mauchuanthiquyen from '../assets/template/2-Mau_Chuan_Thi_Quyen.xlsx';
 import mauthodoikhang from '../assets/template/3-Mau_Tho_Doi_Khang.xlsx';
@@ -33,6 +34,7 @@ interface CreateTournamentContainerState {
   confirmTitle: string;
   dragOver: string | null;
   tournamentsLoading: boolean; // Đang load danh sách giải đấu
+  selectedTournament: number; // Giải đang thao tác
   tournamentCreated: boolean; // Đã tạo giải đấu (lưu Firebase) hay chưa
   // Wizard State
   wizardType: 'doikhang' | 'thiquyen';
@@ -220,6 +222,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
       confirmTitle: '',
       dragOver: null,
       tournamentsLoading: true, // Mặc định đang load
+      selectedTournament: 0,
       tournamentCreated: false,
       // Wizard State
       wizardType: 'doikhang',
@@ -319,7 +322,11 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
           this.tournaments.push([i, this.tournamentObj[i].setting.tournamentName]);
         }
       }
-      this.setState({ data: this.tournaments, tournamentsLoading: false });
+      this.setState({
+        data: this.tournaments,
+        tournamentsLoading: false,
+        selectedTournament: this.tournamentNoIndex,
+      });
     }).catch(() => {
       this.setState({ tournamentsLoading: false });
     });
@@ -337,6 +344,69 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
   chooseTournament = (tournamentNoIndex: number) => {
     this.tournamentNoIndex = tournamentNoIndex;
     this.martialArenaNoIndex = tournamentNoIndex;
+    this.setState({ selectedTournament: tournamentNoIndex });
+    // Doi giai thi cac buoc da lam khong con thuoc ve giai nay nua
+    this.setState({ tournamentCreated: false });
+    this.loadTournamentName();
+  }
+
+  /** Doc ten giai dang chon de hien tren tieu de trang */
+  loadTournamentName = () => {
+    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
+      this.setState({ tournamentName: snapshot.val()?.tournamentName || '' });
+    });
+  }
+
+  /** Them mot giai moi vao cuoi danh sach, dung thiet dat mac dinh */
+  addTournament = () => {
+    get(child(ref(this.db), 'tournament')).then((snapshot) => {
+      const tournamentObj = snapshot.val();
+      const newIndex = tournamentObj ? tournamentObj.length : 0;
+      const defaultSetting = JSON.parse(JSON.stringify(DEFAULT_SETTING));
+
+      update(ref(this.db, 'tournament/' + newIndex + '/setting'), defaultSetting.setting).then(() => {
+        this.tournamentNoIndex = newIndex;
+        this.martialArenaNoIndex = newIndex;
+        this.setState({ selectedTournament: newIndex, tournamentCreated: false });
+        this.main();
+        toast.success("Đã thêm giải đấu mới!");
+      });
+    });
+  }
+
+  /** Xoa giai cuoi danh sach. Khong cho xoa neu chi con mot giai. */
+  deleteTournament = () => {
+    get(child(ref(this.db), 'tournament')).then((snapshot) => {
+      const tournamentObj = snapshot.val();
+      if (!tournamentObj) return;
+
+      if (tournamentObj.length <= 1) {
+        toast.error("Không thể xoá giải đấu duy nhất!");
+        return;
+      }
+
+      const lastIndex = tournamentObj.length - 1;
+      remove(ref(this.db, 'tournament/' + lastIndex)).then(() => {
+        // Chi doi lua chon khi giai dang chon chinh la giai vua bi xoa
+        const nextIndex = this.tournamentNoIndex >= lastIndex ? lastIndex - 1 : this.tournamentNoIndex;
+        this.tournamentNoIndex = nextIndex;
+        this.martialArenaNoIndex = nextIndex;
+        this.setState({ selectedTournament: nextIndex, tournamentCreated: false });
+        this.main();
+        toast.success("Xoá giải đấu thành công!");
+      });
+    });
+  }
+
+  confirmDeleteTournament = () => {
+    const lastName = this.tournaments.length > 0
+      ? this.tournaments[this.tournaments.length - 1][1]
+      : '';
+    this.showConfirm(
+      'Xoá giải đấu cuối',
+      `Giải "${lastName}" cùng toàn bộ danh sách vận động viên, lịch thi đấu và điểm số sẽ bị xoá vĩnh viễn.`,
+      this.deleteTournament
+    );
   }
 
   chooseInfoNo = () => {
@@ -1295,7 +1365,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     const isLastStep = wizardStep === steps.length;
 
     return (
-      <div className="w-full max-w-5xl mx-auto px-3 sm:px-4 py-6">
+      <div className="w-full max-w-5xl mx-auto px-3 sm:px-4 pt-4 pb-6">
         {/* Chon noi dung: doi khang hay thi quyen. Lua chon nay doi luon bang
             mau cua ca man hinh nen nguoi dung khong nham dang nhap giai nao. */}
         <div className="flex justify-center gap-3 mb-6" role="tablist" aria-label="Loại nội dung">
@@ -2643,14 +2713,87 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     const {
       showPasswordModal, showChooseArenaNoModal, password, tournamentName,
       isLoading, loadingMessage, showConfirmModal, confirmTitle, confirmMessage,
-      wizardType, tournamentsLoading,
+      wizardType, tournamentsLoading, selectedTournament,
     } = this.state;
 
     return (
       <PageShell accent={wizardType === 'doikhang' ? 'combat' : 'martial'}>
         <PageHeader title="Tạo giải đấu" icon="fa-solid fa-file-arrow-up" badge={tournamentName} />
 
-        <main className="flex-1 w-full">{this.renderWizardMode()}</main>
+        <main className="flex-1 w-full">
+          {/* Quan ly giai dau nam o day chu khong o trang Thiet dat: tao va xoa
+              giai la viec cua trang Tao giai, Thiet dat chi cau hinh giai da co. */}
+          <div className="w-full max-w-5xl mx-auto px-3 sm:px-4 pt-5">
+            <SectionCard
+              title="Giải đấu"
+              icon="fa-solid fa-trophy"
+              tone="neutral"
+              action={
+                <span className="text-xs text-white/70 whitespace-nowrap">
+                  {this.tournaments.length} giải
+                </span>
+              }
+            >
+              {tournamentsLoading ? (
+                <div className="flex items-center gap-3 py-2 text-slate-500">
+                  <span className="w-5 h-5 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin" />
+                  Đang tải danh sách...
+                </div>
+              ) : this.tournaments.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                  {this.tournaments.map((tournament, i) => (
+                    <label
+                      key={tournament[0]}
+                      className={`flex items-center gap-3 p-3.5 border-2 rounded-control cursor-pointer transition-colors
+                        ${selectedTournament === i
+                          ? 'border-accent-500 bg-accent-50'
+                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
+                    >
+                      <input
+                        type="radio"
+                        name="tournamentPicker"
+                        checked={selectedTournament === i}
+                        onChange={() => this.chooseTournament(i)}
+                        className="w-4 h-4 flex-shrink-0"
+                      />
+                      <span className="font-medium text-slate-700 whitespace-pre-line min-w-0">
+                        {tournament[1]}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-slate-400 italic m-0">Chưa có giải đấu nào</p>
+              )}
+
+              <p className="text-xs text-slate-500 mt-4 mb-0 bg-slate-50 border border-slate-200
+                rounded-control px-3 py-2">
+                <i className="fa-solid fa-circle-info mr-1.5 text-slate-400" aria-hidden="true" />
+                Mọi bước bên dưới sẽ ghi vào giải đang chọn. Đổi thời gian hiệp, số giám định
+                và mật khẩu ở trang{' '}
+                <NavLink to="/thiet-dat" className="text-accent-700 font-medium underline">
+                  Thiết đặt
+                </NavLink>.
+              </p>
+
+              <div className="flex flex-wrap gap-2.5 mt-4 pt-4 border-t border-slate-100">
+                <Button variant="success" icon="fa-solid fa-plus" onClick={this.addTournament}>
+                  Thêm giải đấu
+                </Button>
+                <Button
+                  variant="danger"
+                  icon="fa-solid fa-trash-can"
+                  onClick={this.confirmDeleteTournament}
+                  disabled={this.tournaments.length <= 1}
+                >
+                  Xoá giải đấu cuối
+                </Button>
+              </div>
+            </SectionCard>
+          </div>
+
+          {this.renderWizardMode()}
+        </main>
 
         <AppFooter />
 
@@ -2685,14 +2828,14 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
                 <label
                   key={tournament[0]}
                   className={`flex items-center gap-3 p-3 border-2 rounded-control cursor-pointer transition-colors
-                    ${this.tournamentNoIndex === i
+                    ${selectedTournament === i
                       ? 'border-accent-500 bg-accent-50'
                       : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
                 >
                   <input
                     type="radio"
                     name="tournamentRadio"
-                    checked={this.tournamentNoIndex === i}
+                    checked={selectedTournament === i}
                     onChange={() => this.chooseTournament(i)}
                     className="w-4 h-4 flex-shrink-0"
                   />

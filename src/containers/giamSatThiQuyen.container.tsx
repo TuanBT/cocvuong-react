@@ -1216,8 +1216,8 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
                       maxVh={8}
                       minVh={3}
                       className="text-center"
-                      innerClassName="font-bold leading-none"
-                      innerStyle={{ fontFamily: 'clockicons, monospace', color: getReadableTextColor(timerBgColor || '#334155') }}
+                      innerClassName="leading-none clock-face"
+                      innerStyle={{ color: getReadableTextColor(timerBgColor || '#334155') }}
                     >
                       {matchTime}
                     </FitText>

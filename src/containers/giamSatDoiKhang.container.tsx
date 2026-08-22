@@ -1885,7 +1885,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                                 className="rounded-2xl shadow-xl cursor-pointer transition-transform hover:scale-105 hover:z-10 px-4 py-1 relative"
                                 style={{ backgroundColor: timerBgColor || '#1e293b' }}
                             >
-                                <div className="text-[16vh] font-bold font-mono leading-none" id="match-time" style={{ fontFamily: 'clockicons, monospace', color: getReadableTextColor(timerBgColor || '#1e293b') }}>
+                                <div className="text-[16vh] leading-none clock-face" id="match-time" style={{ color: getReadableTextColor(timerBgColor || '#1e293b') }}>
                                     {matchTime}
                                 </div>
                             </div>

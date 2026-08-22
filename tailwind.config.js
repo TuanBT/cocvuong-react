@@ -29,9 +29,9 @@ module.exports = {
         'coc-body-bg': '#ecf0f1',
         'midnight-blue': '#2c3e50',
       },
-      fontFamily: {
-        'clock': ['clockicons', 'monospace'],
-      },
+      // Font dong ho khong khai bao o day: dung class .clock-face trong
+      // assets/css/style.css, vi no khoa luon font-weight 400 va tat
+      // font-synthesis - clockicons chi co mot do day.
       borderRadius: {
         'card': '1rem',
         'control': '0.75rem',
