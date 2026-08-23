@@ -432,13 +432,26 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
   }
 
   downloadCombat = () => {
-    this.combatArrangeHeader = ["TRẬN", "HẠNG CÂN", "LOẠI TRẬN", "TÊN GIÁP ĐỎ", "CODE/ĐƠN VỊ GIÁP ĐỎ", "QUỐC GIA ĐỎ", "TÊN GIÁP XANH", "CODE/ĐƠN VỊ GIÁP XANH", "QUỐC GIA XANH"];
-    this.exportExcel(this.combatArrangeHeader, this.state.data, "Thong tin DOI KHANG");
+    const header = ["TRẬN", "HẠNG CÂN", "LOẠI TRẬN", "TÊN GIÁP ĐỎ", "CODE/ĐƠN VỊ GIÁP ĐỎ", "QUỐC GIA ĐỎ", "TÊN GIÁP XANH", "CODE/ĐƠN VỊ GIÁP XANH", "QUỐC GIA XANH"];
+    this.exportExcel(header, this.combatStandardArray, "Lich_Thi_Dau_DOI_KHANG");
   }
 
   downloadCombatOrigin = () => {
-    this.combatArrangeHeader = ["STT", "HẠNG CÂN", "TÊN VẬN ĐỘNG VIÊN", "CODE/ĐƠN VỊ", "QUỐC GIA"];
-    this.exportExcel(this.combatArrangeHeader, this.state.data, "Thong tin DOI KHANG");
+    const header = ["STT", "HẠNG CÂN", "TÊN VẬN ĐỘNG VIÊN", "CODE/ĐƠN VỊ", "QUỐC GIA"];
+    this.exportExcel(header, this.combatArrayRaw, "Boc_Tham_DOI_KHANG");
+  }
+
+  downloadMartialOrigin = () => {
+    const flatData = this.getMartialFlatData();
+    if (!flatData.length) return;
+    const rows = flatData.map((f, i) => [i + 1, f.content, f.name, f.code, f.country]);
+    const header = ["STT", "NỘI DUNG", "TÊN VẬN ĐỘNG VIÊN", "CODE/ĐƠN VỊ", "QUỐC GIA"];
+    this.exportExcel(header, rows, "Boc_Tham_THI_QUYEN");
+  }
+
+  downloadCombatSchedule = () => {
+    const header = ["TRẬN", "HẠNG CÂN", "LOẠI TRẬN", "TÊN GIÁP ĐỎ", "CODE/ĐƠN VỊ GIÁP ĐỎ", "QUỐC GIA ĐỎ", "TÊN GIÁP XANH", "CODE/ĐƠN VỊ GIÁP XANH", "QUỐC GIA XANH"];
+    this.exportExcel(header, this.combatStandardArray, "Lich_Thi_Dau_DOI_KHANG");
   }
 
   importMartial = () => {
@@ -523,6 +536,33 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     }
 
     this.grouping();
+    this.setState({ data: this.combatArrayRaw });
+  }
+
+  // Shuffle fighters for a specific weight class only
+  shuffleWeight = (weight: string) => {
+    if (!this.combatArrayRaw?.length) return;
+
+    // Collect indices of fighters in this weight class
+    const indices: number[] = [];
+    this.combatArrayRaw.forEach((fighter, i) => {
+      if (fighter[1] === weight) indices.push(i);
+    });
+    if (indices.length < 2) return;
+
+    // Fisher-Yates shuffle on those indices only
+    const fighters = indices.map(i => [...this.combatArrayRaw[i]]);
+    for (let i = fighters.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [fighters[i], fighters[j]] = [fighters[j], fighters[i]];
+    }
+
+    // Write back & re-number within the weight group
+    indices.forEach((idx, k) => {
+      this.combatArrayRaw[idx] = fighters[k];
+      this.combatArrayRaw[idx][0] = k + 1;
+    });
+
     this.setState({ data: this.combatArrayRaw });
   }
 
@@ -1871,20 +1911,30 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
                         <p className="text-accent-100 text-sm">{fighters.length} VĐV • {bracketInfo?.total || 0} trận</p>
                       </div>
                     </div>
-                    {bracketInfo && (
-                      <div className="flex gap-1">
-                        {bracketInfo.firstRoundMatches.slice(0, 4).map((m, i) => (
-                          <div key={i} className="px-2 py-1 bg-white/20 rounded text-xs text-white">
-                            T{m.match}
-                          </div>
-                        ))}
-                        {bracketInfo.firstRoundMatches.length > 4 && (
-                          <div className="px-2 py-1 bg-white/20 rounded text-xs text-white">
-                            +{bracketInfo.firstRoundMatches.length - 4}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => this.shuffleWeight(weight)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg text-sm font-medium transition-all"
+                        title={`Xáo trộn ngẫu nhiên ${weight}`}
+                      >
+                        <i className="fa-solid fa-shuffle"></i>
+                        Xáo trộn
+                      </button>
+                      {bracketInfo && (
+                        <div className="flex gap-1">
+                          {bracketInfo.firstRoundMatches.slice(0, 4).map((m, i) => (
+                            <div key={i} className="px-2 py-1 bg-white/20 rounded text-xs text-white">
+                              T{m.match}
+                            </div>
+                          ))}
+                          {bracketInfo.firstRoundMatches.length > 4 && (
+                            <div className="px-2 py-1 bg-white/20 rounded text-xs text-white">
+                              +{bracketInfo.firstRoundMatches.length - 4}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Fighters list */}
@@ -2165,6 +2215,18 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
           )}
           <button 
             onClick={this.downloadCombatOrigin}
+            disabled={!hasData}
+            className={`flex items-center gap-2 px-4 py-2 rounded-control font-medium transition-all ${
+              hasData
+                ? 'bg-emerald-500 hover:bg-emerald-600 text-white' 
+                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+            }`}
+          >
+            <i className="fa-solid fa-list-ol"></i>
+            Tải file bốc thăm
+          </button>
+          <button 
+            onClick={this.downloadCombatSchedule}
             disabled={!hasArranged}
             className={`flex items-center gap-2 px-4 py-2 rounded-control font-medium transition-all ${
               hasArranged
@@ -2172,8 +2234,8 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed'
             }`}
           >
-            <i className="fa-solid fa-download"></i>
-            Tải file Excel đã sắp lịch
+            <i className="fa-solid fa-calendar-days"></i>
+            Tải lịch thi đấu
           </button>
         </div>
 
@@ -2649,6 +2711,18 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
               Sắp lịch thi đấu
             </button>
           )}
+          <button 
+            onClick={this.downloadMartialOrigin}
+            disabled={!hasData}
+            className={`flex items-center gap-2 px-4 py-2 rounded-control font-medium transition-all ${
+              hasData
+                ? 'bg-emerald-500 hover:bg-emerald-600 text-white' 
+                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+            }`}
+          >
+            <i className="fa-solid fa-list-ol"></i>
+            Tải file bốc thăm
+          </button>
           <button 
             onClick={this.downloadMartial}
             disabled={!hasArranged}
