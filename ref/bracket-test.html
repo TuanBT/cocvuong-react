@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bracket Schema Test - 0 đến 22 VĐV</title>
+    <link rel="stylesheet" href="../src/assets/css/style.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .section {
+            margin-bottom: 50px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #666;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .bracket-wrapper {
+            overflow-x: auto;
+            padding: 20px 0;
+        }
+        .info-box {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .info-box ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .nav {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        .nav a {
+            display: block;
+            padding: 5px 10px;
+            color: #333;
+            text-decoration: none;
+        }
+        .nav a:hover {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏆 Bracket Schema Test (0-22 VĐV)</h1>
+    
+    <div class="nav">
+        <strong>Navigation</strong>
+        <a href="#bracket-2">2 VĐV</a>
+        <a href="#bracket-3">3 VĐV</a>
+        <a href="#bracket-4">4 VĐV</a>
+        <a href="#bracket-5">5 VĐV</a>
+        <a href="#bracket-6">6 VĐV</a>
+        <a href="#bracket-7">7 VĐV</a>
+        <a href="#bracket-8">8 VĐV</a>
+        <a href="#bracket-9">9 VĐV</a>
+        <a href="#bracket-10">10 VĐV</a>
+        <a href="#bracket-11">11 VĐV</a>
+        <a href="#bracket-12">12 VĐV</a>
+        <a href="#bracket-13">13 VĐV</a>
+        <a href="#bracket-14">14 VĐV</a>
+        <a href="#bracket-15">15 VĐV</a>
+        <a href="#bracket-16">16 VĐV</a>
+        <a href="#bracket-17">17 VĐV</a>
+        <a href="#bracket-18">18 VĐV</a>
+        <a href="#bracket-19">19 VĐV</a>
+        <a href="#bracket-20">20 VĐV</a>
+        <a href="#bracket-21">21 VĐV</a>
+        <a href="#bracket-22">22 VĐV</a>
+    </div>
+    
+    <div class="info-box">
+        <strong>Hướng dẫn:</strong>
+        <ul>
+            <li>File này dùng CSS từ <code>src/assets/css/style.css</code></li>
+            <li>Mở DevTools (F12) để chỉnh CSS realtime</li>
+            <li>Sau khi chỉnh, copy CSS mới vào file <code>style.css</code></li>
+            <li>Các giá trị cần chỉnh: margin, height của các round (.r1 đến .r6)</li>
+            <li>Chiều cao group: .group2, .group3, .group6</li>
+        </ul>
+    </div>
+
+    <!-- 2 VĐV -->
+    <div class="section" id="bracket-2">
+        <h2>2 VĐV (group3: r1 + r2 + r3)</h2>
+        <div class="bracket-wrapper">
+            <div class='brackets-2'><div class='brackets'><div class='group3'><div class='r1'><div></div><div></div></div><div class='r2'><div><div id='match-1-2' class='bracketbox'><span class='info'>1</span><span class='teama'>VĐV 1<br><span class="unit">Đơn vị A</span></span><span class='teamb'>VĐV 2<br><span class="unit">Đơn vị B</span></span></div></div></div><div class='r3'><div id='match-0-2' class='final'><div class='bracketbox'><span class='teamc'>VĐV Vô Địch<br><span class="unit">Đơn vị</span></span></div></div></div></div></div></div>
+        </div>
+    </div>
+
+    <!-- 3 VĐV -->
+    <div class="section" id="bracket-3">
+        <h2>3 VĐV (group3: r1 + r2 + r3)</h2>
+        <div class="bracket-wrapper">
+            <div class='brackets-3'><div class='brackets'><div class='group3'><div class='r1'><div></div><div><div id='match-1-3' class='bracketbox'><span class='info'>1</span><span class='teama'>VĐV 2<br><span class="unit">Đơn vị B</span></span><span class='teamb'>VĐV 3<br><span class="unit">Đơn vị C</span></span></div></div></div><div class='r2'><div><div id='match-2-3' class='bracketbox'><span class='info'>2</span><span class='teama'>VĐV 1<br><span class="unit">Đơn vị A</span></span><span class='teamb'>W.1</span></div></div></div><div class='r3'><div id='match-0-3' class='final'><div class='bracketbox'><span class='teamc'>VĐV Vô Địch<br><span class="unit">Đơn vị</span></span></div></div></div></div></div></div>
+        </div>
+    </div>
+
+    <!-- 4 VĐV -->
+    <div class="section" id="bracket-4">
+        <h2>4 VĐV (group3: r1 + r2 + r3)</h2>
+        <div class="bracket-wrapper">
+            <div class='brackets-4'><div class='brackets'><div class='group3'><div class='r1'><div><div id='match-1-4' class='bracketbox'><span class='info'>1</span><span class='teama'>VĐV 1<br><span class="unit">Đơn vị A</span></span><span class='teamb'>VĐV 2<br><span class="unit">Đơn vị B</span></span></div></div><div><div id='match-2-4' class='bracketbox'><span class='info'>2</span><span class='teama'>VĐV 3<br><span class="unit">Đơn vị C</span></span><span class='teamb'>VĐV 4<br><span class="unit">Đơn vị D</span></span></div></div></div><div class='r2'><div><div id='match-3-4' class='bracketbox'><span class='info'>3</span><span class='teama'>W.1</span><span class='teamb'>W.2</span></div></div></div><div class='r3'><div id='match-0-4' class='final'><div class='bracketbox'><span class='teamc'>VĐV Vô Địch<br><span class="unit">Đơn vị</span></span></div></div></div></div></div></div>
+        </div>
+    </div>
+
+    <!-- 5 VĐV -->
+    <div class="section" id="bracket-5">
+        <h2>5 VĐV (group4: r1 + r2 + r3 + r4)</h2>
+        <div class="bracket-wrapper">
+            <div class='brackets-5'><div class='brackets'><div class='group4'><div class='r1'><div></div><div></div><div><div id='match-1-5' class='bracketbox'><span class='info'>1</span><span class='teama'>VĐV 4<br><span class="unit">Đơn vị D</span></span><span class='teamb'>VĐV 5<br><span class="unit">Đơn vị E</span></span></div></div><div></div></div><div class='r2'><div><div id='match-2-5' class='bracketbox'><span class='info'>2</span><span class='teama'>VĐV 1<br><span class="unit">Đơn vị A</span></span><span class='teamb'>VĐV 2<br><span class="unit">Đơn vị B</span></span></div></div><div><div id='match-3-5' class='bracketbox'><span class='info'>3</span><span class='teama'>VĐV 3<br><span class="unit">Đơn vị C</span></span><span class='teamb'>W.1</span></div></div></div><div class='r3'><div><div id='match-4-5' class='bracketbox'><span class='info'>4</span><span class='teama'>W.2</span><span class='teamb'>W.3</span></div></div></div><div class='r4'><div class='final'><div class='bracketbox'><span class='teamc'>VĐV Vô Địch<br><span class="unit">Đơn vị</span></span></div></div></div></div></div></div>
+        </div>
+    </div>
+
+    <!-- 6 VĐV -->
+    <div class="section" id="bracket-6">
+        <h2>6 VĐV (group4)</h2>
+        <div class="bracket-wrapper">
+            <div class='brackets-6'><div class='brackets'><div class='group4'><div class='r1'><div></div><div><div id='match-1-6' class='bracketbox'><span class='info'>1</span><span class='teama'>VĐV 2<br><span class="unit">Đơn vị B</span></span><span class='teamb'>VĐV 3<br><span class="unit">Đơn vị C</span></span></div></div><div><div id='match-2-6' class='bracketbox'><span class='info'>2</span><span class='teama'>VĐV 4<br><span class="unit">Đơn vị D</span></span><span class='teamb'>VĐV 5<br><span class="unit">Đơn vị E</span></span></div></div><div></div></div><div class='r2'><div><div id='match-3-6' class='bracketbox'><span class='info'>3</span><span class='teama'>VĐV 1<br><span class="unit">Đơn vị A</span></span><span class='teamb'>W.1</span></div></div><div><div id='match-4-6' class='bracketbox'><span class='info'>4</span><span class='teama'>W.2</span><span class='teamb'>VĐV 6<br><span class="unit">Đơn vị F</span></span></div></div></div><div class='r3'><div><div id='match-5-6' class='bracketbox'><span class='info'>5</span><span class='teama'>W.3</span><span class='teamb'>W.4</span></div></div></div><div class='r4'><div class='final'><div class='bracketbox'><span class='teamc'>VĐV Vô Địch<br><span class="unit">Đơn vị</span></span></div></div></div></div></div></div>
+        </div>
+    </div>
+
+    <!-- 7 VĐV -->
+    <div class="section" id="bracket-7">
+        <h2>7 VĐV (group4)</h2>
+        <div class="bracket-wrapper">
+            <div class='brackets-7'><div class='brackets'><div class='group4'><div class='r1'><div></div><div><div id='match-1-7' class='bracketbox'><span class='info'>1</span><span class='teama'>VĐV 2<br><span class="unit">Đơn vị B</span></span><span class='teamb'>VĐV 3<br><span class="unit">Đơn vị C</span></span></div></div><div><div id='match-2-7' class='bracketbox'><span class='info'>2</span><span class='teama'>VĐV 4<br><span class="unit">Đơn vị D</span></span><span class='teamb'>VĐV 5<br><span class="unit">Đơn vị E</span></span></div></div><div><div id='match-3-7' class='bracketbox'><span class='info'>3</span><span class='teama'>VĐV 6<br><span class="unit">Đơn vị F</span></span><span class='teamb'>VĐV 7<br><span class="unit">Đơn vị G</span></span></div></div></div><div class='r2'><div><div id='match-4-7' class='bracketbox'><span class='info'>4</span><span class='teama'>VĐV 1<br><span class="unit">Đơn vị A</span></span><span class='teamb'>W.1</span></div></div><div><div id='match-5-7' class='bracketbox'><span class='info'>5</span><span class='teama'>W.2</span><span class='teamb'>W.3</span></div></div></div><div class='r3'><div><div id='match-6-7' class='bracketbox'><span class='info'>6</span><span class='teama'>W.4</span><span class='teamb'>W.5</span></div></div></div><div class='r4'><div class='final'><div class='bracketbox'><span class='teamc'>VĐV Vô Địch<br><span class="unit">Đơn vị</span></span></div></div></div></div></div></div>
+        </div>
+    </div>
+
+    <!-- 8 VĐV -->
+    <div class="section" id="bracket-8">
+        <h2>8 VĐV (group4)</h2>
+        <div class="bracket-wrapper">
+            <div class='brackets-8'><div class='brackets'><div class='group4'><div class='r1'><div><div id='match-1-8' class='bracketbox'><span class='info'>1</span><span class='teama'>VĐV 1<br><span class="unit">Đơn vị A</span></span><span class='teamb'>VĐV 2<br><span class="unit">Đơn vị B</span></span></div></div><div><div id='match-2-8' class='bracketbox'><span class='info'>2</span><span class='teama'>VĐV 3<br><span class="unit">Đơn vị C</span></span><span class='teamb'>VĐV 4<br><span class="unit">Đơn vị D</span></span></div></div><div><div id='match-3-8' class='bracketbox'><span class='info'>3</span><span class='teama'>VĐV 5<br><span class="unit">Đơn vị E</span></span><span class='teamb'>VĐV 6<br><span class="unit">Đơn vị F</span></span></div></div><div><div id='match-4-8' class='bracketbox'><span class='info'>4</span><span class='teama'>VĐV 7<br><span class="unit">Đơn vị G</span></span><span class='teamb'>VĐV 8<br><span class="unit">Đơn vị H</span></span></div></div></div><div class='r2'><div><div id='match-5-8' class='bracketbox'><span class='info'>5</span><span class='teama'>W.1</span><span class='teamb'>W.2</span></div></div><div><div id='match-6-8' class='bracketbox'><span class='info'>6</span><span class='teama'>W.3</span><span class='teamb'>W.4</span></div></div></div><div class='r3'><div><div id='match-7-8' class='bracketbox'><span class='info'>7</span><span class='teama'>W.5</span><span class='teamb'>W.6</span></div></div></div><div class='r4'><div class='final'><div class='bracketbox'><span class='teamc'>VĐV Vô Địch<br><span class="unit">Đơn vị</span></span></div></div></div></div></div></div>
+        </div>
+    </div>
+
+    <!-- 9 VĐV -->
+    <div class="section" id="bracket-9">
+        <h2>9 VĐV (group5: r1 + r2 + r3 + r4 + r5)</h2>
+        <div class="bracket-wrapper">
+            <div class='brackets-9'><div class='brackets'><div class='group5' id='b0'><div class='r1'><div></div><div></div><div></div><div></div><div></div><div><div class='bracketbox'><span class='info'>1</span><span class='teama'>VĐV 6<br><span class="unit">Đơn vị F</span></span><span class='teamb'>VĐV 7<br><span class="unit">Đơn vị G</span></span></div></div><div></div><div></div></div><div class='r2'><div><div class='bracketbox'><span class='info'>2</span><span class='teama'>VĐV 1<br><span class="unit">Đơn vị A</span></span><span class='teamb'>VĐV 2<br><span class="unit">Đơn vị B</span></span></div></div><div><div class='bracketbox'><span class='info'>3</span><span class='teama'>VĐV 3<br><span class="unit">Đơn vị C</span></span><span class='teamb'>VĐV 4<br><span class="unit">Đơn vị D</span></span></div></div><div><div class='bracketbox'><span class='info'>4</span><span class='teama'>VĐV 5<br><span class="unit">Đơn vị E</span></span><span class='teamb'>W.1</span></div></div><div><div class='bracketbox'><span class='info'>5</span><span class='teama'>VĐV 8<br><span class="unit">Đơn vị H</span></span><span class='teamb'>VĐV 9<br><span class="unit">Đơn vị I</span></span></div></div></div><div class='r3'><div><div class='bracketbox'><span class='info'>6</span><span class='teama'>W.2</span><span class='teamb'>W.3</span></div></div><div><div class='bracketbox'><span class='info'>7</span><span class='teama'>W.4</span><span class='teamb'>W.5</span></div></div></div><div class='r4'><div><div class='bracketbox'><span class='info'>8</span><span class='teama'>W.6</span><span class='teamb'>W.7</span></div></div></div><div class='r5'><div class='final'><div class='bracketbox'><span class='teamc'>VĐV Vô Địch<br><span class="unit">Đơn vị</span></span></div></div></div></div></div></div>
+        </div>
+    </div>
+
+    <!-- 10 VĐV -->
+    <div class="section" id="bracket-10">
+        <h2>10 VĐV (group5)</h2>
+        <div class="bracket-wrapper">
+            <div class='brackets-10'><div class='brackets'><div class='group5' id='b0'><div class='r1'><div></div><div></div><div><div class='bracketbox'><span class='info'>1</span><span class='teama'>VĐV 3<br><span class="unit">Đơn vị C</span></span><span class='teamb'>VĐV 4<br><span class="unit">Đơn vị D</span></span></div></div><div></div><div></div><div><div class='bracketbox'><span class='info'>2</span><span class='teama'>VĐV 7<br><span class="unit">Đơn vị G</span></span><span class='teamb'>VĐV 8<br><span class="unit">Đơn vị H</span></span></div></div><div></div><div></div></div><div class='r2'><div><div class='bracketbox'><span class='info'>3</span><span class='teama'>VĐV 1<br><span class="unit">Đơn vị A</span></span><span class='teamb'>VĐV 2<br><span class="unit">Đơn vị B</span></span></div></div><div><div class='bracketbox'><span class='info'>4</span><span class='teama'>W.1</span><span class='teamb'>VĐV 5<br><span class="unit">Đơn vị E</span></span></div></div><div><div class='bracketbox'><span class='info'>5</span><span class='teama'>VĐV 6<br><span class="unit">Đơn vị F</span></span><span class='teamb'>W.2</span></div></div><div><div class='bracketbox'><span class='info'>6</span><span class='teama'>VĐV 9<br><span class="unit">Đơn vị I</span></span><span class='teamb'>VĐV 10<br><span class="unit">Đơn vị J</span></span></div></div></div><div class='r3'><div><div class='bracketbox'><span class='info'>7</span><span class='teama'>W.3</span><span class='teamb'>W.4</span></div></div><div><div class='bracketbox'><span class='info'>8</span><span class='teama'>W.5</span><span class='teamb'>W.6</span></div></div></div><div class='r4'><div><div class='bracketbox'><span class='info'>9</span><span class='teama'>W.7</span><span class='teamb'>W.8</span></div></div></div><div class='r5'><div class='final'><div class='bracketbox'><span class='teamc'>VĐV Vô Địch<br><span class="unit">Đơn vị</span></span></div></div></div></div></div></div>
+        </div>
+    </div>
+
+    <!-- 11-16 VĐV -->
+    <div class="section" id="bracket-11">
+        <h2>11 VĐV (group5)</h2>
+        <div class="bracket-wrapper">
+            <div class='brackets-11'><div class='brackets'><div class='group5' id='b0'><div class='r1'><div></div><div></div><div><div class='bracketbox'><span class='info'>1</span><span class='teama'>VĐV 3<br><span class="unit">Đơn vị C</span></span><span class='teamb'>VĐV 4<br><span class="unit">Đơn vị D</span></span></div></div><div></div><div></div><div><div class='bracketbox'><span class='info'>2</span><span class='teama'>VĐV 7<br><span class="unit">Đơn vị G</span></span><span class='teamb'>VĐV 8<br><span class="unit">Đơn vị H</span></span></div></div><div><div class='bracketbox'><span class='info'>3</span><span class='teama'>VĐV 9<br><span class="unit">Đơn vị I</span></span><span class='teamb'>VĐV 10<br><span class="unit">Đơn vị J</span></span></div></div><div></div></div><div class='r2'><div><div class='bracketbox'><span class='info'>4</span><span class='teama'>VĐV 1<br><span class="unit">Đơn vị A</span></span><span class='teamb'>VĐV 2<br><span class="unit">Đơn vị B</span></span></div></div><div><div class='bracketbox'><span class='info'>5</span><span class='teama'>W.1</span><span class='teamb'>VĐV 5<br><span class="unit">Đơn vị E</span></span></div></div><div><div class='bracketbox'><span class='info'>6</span><span class='teama'>VĐV 6<br><span class="unit">Đơn vị F</span></span><span class='teamb'>W.2</span></div></div><div><div class='bracketbox'><span class='info'>7</span><span class='teama'>W.3</span><span class='teamb'>VĐV 11<br><span class="unit">Đơn vị K</span></span></div></div></div><div class='r3'><div><div class='bracketbox'><span class='info'>8</span><span class='teama'>W.4</span><span class='teamb'>W.5</span></div></div><div><div class='bracketbox'><span class='info'>9</span><span class='teama'>W.6</span><span class='teamb'>W.7</span></div></div></div><div class='r4'><div><div class='bracketbox'><span class='info'>10</span><span class='teama'>W.8</span><span class='teamb'>W.9</span></div></div></div><div class='r5'><div class='final'><div class='bracketbox'><span class='teamc'>VĐV Vô Địch<br><span class="unit">Đơn vị</span></span></div></div></div></div></div></div>
+        </div>
+    </div>
+
+    <div class="section" id="bracket-12">
+        <h2>12 VĐV (group5)</h2>
+        <div class="bracket-wrapper">
+            <p>Xem template tương tự bracket 11 với thêm 1 VĐV</p>
+        </div>
+    </div>
+
+    <div class="section" id="bracket-13">
+        <h2>13 VĐV (group5)</h2>
+        <div class="bracket-wrapper">
+            <p>Xem template tương tự bracket 11-12</p>
+        </div>
+    </div>
+
+    <div class="section" id="bracket-14">
+        <h2>14 VĐV (group5)</h2>
+        <div class="bracket-wrapper">
+            <p>Xem template tương tự bracket 11-13</p>
+        </div>
+    </div>
+
+    <div class="section" id="bracket-15">
+        <h2>15 VĐV (group5)</h2>
+        <div class="bracket-wrapper">
+            <p>Xem template tương tự bracket 11-14</p>
+        </div>
+    </div>
+
+    <!-- 16 VĐV (Full group5) -->
+    <div class="section" id="bracket-16">
+        <h2>16 VĐV (group5 - Full)</h2>
+        <div class="bracket-wrapper">
+            <div class='brackets-16'><div class='brackets'><div class='group5' id='b0'><div class='r1'><div><div class='bracketbox'><span class='info'>1</span><span class='teama'>VĐV 1<br><span class="unit">Đơn vị A</span></span><span class='teamb'>VĐV 2<br><span class="unit">Đơn vị B</span></span></div></div><div><div class='bracketbox'><span class='info'>2</span><span class='teama'>VĐV 3<br><span class="unit">Đơn vị C</span></span><span class='teamb'>VĐV 4<br><span class="unit">Đơn vị D</span></span></div></div><div><div class='bracketbox'><span class='info'>3</span><span class='teama'>VĐV 5<br><span class="unit">Đơn vị E</span></span><span class='teamb'>VĐV 6<br><span class="unit">Đơn vị F</span></span></div></div><div><div class='bracketbox'><span class='info'>4</span><span class='teama'>VĐV 7<br><span class="unit">Đơn vị G</span></span><span class='teamb'>VĐV 8<br><span class="unit">Đơn vị H</span></span></div></div><div><div class='bracketbox'><span class='info'>5</span><span class='teama'>VĐV 9<br><span class="unit">Đơn vị I</span></span><span class='teamb'>VĐV 10<br><span class="unit">Đơn vị J</span></span></div></div><div><div class='bracketbox'><span class='info'>6</span><span class='teama'>VĐV 11<br><span class="unit">Đơn vị K</span></span><span class='teamb'>VĐV 12<br><span class="unit">Đơn vị L</span></span></div></div><div><div class='bracketbox'><span class='info'>7</span><span class='teama'>VĐV 13<br><span class="unit">Đơn vị M</span></span><span class='teamb'>VĐV 14<br><span class="unit">Đơn vị N</span></span></div></div><div><div class='bracketbox'><span class='info'>8</span><span class='teama'>VĐV 15<br><span class="unit">Đơn vị O</span></span><span class='teamb'>VĐV 16<br><span class="unit">Đơn vị P</span></span></div></div></div><div class='r2'><div><div class='bracketbox'><span class='info'>9</span><span class='teama'>W.1</span><span class='teamb'>W.2</span></div></div><div><div class='bracketbox'><span class='info'>10</span><span class='teama'>W.3</span><span class='teamb'>W.4</span></div></div><div><div class='bracketbox'><span class='info'>11</span><span class='teama'>W.5</span><span class='teamb'>W.6</span></div></div><div><div class='bracketbox'><span class='info'>12</span><span class='teama'>W.7</span><span class='teamb'>W.8</span></div></div></div><div class='r3'><div><div class='bracketbox'><span class='info'>13</span><span class='teama'>W.9</span><span class='teamb'>W.10</span></div></div><div><div class='bracketbox'><span class='info'>14</span><span class='teama'>W.11</span><span class='teamb'>W.12</span></div></div></div><div class='r4'><div><div class='bracketbox'><span class='info'>15</span><span class='teama'>W.13</span><span class='teamb'>W.14</span></div></div></div><div class='r5'><div class='final'><div class='bracketbox'><span class='teamc'>VĐV Vô Địch<br><span class="unit">Đơn vị</span></span></div></div></div></div></div></div>
+        </div>
+    </div>
+
+    <!-- 17-22 VĐV (group6) -->
+    <div class="section" id="bracket-17">
+        <h2>17 VĐV (group6: r1 + r2 + r3 + r4 + r5 + r6)</h2>
+        <div class="bracket-wrapper">
+            <div class='brackets-17'><div class='brackets'><div class='group6' id='b0'><div class='r1'><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div><div class='bracketbox'><span class='info'>1</span><span class='teama'>VĐV 10<br><span class="unit">Đơn vị J</span></span><span class='teamb'>VĐV 11<br><span class="unit">Đơn vị K</span></span></div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div><div class='r2'><div><div class='bracketbox'><span class='info'>2</span><span class='teama'>VĐV 1<br><span class="unit">Đơn vị A</span></span><span class='teamb'>VĐV 2<br><span class="unit">Đơn vị B</span></span></div></div><div><div class='bracketbox'><span class='info'>3</span><span class='teama'>VĐV 3<br><span class="unit">Đơn vị C</span></span><span class='teamb'>VĐV 4<br><span class="unit">Đơn vị D</span></span></div></div><div><div class='bracketbox'><span class='info'>4</span><span class='teama'>VĐV 5<br><span class="unit">Đơn vị E</span></span><span class='teamb'>VĐV 6<br><span class="unit">Đơn vị F</span></span></div></div><div><div class='bracketbox'><span class='info'>5</span><span class='teama'>VĐV 7<br><span class="unit">Đơn vị G</span></span><span class='teamb'>VĐV 8<br><span class="unit">Đơn vị H</span></span></div></div><div><div class='bracketbox'><span class='info'>6</span><span class='teama'>VĐV 9<br><span class="unit">Đơn vị I</span></span><span class='teamb'>W.1</span></div></div><div><div class='bracketbox'><span class='info'>7</span><span class='teama'>VĐV 12<br><span class="unit">Đơn vị L</span></span><span class='teamb'>VĐV 13<br><span class="unit">Đơn vị M</span></span></div></div><div><div class='bracketbox'><span class='info'>8</span><span class='teama'>VĐV 14<br><span class="unit">Đơn vị N</span></span><span class='teamb'>VĐV 15<br><span class="unit">Đơn vị O</span></span></div></div><div><div class='bracketbox'><span class='info'>9</span><span class='teama'>VĐV 16<br><span class="unit">Đơn vị P</span></span><span class='teamb'>VĐV 17<br><span class="unit">Đơn vị Q</span></span></div></div></div><div class='r3'><div><div class='bracketbox'><span class='info'>10</span><span class='teama'>W.2</span><span class='teamb'>W.3</span></div></div><div><div class='bracketbox'><span class='info'>11</span><span class='teama'>W.4</span><span class='teamb'>W.5</span></div></div><div><div class='bracketbox'><span class='info'>12</span><span class='teama'>W.6</span><span class='teamb'>W.7</span></div></div><div><div class='bracketbox'><span class='info'>13</span><span class='teama'>W.8</span><span class='teamb'>W.9</span></div></div></div><div class='r4'><div><div class='bracketbox'><span class='info'>14</span><span class='teama'>W.10</span><span class='teamb'>W.11</span></div></div><div><div class='bracketbox'><span class='info'>15</span><span class='teama'>W.12</span><span class='teamb'>W.13</span></div></div></div><div class='r5'><div><div class='bracketbox'><span class='info'>16</span><span class='teama'>W.14</span><span class='teamb'>W.15</span></div></div></div><div class='r6'><div class='final'><div class='bracketbox'><span class='teamc'>VĐV Vô Địch<br><span class="unit">Đơn vị</span></span></div></div></div></div></div></div>
+        </div>
+    </div>
+
+    <div class="section" id="bracket-18">
+        <h2>18 VĐV (group6)</h2>
+        <div class="bracket-wrapper">
+            <p>Xem template tương tự bracket 17</p>
+        </div>
+    </div>
+
+    <div class="section" id="bracket-19">
+        <h2>19 VĐV (group6)</h2>
+        <div class="bracket-wrapper">
+            <p>Xem template tương tự bracket 17-18</p>
+        </div>
+    </div>
+
+    <div class="section" id="bracket-20">
+        <h2>20 VĐV (group6)</h2>
+        <div class="bracket-wrapper">
+            <p>Xem template tương tự bracket 17-19</p>
+        </div>
+    </div>
+
+    <div class="section" id="bracket-21">
+        <h2>21 VĐV (group6)</h2>
+        <div class="bracket-wrapper">
+            <p>Xem template tương tự bracket 17-20</p>
+        </div>
+    </div>
+
+    <div class="section" id="bracket-22">
+        <h2>22 VĐV (group6)</h2>
+        <div class="bracket-wrapper">
+            <p>Xem template tương tự bracket 17-21</p>
+        </div>
+    </div>
+
+    <div class="info-box" style="margin-top: 50px;">
+        <h3>CSS Class Reference:</h3>
+        <table border="1" cellpadding="10" style="border-collapse: collapse; width: 100%;">
+            <tr>
+                <th>Group</th>
+                <th>Số VĐV</th>
+                <th>Rounds</th>
+                <th>CSS Height</th>
+            </tr>
+            <tr>
+                <td>group3</td>
+                <td>2-4</td>
+                <td>r1, r2, r3</td>
+                <td>.brackets>.group3 { height: 170px; }</td>
+            </tr>
+            <tr>
+                <td>group4</td>
+                <td>5-8</td>
+                <td>r1, r2, r3, r4</td>
+                <td>(auto height)</td>
+            </tr>
+            <tr>
+                <td>group5</td>
+                <td>9-16</td>
+                <td>r1, r2, r3, r4, r5</td>
+                <td>(auto height)</td>
+            </tr>
+            <tr>
+                <td>group6</td>
+                <td>17-22</td>
+                <td>r1, r2, r3, r4, r5, r6</td>
+                <td>.brackets>.group6 { height: 1060px; }</td>
+            </tr>
+        </table>
+    </div>
+
+</body>
+</html>

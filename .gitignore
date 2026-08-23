@@ -23,3 +23,5 @@ yarn-error.log*
 
 output/*
 input/*
+.firebase/hosting.YnVpbGQ.cache
+.gitignore

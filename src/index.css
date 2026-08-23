@@ -1,0 +1,244 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   DESIGN TOKENS
+   Accent doi theo trang qua thuoc tinh data-accent tren the boc
+   ngoai (xem components/ui/PageShell). Dung bien RGB de Tailwind
+   ap dung duoc opacity: bg-accent-500/20 ...
+   ============================================================ */
+:root {
+  /* Mac dinh: brand (indigo) */
+  --accent-50: 238 242 255;
+  --accent-100: 224 231 255;
+  --accent-200: 199 210 254;
+  --accent-500: 99 102 241;
+  --accent-600: 79 70 229;
+  --accent-700: 67 56 202;
+  --accent-300: 165 180 252;
+  --accent-400: 129 140 248;
+  --accent-800: 55 48 163;
+}
+
+/* Doi khang - emerald */
+[data-accent="combat"] {
+  --accent-50: 236 253 245;
+  --accent-100: 209 250 229;
+  --accent-200: 167 243 208;
+  --accent-500: 16 185 129;
+  --accent-600: 5 150 105;
+  --accent-700: 4 120 87;
+  --accent-300: 110 231 183;
+  --accent-400: 52 211 153;
+  --accent-800: 6 95 70;
+}
+
+/* Thi quyen - amber */
+[data-accent="martial"] {
+  --accent-50: 255 251 235;
+  --accent-100: 254 243 199;
+  --accent-200: 253 230 138;
+  --accent-500: 245 158 11;
+  --accent-600: 217 119 6;
+  --accent-700: 180 83 9;
+  --accent-300: 252 211 77;
+  --accent-400: 251 191 36;
+  --accent-800: 146 64 14;
+}
+
+/* Cong cu (thiet dat, tao giai) - indigo */
+[data-accent="tool"] {
+  --accent-50: 238 242 255;
+  --accent-100: 224 231 255;
+  --accent-200: 199 210 254;
+  --accent-500: 99 102 241;
+  --accent-600: 79 70 229;
+  --accent-700: 67 56 202;
+  --accent-300: 165 180 252;
+  --accent-400: 129 140 248;
+  --accent-800: 55 48 163;
+}
+
+/* ============================================================
+   BASE
+   Thay cho Bootstrap reboot (da go bootstrap.css khoi bundle).
+   Giu nguyen metric cua Bootstrap de 2 trang giam sat khong doi.
+   ============================================================ */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+      Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #212529;
+    background-color: #fff;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Bootstrap heading metrics - can cho HTML duoc chen bang
+     dangerouslySetInnerHTML o trang giam sat doi khang */
+  h1, h2, h3, h4, h5, h6 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+  h1 { font-size: 2.5rem; }
+  h2 { font-size: 2rem; }
+  h3 { font-size: 1.75rem; }
+  h4 { font-size: 1.5rem; }
+  h5 { font-size: 1.25rem; }
+  h6 { font-size: 1rem; }
+
+  p { margin-top: 0; margin-bottom: 1rem; }
+
+  a, a:link, a:visited, a:hover, a:active, a:focus {
+    text-decoration: none;
+  }
+
+  /* Field ke thua font cua app thay vi font he thong cua trinh duyet */
+  button, input, optgroup, select, textarea {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  /* Focus ring dong nhat, chi hien khi dieu huong bang ban phim */
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent-500));
+    outline-offset: 2px;
+  }
+
+  /* Bo mui ten cua input number o cac o nhap thoi gian / mat khau */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] { -moz-appearance: textfield; }
+}
+
+/* ============================================================
+   LAYOUT GOC
+   ============================================================ */
+html, body, #root {
+  height: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Man hinh chay toan khung, khong scroll: giam dinh doi khang / thi quyen.
+   Padding theo safe-area de tai vien khong nam duoi tai tho hay thanh vuot
+   cua dien thoai - day la man hinh cam tay suot ca tran dau. */
+.app-fullscreen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100dvh;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  /* Chong chon nham chu khi cham lien tuc */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* iOS Safari: thanh dia chi lam 100vh sai so */
+@supports (-webkit-touch-callout: none) {
+  .app-fullscreen { height: -webkit-fill-available; }
+}
+
+/* Ten cu, giu lai de khong pha 2 trang giam sat */
+.giam-dinh-container {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100dvh;
+}
+@supports (-webkit-touch-callout: none) {
+  .giam-dinh-container { height: -webkit-fill-available; }
+}
+
+/* ============================================================
+   TIEN ICH DUNG CHUNG
+   ============================================================ */
+
+/* Tooltip cho cac cham trang thai ket noi */
+.status-dot {
+  position: relative;
+  cursor: help;
+}
+
+.status-dot::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 4px;
+  padding: 4px 8px;
+  background: rgba(15, 23, 42, 0.92);
+  color: white;
+  font-size: 11px;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.status-dot:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Nut cham diem: bo delay 300ms va hieu ung highlight cua mobile */
+.tap-target {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Vung cuon ngang co bong bao hieu con noi dung */
+.scroll-x {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Chi hien cho trinh doc man hinh */
+.sr-only-focusable:not(:focus):not(:focus-within) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Ton trong cai dat giam chuyen dong cua he dieu hanh */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
