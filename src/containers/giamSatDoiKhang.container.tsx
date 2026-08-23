@@ -642,6 +642,8 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                         // Firebase gửi cả 2 giá trị (bao gồm reset về 0)
                         this.refereeObj[refereeIndex].redScore = redScore;
                         this.refereeObj[refereeIndex].blueScore = blueScore;
+                        // Kiểm tra ngay lập tức khi nhận điểm từ giám định (không chờ poll 1s)
+                        this.makeScoreTimer();
                         this.showValue();
                     }
                 }
@@ -1308,12 +1310,19 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             loseFighter = this.match.fighters.redFighter;
         }
 
+        // Reset trạng thái trận đấu cho VĐV khi chuyển sang trận mới
+        const resetFighterState = (fighter: Fighter): void => {
+            fighter.score = 0;
+            fighter.legStrike = false;
+            fighter.caution = { bound: 0, fall: 0, medical: 0, remind: 0, warning: 0 };
+        };
+
         for (let i = this.matchNoCurrent; i < this.combatObj.length; i++) {
             const fightersTemp = this.combatObj[i].fighters;
             if (fightersTemp.redFighter.result === matchWin) {
                 fightersTemp.redFighter = JSON.parse(JSON.stringify(winFighter));
                 fightersTemp.redFighter.result = matchWin;
-                fightersTemp.redFighter.score = 0;
+                resetFighterState(fightersTemp.redFighter);
                 smartUpdate(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters', fightersTemp);
                 break;
             }
@@ -1321,7 +1330,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             if (fightersTemp.redFighter.result === matchLose) {
                 fightersTemp.redFighter = JSON.parse(JSON.stringify(loseFighter));
                 fightersTemp.redFighter.result = matchLose;
-                fightersTemp.redFighter.score = 0;
+                resetFighterState(fightersTemp.redFighter);
                 smartUpdate(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters', fightersTemp);
                 break;
             }
@@ -1329,7 +1338,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             if (fightersTemp.blueFighter.result === matchWin) {
                 fightersTemp.blueFighter = JSON.parse(JSON.stringify(winFighter));
                 fightersTemp.blueFighter.result = matchWin;
-                fightersTemp.blueFighter.score = 0;
+                resetFighterState(fightersTemp.blueFighter);
                 smartUpdate(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters', fightersTemp);
                 break;
             }
@@ -1337,7 +1346,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             if (fightersTemp.blueFighter.result === matchLose) {
                 fightersTemp.blueFighter = JSON.parse(JSON.stringify(loseFighter));
                 fightersTemp.blueFighter.result = matchLose;
-                fightersTemp.blueFighter.score = 0;
+                resetFighterState(fightersTemp.blueFighter);
                 smartUpdate(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters', fightersTemp);
                 break;
             }
