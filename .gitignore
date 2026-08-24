@@ -26,3 +26,7 @@ output/*
 input/*
 .firebase/hosting.YnVpbGQ.cache
 .gitignore
+
+# e2e tests
+tests/tmp/
+tests/e2e/.out/

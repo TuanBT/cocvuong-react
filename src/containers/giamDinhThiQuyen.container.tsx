@@ -3,6 +3,9 @@ import { database } from '../firebase';
 import { ref, get, update, child, onValue, off, DatabaseReference, Database } from "firebase/database";
 import { toast } from 'react-toastify';
 
+// Import Martial Write Service (logic ghi thi quyền — dùng chung với bộ test e2e)
+import { submitMartialRefereeScore } from '../services/martialWriteService';
+
 import { PasswordModal, Toast } from '../components/ui';
 import {
   RefereeHeader,
@@ -272,37 +275,18 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
     if (parseInt(this.refereeMartialScore) > 99) {
       this.refereeMartialScore = "";
     }
-    
-    const scoreValue = parseInt(this.refereeMartialScore) || 0;
-    
-    // Gửi điểm lên Firebase
-    update(ref(this.db, this.pathMartial), { "score": scoreValue });
 
-    this.pathMartialScore = "tournament/" + this.tournamentNoIndex + "/martial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex;
-    get(ref(this.db, this.pathMartialScore)).then((snapshot) => {
-      const refereeMartialObj = snapshot.val();
-      if (refereeMartialObj) {
-        let finalScore = 0;
-        let totalRefereeScore = 0;
-        let minScore = refereeMartialObj.refereeMartial[0].score;
-        let maxScore = refereeMartialObj.refereeMartial[0].score;
-        
-        for (let i = 0; i < this.numReferee; i++) {
-          const score = refereeMartialObj.refereeMartial[i].score;
-          totalRefereeScore += score;
-          minScore = Math.min(minScore, score);
-          maxScore = Math.max(maxScore, score);
-        }
-        
-        if (this.numReferee === 5) {
-          finalScore = totalRefereeScore - (minScore + maxScore);
-        } else {
-          finalScore = totalRefereeScore;
-        }
-        
-        update(ref(this.db, this.pathMartialScore), { "finalScore": parseInt(String(finalScore)) });
-      }
-    });
+    const scoreValue = parseInt(this.refereeMartialScore) || 0;
+
+    // Gửi điểm lên Firebase + tính lại điểm tổng của đội
+    submitMartialRefereeScore(
+      { db: this.db, tournamentIndex: this.tournamentNoIndex, arenaIndex: this.martialArenaNoIndex },
+      this.matchNoCurrentIndex,
+      this.teamNoCurrentIndex,
+      this.referreIndex,
+      scoreValue,
+      this.numReferee
+    );
 
     this.refereeMartialScore = "";
     this.setState({ refereeResultBox: '00' });

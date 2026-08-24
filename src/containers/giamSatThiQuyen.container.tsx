@@ -19,6 +19,18 @@ import {
   syncPendingWrites,
   getPendingWritesCount
 } from '../services/offlineService';
+
+// Import Martial Write Service (logic ghi thi quyền — dùng chung với bộ test e2e)
+import {
+  overrideMartialFinalScore,
+  setLastMatchMartial,
+  rankTeams,
+  nextMartialPosition,
+  prevMartialPosition,
+  martialTeamPath,
+  type MartialWriteContext,
+  type RankedTeam as RankedTeamSvc,
+} from '../services/martialWriteService';
 // Import martial cache service
 import {
   cacheMartialArena,
@@ -696,30 +708,30 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
   nextMatchMartial = (): void => {
     if (!this.martialObj) return;
 
-    if (this.matchMartialNoCurrent === this.martialObj.length && this.teamMartialNoCurrent === this.martialObj[this.matchMartialNoCurrent - 1].team.length) {
+    const next = nextMartialPosition(this.martialObj as any, {
+      matchMartialNo: this.matchMartialNoCurrent,
+      teamMartialNo: this.teamMartialNoCurrent,
+    });
+    if (next.matchMartialNo === this.matchMartialNoCurrent && next.teamMartialNo === this.teamMartialNoCurrent) {
       return;
     }
-
-    this.teamMartialNoCurrent++;
-    if (this.theLastTeamOfMatch) {
-      this.matchMartialNoCurrent++;
-      this.teamMartialNoCurrent = 1;
-    }
+    this.matchMartialNoCurrent = next.matchMartialNo;
+    this.teamMartialNoCurrent = next.teamMartialNo;
     this.restoreMatch();
   }
 
   prevMatchMartial = (): void => {
     if (!this.martialObj) return;
 
-    if (this.matchMartialNoCurrent === 1 && this.teamMartialNoCurrent === 1) {
+    const prev = prevMartialPosition(this.martialObj as any, {
+      matchMartialNo: this.matchMartialNoCurrent,
+      teamMartialNo: this.teamMartialNoCurrent,
+    });
+    if (prev.matchMartialNo === this.matchMartialNoCurrent && prev.teamMartialNo === this.teamMartialNoCurrent) {
       return;
     }
-
-    this.teamMartialNoCurrent--;
-    if (this.theFirstTeamOfMatch) {
-      this.matchMartialNoCurrent--;
-      this.teamMartialNoCurrent = this.martialObj[this.matchMartialNoCurrent - 1].team.length;
-    }
+    this.matchMartialNoCurrent = prev.matchMartialNo;
+    this.teamMartialNoCurrent = prev.teamMartialNo;
     this.restoreMatch();
   }
 
@@ -770,13 +782,26 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     });
   }
 
+  /** Context dùng cho martialWriteService — giải + sân hiện tại */
+  private get martialWriteCtx(): MartialWriteContext {
+    return {
+      db: this.db,
+      tournamentIndex: Number(this.tournamentNoIndex),
+      arenaIndex: Number(this.martialArenaNoIndex),
+    };
+  }
+
   confirmSubmit = (): void => {
     if (parseInt(this.refereeMartialScore) > 999) {
       this.refereeMartialScore = "";
     }
-    this.pathMartial = "tournament/" + this.tournamentNoIndex + "/martial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex;
-    smartUpdate(this.db, this.pathMartial, { "finalScore": parseInt(this.refereeMartialScore) || 0 });
-    smartUpdate(this.db, this.pathMartial, { "refereeMartial": [{ "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }, { "score": 0 }] });
+    this.pathMartial = martialTeamPath(Number(this.tournamentNoIndex), this.matchNoCurrentIndex, this.teamNoCurrentIndex);
+    overrideMartialFinalScore(
+      this.martialWriteCtx,
+      this.matchNoCurrentIndex,
+      this.teamNoCurrentIndex,
+      parseInt(this.refereeMartialScore) || 0
+    );
     this.refereeMartialScore = "";
     this.setState({ 
       refereeResultBox: '000',
@@ -787,49 +812,13 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
   }
 
   // Xep hang cac doi trong cung noi dung thi hien tai
+  // Xep hang cac doi trong cung noi dung thi hien tai
   computeRanking(): { ranked: RankedTeam[]; pending: RankedTeam[]; currentTeamNo: number | undefined; matchName: string } {
     const currentMatchContent = this.martialObj && this.matchMartialNoCurrent > 0
       ? this.martialObj[this.matchMartialNoCurrent - 1]
       : null;
 
-    // Gom tat ca doi trong noi dung thi hien tai
-    const allTeams: Omit<RankedTeam, 'rank'>[] = [];
-    if (currentMatchContent?.team) {
-      currentMatchContent.team.forEach((t: any) => {
-        const fighters: string[] = [];
-        if (t.fighters) {
-          t.fighters.forEach((f: any) => {
-            if (f.fighter?.name) fighters.push(f.fighter.name);
-          });
-        }
-        allTeams.push({
-          no: t.no,
-          finalScore: t.finalScore || 0,
-          code: t.code || (t.fighters?.[0]?.fighter?.code || ''),
-          fighters
-        });
-      });
-    }
-
-    // Chi xep hang doi da thi (finalScore > 0)
-    const sorted = allTeams.filter(t => t.finalScore > 0).sort((a, b) => b.finalScore - a.finalScore);
-
-    // Tinh hang, dong diem thi dong hang
-    const ranked: RankedTeam[] = [];
-    for (let idx = 0; idx < sorted.length; idx++) {
-      const team = sorted[idx];
-      let rank = idx + 1;
-      if (idx > 0 && team.finalScore === sorted[idx - 1].finalScore) {
-        rank = ranked[idx - 1].rank;
-      }
-      ranked.push({ ...team, rank });
-    }
-
-    // Doi chua thi, giu nguyen thu tu luot
-    const pending: RankedTeam[] = allTeams
-      .filter(t => t.finalScore <= 0)
-      .sort((a, b) => a.no - b.no)
-      .map(t => ({ ...t, rank: 0 }));
+    const { ranked, pending } = rankTeams(currentMatchContent as any);
 
     return {
       ranked,

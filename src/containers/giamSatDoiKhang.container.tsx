@@ -13,11 +13,24 @@ import { DEFAULT_COMBAT_CONST, DEFAULT_MATCH_OBJ } from '../constants/settings';
 import FitText from '../components/common/FitText';
 
 // Import utils
-import { convertWinLoseFormat, getModes, resizeTextToFit } from '../utils/helpers';
+import { convertWinLoseFormat, resizeTextToFit } from '../utils/helpers';
 import { getReadableTextColor } from '../utils/contrast';
 
 // Import Score Sync utilities
 import { subscribeScoreForGiamSat } from '../utils/scoreSync';
+
+// Import Combat Write Service (logic ghi trận — dùng chung với bộ test e2e)
+import {
+    replaceFighter as replaceFighterWrite,
+    commitRefereeScores,
+    saveMatch as saveMatchData,
+    saveMatchWin,
+    setLastMatch,
+    resetRefereeScores,
+    canRescoreMatch,
+    hasScoreQuorum,
+    type CombatWriteContext,
+} from '../services/combatWriteService';
 
 // Import Offline Service
 import {
@@ -26,7 +39,6 @@ import {
     cacheCombatArena,
     getCachedCombatArena,
     smartSet,
-    smartUpdate,
     syncPendingWrites,
     getPendingWritesCount
 } from '../services/offlineService';
@@ -41,7 +53,7 @@ import {
     CombatMatch,
     CombatArena,
     RefereeScore,
-    Fighter
+    Fighter,
 } from '../types';
 
 // Props interface
@@ -876,14 +888,18 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
 
     }
 
+    /** Context dùng cho combatWriteService — giải + sân hiện tại */
+    private get writeCtx(): CombatWriteContext {
+        return {
+            db: this.db,
+            tournamentIndex: this.tournamentNoIndex,
+            arenaIndex: this.combatArenaNoIndex,
+        };
+    }
+
     saveMatch(): void {
         if (this.match && this.matchNoCurrentIndex !== undefined) {
-            // Use smartUpdate for offline support (merge data, không ghi đè)
-            smartUpdate(
-                this.db,
-                'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex,
-                this.match
-            );
+            saveMatchData(this.writeCtx, this.matchNoCurrentIndex, this.match);
         }
     }
 
@@ -976,8 +992,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         
         // Update lastMatch - use smartSet for offline support
         if (this.matchNoCurrent !== undefined) {
-            const lastMatchPath = 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/lastMatch/no';
-            smartSet(this.db, lastMatchPath, this.matchNoCurrent);
+            setLastMatch(this.writeCtx, this.matchNoCurrent);
             
             // Update local cache immediately
             cacheCombatArena(this.tournamentNoIndex, this.combatArenaNoIndex, {
@@ -999,33 +1014,16 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 referees.push(this.refereeObj[i]);
             }
         }
-        smartSet(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/referee', referees);
+        resetRefereeScores(this.writeCtx, referees);
     }
 
 
     redWin = (): void => {
         if (!this.match || !this.combatObj || this.matchNoCurrent === undefined) return;
 
-        const winMatch = "W." + this.matchNoCurrent;
-        for (let i = this.matchNoCurrent; i < this.combatObj.length; i++) {
-            const fightersTemp = this.combatObj[i].fighters;
-            if (fightersTemp.redFighter.result === winMatch) {
-                for (let j = i; j < this.combatObj.length; j++) {
-                    const fightersTemp2 = this.combatObj[j].fighters;
-                    const winMatch2 = "W." + j;
-                    if (fightersTemp2.redFighter.result === winMatch2)
-                        if (fightersTemp2.redFighter.name !== winMatch2) {
-                            toast.error("Bạn không thể chấm lại trận đấu này!");
-                            return;
-                        }
-                    if (fightersTemp2.blueFighter.result === winMatch2) {
-                        if (fightersTemp2.blueFighter.name !== winMatch2) {
-                            toast.error("Bạn không thể chấm lại trận đấu này!");
-                            return;
-                        }
-                    }
-                }
-            }
+        if (!canRescoreMatch(this.combatObj, this.matchNoCurrent)) {
+            toast.error("Bạn không thể chấm lại trận đấu này!");
+            return;
         }
 
         this.temporaryWin = "red";
@@ -1037,7 +1035,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 setTimeout(() => {
                     if (this.match && this.matchNoCurrentIndex !== undefined) {
                         this.match.match.win = "red";
-                        smartSet(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex + '/match/win', "red");
+                        saveMatchWin(this.writeCtx, this.matchNoCurrentIndex, "red");
                         this.setState({
                             iconWinRed: true,
                             iconWinBlue: false,
@@ -1063,26 +1061,9 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
     blueWin = (): void => {
         if (!this.match || !this.combatObj || this.matchNoCurrent === undefined) return;
 
-        const winMatch = "W." + this.matchNoCurrent;
-        for (let i = this.matchNoCurrent; i < this.combatObj.length; i++) {
-            const fightersTemp = this.combatObj[i].fighters;
-            if (fightersTemp.redFighter.result === winMatch) {
-                for (let j = i; j < this.combatObj.length; j++) {
-                    const fightersTemp2 = this.combatObj[j].fighters;
-                    const winMatch2 = "W." + j;
-                    if (fightersTemp2.redFighter.result === winMatch2)
-                        if (fightersTemp2.redFighter.name !== winMatch2) {
-                            toast.error("Bạn không thể chấm lại trận đấu này!");
-                            return;
-                        }
-                    if (fightersTemp2.blueFighter.result === winMatch2) {
-                        if (fightersTemp2.blueFighter.name !== winMatch2) {
-                            toast.error("Bạn không thể chấm lại trận đấu này!");
-                            return;
-                        }
-                    }
-                }
-            }
+        if (!canRescoreMatch(this.combatObj, this.matchNoCurrent)) {
+            toast.error("Bạn không thể chấm lại trận đấu này!");
+            return;
         }
 
         this.temporaryWin = "blue";
@@ -1094,7 +1075,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 setTimeout(() => {
                     if (this.match && this.matchNoCurrentIndex !== undefined) {
                         this.match.match.win = "blue";
-                        smartSet(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex + '/match/win', "blue");
+                        saveMatchWin(this.writeCtx, this.matchNoCurrentIndex, "blue");
                         this.setState({
                             iconWinBlue: true,
                             iconWinRed: false,
@@ -1296,61 +1277,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
     //Hàm dùng để thay thế những trận đấu có ký hiệu W. và L. trong giải đấu
     replaceFighter(winColor: string): void {
         if (!this.match || !this.combatObj || this.matchNoCurrent === undefined) return;
-
-        const matchWin = "W." + this.matchNoCurrent;
-        const matchLose = "L." + this.matchNoCurrent;
-        let winFighter: Fighter;
-        let loseFighter: Fighter;
-
-        if (winColor === "red") {
-            winFighter = this.match.fighters.redFighter;
-            loseFighter = this.match.fighters.blueFighter;
-        } else {
-            winFighter = this.match.fighters.blueFighter;
-            loseFighter = this.match.fighters.redFighter;
-        }
-
-        // Reset trạng thái trận đấu cho VĐV khi chuyển sang trận mới
-        const resetFighterState = (fighter: Fighter): void => {
-            fighter.score = 0;
-            fighter.legStrike = false;
-            fighter.caution = { bound: 0, fall: 0, medical: 0, remind: 0, warning: 0 };
-        };
-
-        for (let i = this.matchNoCurrent; i < this.combatObj.length; i++) {
-            const fightersTemp = this.combatObj[i].fighters;
-            if (fightersTemp.redFighter.result === matchWin) {
-                fightersTemp.redFighter = JSON.parse(JSON.stringify(winFighter));
-                fightersTemp.redFighter.result = matchWin;
-                resetFighterState(fightersTemp.redFighter);
-                smartUpdate(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters', fightersTemp);
-                break;
-            }
-
-            if (fightersTemp.redFighter.result === matchLose) {
-                fightersTemp.redFighter = JSON.parse(JSON.stringify(loseFighter));
-                fightersTemp.redFighter.result = matchLose;
-                resetFighterState(fightersTemp.redFighter);
-                smartUpdate(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters', fightersTemp);
-                break;
-            }
-
-            if (fightersTemp.blueFighter.result === matchWin) {
-                fightersTemp.blueFighter = JSON.parse(JSON.stringify(winFighter));
-                fightersTemp.blueFighter.result = matchWin;
-                resetFighterState(fightersTemp.blueFighter);
-                smartUpdate(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters', fightersTemp);
-                break;
-            }
-
-            if (fightersTemp.blueFighter.result === matchLose) {
-                fightersTemp.blueFighter = JSON.parse(JSON.stringify(loseFighter));
-                fightersTemp.blueFighter.result = matchLose;
-                resetFighterState(fightersTemp.blueFighter);
-                smartUpdate(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + i + '/fighters', fightersTemp);
-                break;
-            }
-        }
+        replaceFighterWrite(this.writeCtx, this.combatObj, this.matchNoCurrent, this.match, winColor);
     }
 
     makeScoreTimer(): void {
@@ -1359,38 +1286,23 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         for (let i = 0; i < this.numReferee; i++) {
             const referee = this.refereeObj[i];
             if (!referee) continue;
-            
+
             if (referee.redScore !== 0 || referee.blueScore !== 0) {
                 if (!this.isFirstRefereeScore) {
                     this.isFirstRefereeScore = true;
                 }
                 this.scoreTimerCount--;
                 //Kết thúc nếu có >50% trọng tài chấm điểm
-                let redScoreCounter = 0;
-                let blueScoreCounter = 0;
-                for (let j = 0; j < this.numReferee; j++) {
-                    const refereeJ = this.refereeObj[j];
-                    if (!refereeJ) continue;
-                    if (refereeJ.redScore !== 0) {
-                        redScoreCounter++;
-                    }
-                    if (refereeJ.blueScore !== 0) {
-                        blueScoreCounter++;
-                    }
-                }
-                if (this.scoreTimerCount === 0 || redScoreCounter > this.numReferee / 2 || blueScoreCounter > this.numReferee / 2) {
-                    //Tổng kết và tính điểm
-                    const redScoreArray: number[] = [];
-                    const blueScoreArray: number[] = [];
-                    for (let k = 0; k < this.numReferee; k++) {
-                        redScoreArray.push(this.refereeObj[k].redScore);
-                        blueScoreArray.push(this.refereeObj[k].blueScore);
-                    }
-                    this.match.fighters.redFighter.score += getModes(redScoreArray);
-                    this.match.fighters.blueFighter.score += getModes(blueScoreArray);
-                    smartSet(this.db, 'tournament/' + this.tournamentNoIndex + '/combat/' + this.matchNoCurrentIndex + '/fighters', this.match.fighters);
-                    //Reset Giám định
-                    smartSet(this.db, 'tournament/' + this.tournamentNoIndex + '/combatArena/' + this.combatArenaNoIndex + '/referee', this.combatConst.referee);
+                if (this.scoreTimerCount === 0 || hasScoreQuorum(this.refereeObj, this.numReferee)) {
+                    //Tổng kết và tính điểm + reset Giám định
+                    commitRefereeScores(
+                        this.writeCtx,
+                        this.matchNoCurrentIndex,
+                        this.match,
+                        this.refereeObj,
+                        this.numReferee,
+                        this.combatConst.referee
+                    );
                     // QUAN TRỌNG: Deep copy để tránh reference mutation
                     this.refereeObj = JSON.parse(JSON.stringify(this.combatConst.referee));
                     this.scoreTimerCount = this.timeScore;

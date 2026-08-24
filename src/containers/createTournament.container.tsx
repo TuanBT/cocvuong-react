@@ -11,6 +11,21 @@ import { read, write, utils } from 'xlsx';
 import FileSaver from "file-saver";
 import { NavLink } from "react-router-dom";
 import { DEFAULT_SETTING } from '../constants/settings';
+import {
+  buildCombatSchedule,
+  getSchedule,
+  changeMatchNumber,
+  SCHEMA_FIGHTERS,
+  toStandardRows,
+  toCombatMatches,
+  COMBAT_ARRANGE_HEADER,
+  type MatchSchema,
+} from '../utils/scheduleBuilder';
+import {
+  buildMartialContents,
+  toMartialStandardRows,
+  MARTIAL_ARRANGE_HEADER,
+} from '../utils/martialBuilder';
 import mauchuandoikhang from '../assets/template/1-Mau_Chuan_Doi_Khang.xlsx';
 import mauchuanthiquyen from '../assets/template/2-Mau_Chuan_Thi_Quyen.xlsx';
 import mauthodoikhang from '../assets/template/3-Mau_Tho_Doi_Khang.xlsx';
@@ -44,20 +59,6 @@ interface CreateTournamentContainerState {
   wizardDkSeeding: {[key: string]: number}; // key = "weight-index", value = seed number (1, 2)
 }
 
-interface Fighter {
-  name: string;
-  code: string;
-  country: string;
-  result: string;
-}
-
-interface MatchSchema {
-  match: number;
-  weight: number | string;
-  type: string;
-  redFighter: Fighter;
-  blueFighter: Fighter;
-}
 
 interface MatchObj {
   match: { no: number; type: string; category: string; win: string };
@@ -200,8 +201,6 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
   fighterMartialObj: FighterMartialObj = { "fighter": { "code": "", "name": "", "country": "" } };
 
-  schemaFighters: string[] = [];
-
   constructor(props: CreateTournamentContainerProps) {
     super(props);
     document.title = 'Tạo Giải';
@@ -233,34 +232,8 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     };
 
     this.db = database;
-    this.initSchemaFighters();
   }
 
-  initSchemaFighters() {
-    this.schemaFighters.push('[]');//0
-    this.schemaFighters.push('[]');//1
-    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Chung Kết","redFighter":{"name":1,"code":"","country":"","result":""},"blueFighter":{"name":2,"code":"","country":"","result":""}}]'); //2
-    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Bán Kết","redFighter":{"name":1,"code":"","country":"","result":""},"blueFighter":{"name":2,"code":"","country":"","result":""}},{"match":2,"weight":1,"type":"Chung Kết","redFighter":{"name":3,"code":"","country":"","result":""},"blueFighter":{"name":"W.1","code":"","country":"","result":"W.1"}}]');//3
-    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Bán Kết","redFighter":{"name":1,"code":"","country":"","result":""},"blueFighter":{"name":2,"code":"","country":"","result":""}},{"match":2,"weight":1,"type":"Bán Kết","redFighter":{"name":3,"code":"","country":"","result":""},"blueFighter":{"name":4,"code":"","country":"","result":""}},{"match":3,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.1","code":"","country":"","result":"W.1"},"blueFighter":{"name":"W.2","code":"","country":"","result":"W.2"}}]');//4
-    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại-1","redFighter":{"name":3,"code":"","country":"","result":""},"blueFighter":{"name":4,"code":"","country":"","result":""}},{"match":2,"weight":1,"type":"Bán Kết","redFighter":{"name":1,"code":"","country":"","result":""},"blueFighter":{"name":2,"code":"","country":"","result":""}},{"match":3,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.1","code":"","country":"","result":"W.1"},"blueFighter":{"name":5,"code":"","country":"","result":""}},{"match":4,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.2","code":"","country":"","result":"W.2"},"blueFighter":{"name":"W.3","code":"","country":"","result":"W.3"}}]'); //5
-    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại-1","redFighter":{"name":2,"code":"","country":"","result":""},"blueFighter":{"name":3,"code":"","country":"","result":""}},{"match":2,"weight":1,"type":"Vòng loại-1","redFighter":{"name":4,"code":"","country":"","result":""},"blueFighter":{"name":5,"code":"","country":"","result":""}},{"match":3,"weight":1,"type":"Bán Kết","redFighter":{"name":1,"code":"","country":"","result":""},"blueFighter":{"name":"W.1","code":"","country":"","result":"W.1"}},{"match":4,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.2","code":"","country":"","result":"W.2"},"blueFighter":{"name":6,"code":"","country":"","result":""}},{"match":5,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.3","code":"","country":"","result":"W.3"},"blueFighter":{"name":"W.4","code":"","country":"","result":"W.4"}}]');//6
-    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại-1","redFighter":{"name":2,"code":"","country":"","result":""},"blueFighter":{"name":3,"code":"","country":"","result":""}},{"match":2,"weight":1,"type":"Vòng loại-1","redFighter":{"name":4,"code":"","country":"","result":""},"blueFighter":{"name":5,"code":"","country":"","result":""}},{"match":3,"weight":1,"type":"Vòng loại-1","redFighter":{"name":6,"code":"","country":"","result":""},"blueFighter":{"name":7,"code":"","country":"","result":""}},{"match":4,"weight":1,"type":"Bán Kết","redFighter":{"name":1,"code":"","country":"","result":""},"blueFighter":{"name":"W.1","code":"","country":"","result":"W.1"}},{"match":5,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.2","code":"","country":"","result":"W.2"},"blueFighter":{"name":"W.3","code":"","country":"","result":"W.3"}},{"match":6,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.4","code":"","country":"","result":"W.4"},"blueFighter":{"name":"W.5","code":"","country":"","result":"W.5"}}]');//7
-    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại-1","redFighter":{"name":1,"code":"","country":"","result":""},"blueFighter":{"name":2,"code":"","country":"","result":""}},{"match":2,"weight":1,"type":"Vòng loại-1","redFighter":{"name":3,"code":"","country":"","result":""},"blueFighter":{"name":4,"code":"","country":"","result":""}},{"match":3,"weight":1,"type":"Vòng loại-1","redFighter":{"name":5,"code":"","country":"","result":""},"blueFighter":{"name":6,"code":"","country":"","result":""}},{"match":4,"weight":1,"type":"Vòng loại-1","redFighter":{"name":7,"code":"","country":"","result":""},"blueFighter":{"name":8,"code":"","country":"","result":""}},{"match":5,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.1","code":"","country":"","result":"W.1"},"blueFighter":{"name":"W.2","code":"","country":"","result":"W.2"}},{"match":6,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.3","code":"","country":"","result":"W.3"},"blueFighter":{"name":"W.4","code":"","country":"","result":"W.4"}},{"match":7,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.5","code":"","country":"","result":"W.5"},"blueFighter":{"name":"W.6","code":"","country":"","result":"W.6"}}]');//8
-    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại-1","redFighter":{"name":6,"code":"","country":"","result":""},"blueFighter":{"name":7,"code":"","country":"","result":""}},{"match":2,"weight":1,"type":"Vòng loại-2","redFighter":{"name":1,"code":"","country":"","result":""},"blueFighter":{"name":2,"code":"","country":"","result":""}},{"match":3,"weight":1,"type":"Vòng loại-2","redFighter":{"name":3,"code":"","country":"","result":""},"blueFighter":{"name":4,"code":"","country":"","result":""}},{"match":4,"weight":1,"type":"Vòng loại-2","redFighter":{"name":5,"code":"","country":"","result":""},"blueFighter":{"name":"W.1","code":"","country":"","result":"W.1"}},{"match":5,"weight":1,"type":"Vòng loại-2","redFighter":{"name":8,"code":"","country":"","result":""},"blueFighter":{"name":9,"code":"","country":"","result":""}},{"match":6,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.2","code":"","country":"","result":"W.2"},"blueFighter":{"name":"W.3","code":"","country":"","result":"W.3"}},{"match":7,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.4","code":"","country":"","result":"W.4"},"blueFighter":{"name":"W.5","code":"","country":"","result":"W.5"}},{"match":8,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.6","code":"","country":"","result":"W.6"},"blueFighter":{"name":"W.7","code":"","country":"","result":"W.7"}}]');//9
-    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại-1","redFighter":{"name":3,"code":"","country":"","result":""},"blueFighter":{"name":4,"code":"","country":"","result":""}},{"match":2,"weight":1,"type":"Vòng loại-1","redFighter":{"name":7,"code":"","country":"","result":""},"blueFighter":{"name":8,"code":"","country":"","result":""}},{"match":3,"weight":1,"type":"Vòng loại-2","redFighter":{"name":1,"code":"","country":"","result":""},"blueFighter":{"name":2,"code":"","country":"","result":""}},{"match":4,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.1","code":"","country":"","result":"W.1"},"blueFighter":{"name":5,"code":"","country":"","result":""}},{"match":5,"weight":1,"type":"Vòng loại-2","redFighter":{"name":6,"code":"","country":"","result":""},"blueFighter":{"name":"W.2","code":"","country":"","result":"W.2"}},{"match":6,"weight":1,"type":"Vòng loại-2","redFighter":{"name":9,"code":"","country":"","result":""},"blueFighter":{"name":10,"code":"","country":"","result":""}},{"match":7,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.3","code":"","country":"","result":"W.3"},"blueFighter":{"name":"W.4","code":"","country":"","result":"W.4"}},{"match":8,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.5","code":"","country":"","result":"W.5"},"blueFighter":{"name":"W.6","code":"","country":"","result":"W.6"}},{"match":9,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.7","code":"","country":"","result":"W.7"},"blueFighter":{"name":"W.8","code":"","country":"","result":"W.8"}}]');//10
-    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại-1","redFighter":{"name":3,"code":"","country":"","result":""},"blueFighter":{"name":4,"code":"","country":"","result":""}},{"match":2,"weight":1,"type":"Vòng loại-1","redFighter":{"name":7,"code":"","country":"","result":""},"blueFighter":{"name":8,"code":"","country":"","result":""}},{"match":3,"weight":1,"type":"Vòng loại-1","redFighter":{"name":9,"code":"","country":"","result":""},"blueFighter":{"name":10,"code":"","country":"","result":""}},{"match":4,"weight":1,"type":"Vòng loại-2","redFighter":{"name":1,"code":"","country":"","result":""},"blueFighter":{"name":2,"code":"","country":"","result":""}},{"match":5,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.1","code":"","country":"","result":"W.1"},"blueFighter":{"name":5,"code":"","country":"","result":""}},{"match":6,"weight":1,"type":"Vòng loại-2","redFighter":{"name":6,"code":"","country":"","result":""},"blueFighter":{"name":"W.2","code":"","country":"","result":"W.2"}},{"match":7,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.3","code":"","country":"","result":"W.3"},"blueFighter":{"name":11,"code":"","country":"","result":""}},{"match":8,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.4","code":"","country":"","result":"W.4"},"blueFighter":{"name":"W.5","code":"","country":"","result":"W.5"}},{"match":9,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.6","code":"","country":"","result":"W.6"},"blueFighter":{"name":"W.7","code":"","country":"","result":"W.7"}},{"match":10,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.8","code":"","country":"","result":"W.8"},"blueFighter":{"name":"W.9","code":"","country":"","result":"W.9"}}]');//11
-    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại-1","redFighter":{"name":2,"code":"","country":"","result":""},"blueFighter":{"name":3,"code":"","country":"","result":""}},{"match":2,"weight":1,"type":"Vòng loại-1","redFighter":{"name":4,"code":"","country":"","result":""},"blueFighter":{"name":5,"code":"","country":"","result":""}},{"match":3,"weight":1,"type":"Vòng loại-1","redFighter":{"name":8,"code":"","country":"","result":""},"blueFighter":{"name":9,"code":"","country":"","result":""}},{"match":4,"weight":1,"type":"Vòng loại-1","redFighter":{"name":10,"code":"","country":"","result":""},"blueFighter":{"name":11,"code":"","country":"","result":""}},{"match":5,"weight":1,"type":"Vòng loại-2","redFighter":{"name":1,"code":"","country":"","result":""},"blueFighter":{"name":"W.1","code":"","country":"","result":"W.1"}},{"match":6,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.2","code":"","country":"","result":"W.2"},"blueFighter":{"name":6,"code":"","country":"","result":""}},{"match":7,"weight":1,"type":"Vòng loại-2","redFighter":{"name":7,"code":"","country":"","result":""},"blueFighter":{"name":"W.3","code":"","country":"","result":"W.3"}},{"match":8,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.4","code":"","country":"","result":"W.4"},"blueFighter":{"name":12,"code":"","country":"","result":""}},{"match":9,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.5","code":"","country":"","result":"W.5"},"blueFighter":{"name":"W.6","code":"","country":"","result":"W.6"}},{"match":10,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.7","code":"","country":"","result":"W.7"},"blueFighter":{"name":"W.8","code":"","country":"","result":"W.8"}},{"match":11,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.9","code":"","country":"","result":"W.9"},"blueFighter":{"name":"W.10","code":"","country":"","result":"W.10"}}]');//12
-    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại-1","redFighter":{"name":2,"code":"","country":"","result":""},"blueFighter":{"name":3,"code":"","country":"","result":""}},{"match":2,"weight":1,"type":"Vòng loại-1","redFighter":{"name":4,"code":"","country":"","result":""},"blueFighter":{"name":5,"code":"","country":"","result":""}},{"match":3,"weight":1,"type":"Vòng loại-1","redFighter":{"name":7,"code":"","country":"","result":""},"blueFighter":{"name":8,"code":"","country":"","result":""}},{"match":4,"weight":1,"type":"Vòng loại-1","redFighter":{"name":9,"code":"","country":"","result":""},"blueFighter":{"name":10,"code":"","country":"","result":""}},{"match":5,"weight":1,"type":"Vòng loại-1","redFighter":{"name":11,"code":"","country":"","result":""},"blueFighter":{"name":12,"code":"","country":"","result":""}},{"match":6,"weight":1,"type":"Vòng loại-2","redFighter":{"name":1,"code":"","country":"","result":""},"blueFighter":{"name":"W.1","code":"","country":"","result":"W.1"}},{"match":7,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.2","code":"","country":"","result":"W.2"},"blueFighter":{"name":6,"code":"","country":"","result":""}},{"match":8,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.3","code":"","country":"","result":"W.3"},"blueFighter":{"name":"W.4","code":"","country":"","result":"W.4"}},{"match":9,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.5","code":"","country":"","result":"W.5"},"blueFighter":{"name":13,"code":"","country":"","result":""}},{"match":10,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.6","code":"","country":"","result":"W.6"},"blueFighter":{"name":"W.7","code":"","country":"","result":"W.7"}},{"match":11,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.8","code":"","country":"","result":"W.8"},"blueFighter":{"name":"W.9","code":"","country":"","result":"W.9"}},{"match":12,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.10","code":"","country":"","result":"W.10"},"blueFighter":{"name":"W.11","code":"","country":"","result":"W.11"}}]');//13
-    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại-1","redFighter":{"name":2,"code":"","country":"","result":""},"blueFighter":{"name":3,"code":"","country":"","result":""}},{"match":2,"weight":1,"type":"Vòng loại-1","redFighter":{"name":4,"code":"","country":"","result":""},"blueFighter":{"name":5,"code":"","country":"","result":""}},{"match":3,"weight":1,"type":"Vòng loại-1","redFighter":{"name":6,"code":"","country":"","result":""},"blueFighter":{"name":7,"code":"","country":"","result":""}},{"match":4,"weight":1,"type":"Vòng loại-1","redFighter":{"name":8,"code":"","country":"","result":""},"blueFighter":{"name":9,"code":"","country":"","result":""}},{"match":5,"weight":1,"type":"Vòng loại-1","redFighter":{"name":10,"code":"","country":"","result":""},"blueFighter":{"name":11,"code":"","country":"","result":""}},{"match":6,"weight":1,"type":"Vòng loại-1","redFighter":{"name":12,"code":"","country":"","result":""},"blueFighter":{"name":13,"code":"","country":"","result":""}},{"match":7,"weight":1,"type":"Vòng loại-2","redFighter":{"name":1,"code":"","country":"","result":""},"blueFighter":{"name":"W.1","code":"","country":"","result":"W.1"}},{"match":8,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.2","code":"","country":"","result":"W.2"},"blueFighter":{"name":"W.3","code":"","country":"","result":"W.3"}},{"match":9,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.4","code":"","country":"","result":"W.4"},"blueFighter":{"name":"W.5","code":"","country":"","result":"W.5"}},{"match":10,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.6","code":"","country":"","result":"W.6"},"blueFighter":{"name":14,"code":"","country":"","result":""}},{"match":11,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.7","code":"","country":"","result":"W.7"},"blueFighter":{"name":"W.8","code":"","country":"","result":"W.8"}},{"match":12,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.9","code":"","country":"","result":"W.9"},"blueFighter":{"name":"W.10","code":"","country":"","result":"W.10"}},{"match":13,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.11","code":"","country":"","result":"W.11"},"blueFighter":{"name":"W.12","code":"","country":"","result":"W.12"}}]');//14
-    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại-1","redFighter":{"name":2,"code":"","country":"","result":""},"blueFighter":{"name":3,"code":"","country":"","result":""}},{"match":2,"weight":1,"type":"Vòng loại-1","redFighter":{"name":4,"code":"","country":"","result":""},"blueFighter":{"name":5,"code":"","country":"","result":""}},{"match":3,"weight":1,"type":"Vòng loại-1","redFighter":{"name":6,"code":"","country":"","result":""},"blueFighter":{"name":7,"code":"","country":"","result":""}},{"match":4,"weight":1,"type":"Vòng loại-1","redFighter":{"name":8,"code":"","country":"","result":""},"blueFighter":{"name":9,"code":"","country":"","result":""}},{"match":5,"weight":1,"type":"Vòng loại-1","redFighter":{"name":10,"code":"","country":"","result":""},"blueFighter":{"name":11,"code":"","country":"","result":""}},{"match":6,"weight":1,"type":"Vòng loại-1","redFighter":{"name":12,"code":"","country":"","result":""},"blueFighter":{"name":13,"code":"","country":"","result":""}},{"match":7,"weight":1,"type":"Vòng loại-1","redFighter":{"name":14,"code":"","country":"","result":""},"blueFighter":{"name":15,"code":"","country":"","result":""}},{"match":8,"weight":1,"type":"Vòng loại-2","redFighter":{"name":1,"code":"","country":"","result":""},"blueFighter":{"name":"W.1","code":"","country":"","result":"W.1"}},{"match":9,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.2","code":"","country":"","result":"W.2"},"blueFighter":{"name":"W.3","code":"","country":"","result":"W.3"}},{"match":10,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.4","code":"","country":"","result":"W.4"},"blueFighter":{"name":"W.5","code":"","country":"","result":"W.5"}},{"match":11,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.6","code":"","country":"","result":"W.6"},"blueFighter":{"name":"W.7","code":"","country":"","result":"W.7"}},{"match":12,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.8","code":"","country":"","result":"W.8"},"blueFighter":{"name":"W.9","code":"","country":"","result":"W.9"}},{"match":13,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.10","code":"","country":"","result":"W.10"},"blueFighter":{"name":"W.11","code":"","country":"","result":"W.11"}},{"match":14,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.12","code":"","country":"","result":"W.12"},"blueFighter":{"name":"W.13","code":"","country":"","result":"W.13"}}]');//15
-    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại-1","redFighter":{"name":1,"code":"","country":"","result":""},"blueFighter":{"name":2,"code":"","country":"","result":""}},{"match":2,"weight":1,"type":"Vòng loại-1","redFighter":{"name":3,"code":"","country":"","result":""},"blueFighter":{"name":4,"code":"","country":"","result":""}},{"match":3,"weight":1,"type":"Vòng loại-1","redFighter":{"name":5,"code":"","country":"","result":""},"blueFighter":{"name":6,"code":"","country":"","result":""}},{"match":4,"weight":1,"type":"Vòng loại-1","redFighter":{"name":7,"code":"","country":"","result":""},"blueFighter":{"name":8,"code":"","country":"","result":""}},{"match":5,"weight":1,"type":"Vòng loại-1","redFighter":{"name":9,"code":"","country":"","result":""},"blueFighter":{"name":10,"code":"","country":"","result":""}},{"match":6,"weight":1,"type":"Vòng loại-1","redFighter":{"name":11,"code":"","country":"","result":""},"blueFighter":{"name":12,"code":"","country":"","result":""}},{"match":7,"weight":1,"type":"Vòng loại-1","redFighter":{"name":13,"code":"","country":"","result":""},"blueFighter":{"name":14,"code":"","country":"","result":""}},{"match":8,"weight":1,"type":"Vòng loại-1","redFighter":{"name":15,"code":"","country":"","result":""},"blueFighter":{"name":16,"code":"","country":"","result":""}},{"match":9,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.1","code":"","country":"","result":"W.1"},"blueFighter":{"name":"W.2","code":"","country":"","result":"W.2"}},{"match":10,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.3","code":"","country":"","result":"W.3"},"blueFighter":{"name":"W.4","code":"","country":"","result":"W.4"}},{"match":11,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.5","code":"","country":"","result":"W.5"},"blueFighter":{"name":"W.6","code":"","country":"","result":"W.6"}},{"match":12,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.7","code":"","country":"","result":"W.7"},"blueFighter":{"name":"W.8","code":"","country":"","result":"W.8"}},{"match":13,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.9","code":"","country":"","result":"W.9"},"blueFighter":{"name":"W.10","code":"","country":"","result":"W.10"}},{"match":14,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.11","code":"","country":"","result":"W.11"},"blueFighter":{"name":"W.12","code":"","country":"","result":"W.12"}},{"match":15,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.13","code":"","country":"","result":"W.13"},"blueFighter":{"name":"W.14","code":"","country":"","result":"W.14"}}]');//16
-    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại-1","redFighter":{"name":10,"code":"","country":"","result":""},"blueFighter":{"name":11,"code":"","country":"","result":""}},{"match":2,"weight":1,"type":"Vòng loại-2","redFighter":{"name":1,"code":"","country":"","result":""},"blueFighter":{"name":2,"code":"","country":"","result":""}},{"match":3,"weight":1,"type":"Vòng loại-2","redFighter":{"name":3,"code":"","country":"","result":""},"blueFighter":{"name":4,"code":"","country":"","result":""}},{"match":4,"weight":1,"type":"Vòng loại-2","redFighter":{"name":5,"code":"","country":"","result":""},"blueFighter":{"name":6,"code":"","country":"","result":""}},{"match":5,"weight":1,"type":"Vòng loại-2","redFighter":{"name":7,"code":"","country":"","result":""},"blueFighter":{"name":8,"code":"","country":"","result":""}},{"match":6,"weight":1,"type":"Vòng loại-2","redFighter":{"name":9,"code":"","country":"","result":""},"blueFighter":{"name":"W.1","code":"","country":"","result":"W.1"}},{"match":7,"weight":1,"type":"Vòng loại-2","redFighter":{"name":12,"code":"","country":"","result":""},"blueFighter":{"name":13,"code":"","country":"","result":""}},{"match":8,"weight":1,"type":"Vòng loại-2","redFighter":{"name":14,"code":"","country":"","result":""},"blueFighter":{"name":15,"code":"","country":"","result":""}},{"match":9,"weight":1,"type":"Vòng loại-2","redFighter":{"name":16,"code":"","country":"","result":""},"blueFighter":{"name":17,"code":"","country":"","result":""}},{"match":10,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.2","code":"","country":"","result":"W.2"},"blueFighter":{"name":"W.3","code":"","country":"","result":"W.3"}},{"match":11,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.4","code":"","country":"","result":"W.4"},"blueFighter":{"name":"W.5","code":"","country":"","result":"W.5"}},{"match":12,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.6","code":"","country":"","result":"W.6"},"blueFighter":{"name":"W.7","code":"","country":"","result":"W.7"}},{"match":13,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.8","code":"","country":"","result":"W.8"},"blueFighter":{"name":"W.9","code":"","country":"","result":"W.9"}},{"match":14,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.10","code":"","country":"","result":"W.10"},"blueFighter":{"name":"W.11","code":"","country":"","result":"W.11"}},{"match":15,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.12","code":"","country":"","result":"W.12"},"blueFighter":{"name":"W.13","code":"","country":"","result":"W.13"}},{"match":16,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.14","code":"","country":"","result":"W.14"},"blueFighter":{"name":"W.15","code":"","country":"","result":"W.15"}}]');//17
-    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại-1","redFighter":{"name":6,"code":"","country":"","result":""},"blueFighter":{"name":7,"code":"","country":"","result":""}},{"match":2,"weight":1,"type":"Vòng loại-1","redFighter":{"name":11,"code":"","country":"","result":""},"blueFighter":{"name":12,"code":"","country":"","result":""}},{"match":3,"weight":1,"type":"Vòng loại-2","redFighter":{"name":1,"code":"","country":"","result":""},"blueFighter":{"name":2,"code":"","country":"","result":""}},{"match":4,"weight":1,"type":"Vòng loại-2","redFighter":{"name":3,"code":"","country":"","result":""},"blueFighter":{"name":4,"code":"","country":"","result":""}},{"match":5,"weight":1,"type":"Vòng loại-3","redFighter":{"name":5,"code":"","country":"","result":""},"blueFighter":{"name":"W.1","code":"","country":"","result":"W.1"}},{"match":6,"weight":1,"type":"Vòng loại-2","redFighter":{"name":8,"code":"","country":"","result":""},"blueFighter":{"name":9,"code":"","country":"","result":""}},{"match":7,"weight":1,"type":"Vòng loại-2","redFighter":{"name":10,"code":"","country":"","result":""},"blueFighter":{"name":"W.2","code":"","country":"","result":"W.2"}},{"match":8,"weight":1,"type":"Vòng loại-2","redFighter":{"name":13,"code":"","country":"","result":""},"blueFighter":{"name":14,"code":"","country":"","result":""}},{"match":9,"weight":1,"type":"Vòng loại-2","redFighter":{"name":15,"code":"","country":"","result":""},"blueFighter":{"name":16,"code":"","country":"","result":""}},{"match":10,"weight":1,"type":"Vòng loại-2","redFighter":{"name":17,"code":"","country":"","result":""},"blueFighter":{"name":18,"code":"","country":"","result":""}},{"match":11,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.3","code":"","country":"","result":"W.3"},"blueFighter":{"name":"W.4","code":"","country":"","result":"W.4"}},{"match":12,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.5","code":"","country":"","result":"W.5"},"blueFighter":{"name":"W.6","code":"","country":"","result":"W.6"}},{"match":13,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.7","code":"","country":"","result":"W.7"},"blueFighter":{"name":"W.8","code":"","country":"","result":"W.8"}},{"match":14,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.9","code":"","country":"","result":"W.9"},"blueFighter":{"name":"W.10","code":"","country":"","result":"W.10"}},{"match":15,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.11","code":"","country":"","result":"W.11"},"blueFighter":{"name":"W.12","code":"","country":"","result":"W.12"}},{"match":16,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.13","code":"","country":"","result":"W.13"},"blueFighter":{"name":"W.14","code":"","country":"","result":"W.14"}},{"match":17,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.15","code":"","country":"","result":"W.15"},"blueFighter":{"name":"W.16","code":"","country":"","result":"W.16"}}]');//18
-    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại-1","redFighter":{"name":6,"code":"","country":"","result":""},"blueFighter":{"name":7,"code":"","country":"","result":""}},{"match":2,"weight":1,"type":"Vòng loại-1","redFighter":{"name":12,"code":"","country":"","result":""},"blueFighter":{"name":13,"code":"","country":"","result":""}},{"match":3,"weight":1,"type":"Vòng loại-1","redFighter":{"name":16,"code":"","country":"","result":""},"blueFighter":{"name":17,"code":"","country":"","result":""}},{"match":4,"weight":1,"type":"Vòng loại-2","redFighter":{"name":1,"code":"","country":"","result":""},"blueFighter":{"name":2,"code":"","country":"","result":""}},{"match":5,"weight":1,"type":"Vòng loại-2","redFighter":{"name":3,"code":"","country":"","result":""},"blueFighter":{"name":4,"code":"","country":"","result":""}},{"match":6,"weight":1,"type":"Vòng loại-2","redFighter":{"name":5,"code":"","country":"","result":""},"blueFighter":{"name":"W.1","code":"","country":"","result":"W.1"}},{"match":7,"weight":1,"type":"Vòng loại-2","redFighter":{"name":8,"code":"","country":"","result":""},"blueFighter":{"name":9,"code":"","country":"","result":""}},{"match":8,"weight":1,"type":"Vòng loại-2","redFighter":{"name":10,"code":"","country":"","result":""},"blueFighter":{"name":11,"code":"","country":"","result":""}},{"match":9,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.2","code":"","country":"","result":"W.2"},"blueFighter":{"name":14,"code":"","country":"","result":""}},{"match":10,"weight":1,"type":"Vòng loại-2","redFighter":{"name":15,"code":"","country":"","result":""},"blueFighter":{"name":"W.3","code":"","country":"","result":"W.3"}},{"match":11,"weight":1,"type":"Vòng loại-2","redFighter":{"name":18,"code":"","country":"","result":""},"blueFighter":{"name":19,"code":"","country":"","result":""}},{"match":12,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.4","code":"","country":"","result":"W.4"},"blueFighter":{"name":"W.5","code":"","country":"","result":"W.5"}},{"match":13,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.6","code":"","country":"","result":"W.6"},"blueFighter":{"name":"W.7","code":"","country":"","result":"W.7"}},{"match":14,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.8","code":"","country":"","result":"W.8"},"blueFighter":{"name":"W.9","code":"","country":"","result":"W.9"}},{"match":15,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.10","code":"","country":"","result":"W.10"},"blueFighter":{"name":"W.11","code":"","country":"","result":"W.11"}},{"match":16,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.12","code":"","country":"","result":"W.12"},"blueFighter":{"name":"W.13","code":"","country":"","result":"W.13"}},{"match":17,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.14","code":"","country":"","result":"W.14"},"blueFighter":{"name":"W.15","code":"","country":"","result":"W.15"}},{"match":18,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.16","code":"","country":"","result":"W.16"},"blueFighter":{"name":"W.17","code":"","country":"","result":"W.17"}}]');//19
-    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại-1","redFighter":{"name":3,"code":"","country":"","result":""},"blueFighter":{"name":4,"code":"","country":"","result":""}},{"match":2,"weight":1,"type":"Vòng loại-1","redFighter":{"name":7,"code":"","country":"","result":""},"blueFighter":{"name":8,"code":"","country":"","result":""}},{"match":3,"weight":1,"type":"Vòng loại-1","redFighter":{"name":13,"code":"","country":"","result":""},"blueFighter":{"name":14,"code":"","country":"","result":""}},{"match":4,"weight":1,"type":"Vòng loại-1","redFighter":{"name":17,"code":"","country":"","result":""},"blueFighter":{"name":18,"code":"","country":"","result":""}},{"match":5,"weight":1,"type":"Vòng loại-2","redFighter":{"name":1,"code":"","country":"","result":""},"blueFighter":{"name":2,"code":"","country":"","result":""}},{"match":6,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.1","code":"","country":"","result":"W.1"},"blueFighter":{"name":5,"code":"","country":"","result":""}},{"match":7,"weight":1,"type":"Vòng loại-2","redFighter":{"name":6,"code":"","country":"","result":""},"blueFighter":{"name":"W.2","code":"","country":"","result":"W.2"}},{"match":8,"weight":1,"type":"Vòng loại-2","redFighter":{"name":9,"code":"","country":"","result":""},"blueFighter":{"name":10,"code":"","country":"","result":""}},{"match":9,"weight":1,"type":"Vòng loại-2","redFighter":{"name":11,"code":"","country":"","result":""},"blueFighter":{"name":12,"code":"","country":"","result":""}},{"match":10,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.13","code":"","country":"","result":"W.13"},"blueFighter":{"name":15,"code":"","country":"","result":""}},{"match":11,"weight":1,"type":"Vòng loại-2","redFighter":{"name":16,"code":"","country":"","result":""},"blueFighter":{"name":"W.4","code":"","country":"","result":"W.4"}},{"match":12,"weight":1,"type":"Vòng loại-2","redFighter":{"name":19,"code":"","country":"","result":""},"blueFighter":{"name":20,"code":"","country":"","result":""}},{"match":13,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.5","code":"","country":"","result":"W.5"},"blueFighter":{"name":"W.6","code":"","country":"","result":"W.6"}},{"match":14,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.7","code":"","country":"","result":"W.7"},"blueFighter":{"name":"W.8","code":"","country":"","result":"W.8"}},{"match":15,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.9","code":"","country":"","result":"W.9"},"blueFighter":{"name":"W.10","code":"","country":"","result":"W.10"}},{"match":16,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.11","code":"","country":"","result":"W.11"},"blueFighter":{"name":"W.12","code":"","country":"","result":"W.12"}},{"match":17,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.13","code":"","country":"","result":"W.13"},"blueFighter":{"name":"W.14","code":"","country":"","result":"W.14"}},{"match":18,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.15","code":"","country":"","result":"W.15"},"blueFighter":{"name":"W.16","code":"","country":"","result":"W.16"}},{"match":19,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.17","code":"","country":"","result":"W.17"},"blueFighter":{"name":"W.18","code":"","country":"","result":"W.18"}}]');//20
-    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại-1","redFighter":{"name":3,"code":"","country":"","result":""},"blueFighter":{"name":4,"code":"","country":"","result":""}},{"match":2,"weight":1,"type":"Vòng loại-1","redFighter":{"name":7,"code":"","country":"","result":""},"blueFighter":{"name":8,"code":"","country":"","result":""}},{"match":3,"weight":1,"type":"Vòng loại-1","redFighter":{"name":12,"code":"","country":"","result":""},"blueFighter":{"name":14,"code":"","country":"","result":""}},{"match":4,"weight":1,"type":"Vòng loại-1","redFighter":{"name":14,"code":"","country":"","result":""},"blueFighter":{"name":15,"code":"","country":"","result":""}},{"match":5,"weight":1,"type":"Vòng loại-1","redFighter":{"name":19,"code":"","country":"","result":""},"blueFighter":{"name":20,"code":"","country":"","result":""}},{"match":6,"weight":1,"type":"Vòng loại-2","redFighter":{"name":1,"code":"","country":"","result":""},"blueFighter":{"name":2,"code":"","country":"","result":""}},{"match":7,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.1","code":"","country":"","result":"W.1"},"blueFighter":{"name":5,"code":"","country":"","result":""}},{"match":8,"weight":1,"type":"Vòng loại-2","redFighter":{"name":6,"code":"","country":"","result":""},"blueFighter":{"name":"W.2","code":"","country":"","result":"W.2"}},{"match":9,"weight":1,"type":"Vòng loại-2","redFighter":{"name":9,"code":"","country":"","result":""},"blueFighter":{"name":10,"code":"","country":"","result":""}},{"match":10,"weight":1,"type":"Vòng loại-2","redFighter":{"name":11,"code":"","country":"","result":""},"blueFighter":{"name":"W.3","code":"","country":"","result":"W.3"}},{"match":11,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.4","code":"","country":"","result":"W.4"},"blueFighter":{"name":16,"code":"","country":"","result":""}},{"match":12,"weight":1,"type":"Vòng loại-2","redFighter":{"name":17,"code":"","country":"","result":""},"blueFighter":{"name":18,"code":"","country":"","result":""}},{"match":13,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.5","code":"","country":"","result":"W.5"},"blueFighter":{"name":21,"code":"","country":"","result":""}},{"match":14,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.6","code":"","country":"","result":"W.6"},"blueFighter":{"name":"W.7","code":"","country":"","result":"W.7"}},{"match":15,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.8","code":"","country":"","result":"W.8"},"blueFighter":{"name":"W.9","code":"","country":"","result":"W.9"}},{"match":16,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.10","code":"","country":"","result":"W.10"},"blueFighter":{"name":"W.11","code":"","country":"","result":"W.11"}},{"match":17,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.12","code":"","country":"","result":"W.12"},"blueFighter":{"name":"W.13","code":"","country":"","result":"W.13"}},{"match":18,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.15","code":"","country":"","result":"W.15"},"blueFighter":{"name":"W.16","code":"","country":"","result":"W.16"}},{"match":19,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.16","code":"","country":"","result":"W.16"},"blueFighter":{"name":"W.17","code":"","country":"","result":"W.17"}},{"match":20,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.18","code":"","country":"","result":"W.18"},"blueFighter":{"name":"W.19","code":"","country":"","result":"W.19"}}]');//21
-    this.schemaFighters.push('[{"match":1,"weight":1,"type":"Vòng loại-1","redFighter":{"name":3,"code":"","country":"","result":""},"blueFighter":{"name":4,"code":"","country":"","result":""}},{"match":2,"weight":1,"type":"Vòng loại-1","redFighter":{"name":7,"code":"","country":"","result":""},"blueFighter":{"name":8,"code":"","country":"","result":""}},{"match":3,"weight":1,"type":"Vòng loại-1","redFighter":{"name":9,"code":"","country":"","result":""},"blueFighter":{"name":10,"code":"","country":"","result":""}},{"match":4,"weight":1,"type":"Vòng loại-1","redFighter":{"name":13,"code":"","country":"","result":""},"blueFighter":{"name":14,"code":"","country":"","result":""}},{"match":5,"weight":1,"type":"Vòng loại-1","redFighter":{"name":15,"code":"","country":"","result":""},"blueFighter":{"name":16,"code":"","country":"","result":""}},{"match":6,"weight":1,"type":"Vòng loại-1","redFighter":{"name":20,"code":"","country":"","result":""},"blueFighter":{"name":21,"code":"","country":"","result":""}},{"match":7,"weight":1,"type":"Vòng loại-2","redFighter":{"name":1,"code":"","country":"","result":""},"blueFighter":{"name":2,"code":"","country":"","result":""}},{"match":8,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.1","code":"","country":"","result":"W.1"},"blueFighter":{"name":5,"code":"","country":"","result":""}},{"match":9,"weight":1,"type":"Vòng loại-2","redFighter":{"name":6,"code":"","country":"","result":""},"blueFighter":{"name":"W.2","code":"","country":"","result":"W.2"}},{"match":10,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.3","code":"","country":"","result":"W.3"},"blueFighter":{"name":11,"code":"","country":"","result":""}},{"match":11,"weight":1,"type":"Vòng loại-2","redFighter":{"name":12,"code":"","country":"","result":""},"blueFighter":{"name":"W.4","code":"","country":"","result":"W.4"}},{"match":12,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.5","code":"","country":"","result":"W.5"},"blueFighter":{"name":17,"code":"","country":"","result":""}},{"match":13,"weight":1,"type":"Vòng loại-2","redFighter":{"name":18,"code":"","country":"","result":""},"blueFighter":{"name":19,"code":"","country":"","result":""}},{"match":14,"weight":1,"type":"Vòng loại-2","redFighter":{"name":"W.6","code":"","country":"","result":"W.6"},"blueFighter":{"name":22,"code":"","country":"","result":""}},{"match":15,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.7","code":"","country":"","result":"W.7"},"blueFighter":{"name":"W.8","code":"","country":"","result":"W.8"}},{"match":16,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.9","code":"","country":"","result":"W.9"},"blueFighter":{"name":"W.10","code":"","country":"","result":"W.10"}},{"match":17,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.11","code":"","country":"","result":"W.11"},"blueFighter":{"name":"W.12","code":"","country":"","result":"W.12"}},{"match":18,"weight":1,"type":"Vòng loại-3","redFighter":{"name":"W.13","code":"","country":"","result":"W.13"},"blueFighter":{"name":"W.14","code":"","country":"","result":"W.14"}},{"match":19,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.15","code":"","country":"","result":"W.15"},"blueFighter":{"name":"W.16","code":"","country":"","result":"W.16"}},{"match":20,"weight":1,"type":"Bán Kết","redFighter":{"name":"W.17","code":"","country":"","result":"W.17"},"blueFighter":{"name":"W.18","code":"","country":"","result":"W.18"}},{"match":21,"weight":1,"type":"Chung Kết","redFighter":{"name":"W.19","code":"","country":"","result":"W.19"},"blueFighter":{"name":"W.20","code":"","country":"","result":"W.20"}}]');//22
-  }
 
   componentDidMount() {
     // Check for cached password
@@ -614,108 +587,14 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
   arrangeCombat = () => {
 
-    const weightCount: { [key: string]: number } = {};
-    this.combatArrayRaw.forEach((fighter) => {
-      const weight = fighter[1];
-      weightCount[weight] = (weightCount[weight] || 0) + 1;
-    });
-
-    this.combatArrayRaw.sort((a, b) => {
-      const weightA = a[1];
-      const weightB = b[1];
-      const countA = weightCount[weightA];
-      const countB = weightCount[weightB];
-
-      if (countB !== countA) {
-        return countB - countA;
-      }
-
-      if (weightA !== weightB) {
-        if (weightA.includes('>') && !weightB.includes('>')) {
-          return 1;
-        } else if (!weightA.includes('>') && weightB.includes('>')) {
-          return -1;
-        }
-        return weightA.localeCompare(weightB);
-      }
-
-      return this.combatArrayRaw.indexOf(a) - this.combatArrayRaw.indexOf(b);
-    });
-
-    const groupedData = new Map<string, any[][]>();
-    this.combatArrayRaw.forEach(item => {
-      const weight = String(item[1]).trim();
-      if (groupedData.has(weight)) {
-        groupedData.get(weight)!.push(item);
-      } else {
-        groupedData.set(weight, [item]);
-      }
-    });
-
-    this.matchs = [];
-    let matchCount = 1;
-    for (const [key, value] of groupedData.entries()) {
-      this.groupMatch = this.getschedule(value);
-      this.changeMatchNumber(this.groupMatch, matchCount);
-
-      this.groupMatch.forEach(match => {
-        this.matchs.push(match);
-      });
-      matchCount += this.groupMatch.length;
-    }
-
-    this.matchs.sort((a, b) => {
-      const typeOrder: { [key: string]: number } = { 'Vòng loại-1': 0, 'Vòng loại-2': 1, 'Vòng loại-3': 2, 'Bán Kết': 3, 'Chung Kết': 4 };
-      return typeOrder[a.type] - typeOrder[b.type];
-    });
-
-    for (let i = 0; i < this.matchs.length; i++) {
-      const oldMatchNo = this.matchs[i].match;
-      const newMatchNo = i + 1;
-      if (this.matchs[i].match !== newMatchNo) {
-        this.matchs[i].match = newMatchNo;
-        for (let j = 0; j < this.matchs.length; j++) {
-          if (this.matchs[j].redFighter.name === "W." + oldMatchNo) {
-            this.matchs[j].redFighter.name = "W.." + newMatchNo;
-            this.matchs[j].redFighter.result = "W.." + newMatchNo;
-          }
-          if (this.matchs[j].blueFighter.name === "W." + oldMatchNo) {
-            this.matchs[j].blueFighter.name = "W.." + newMatchNo;
-            this.matchs[j].blueFighter.result = "W.." + newMatchNo;
-          }
-        }
-      }
-    }
-    for (let i = 0; i < this.matchs.length; i++) {
-      this.matchs[i].redFighter.name = this.matchs[i].redFighter.name.replace(/W\.\.(\d+)/g, "W.$1");
-      this.matchs[i].blueFighter.name = this.matchs[i].blueFighter.name.replace(/W\.\.(\d+)/g, "W.$1");
-      this.matchs[i].redFighter.result = this.matchs[i].redFighter.result.replace(/W\.\.(\d+)/g, "W.$1");
-      this.matchs[i].blueFighter.result = this.matchs[i].blueFighter.result.replace(/W\.\.(\d+)/g, "W.$1");
-    }
+    this.matchs = buildCombatSchedule(this.combatArrayRaw);
 
     this.combatObj = JSON.parse(JSON.stringify(this.combatConst));
-    this.combatStandardArray = [];
-    this.matchs.forEach(value => {
-      this.combatStandardArray.push([
-        value.match, value.weight, String(value.type).split('-')[0], value.redFighter.name, value.redFighter.code, value.redFighter.country, value.blueFighter.name, value.blueFighter.code, value.blueFighter.country
-      ]);
-      const matchObjTemp = JSON.parse(JSON.stringify(this.matchObj)) as MatchObj;
-      matchObjTemp.match.no = value.match;
-      matchObjTemp.match.category = String(value.weight);
-      matchObjTemp.match.type = String(value.type).split('-')[0];
-      matchObjTemp.fighters.redFighter.name = value.redFighter.name;
-      matchObjTemp.fighters.redFighter.code = value.redFighter.code;
-      matchObjTemp.fighters.redFighter.country = value.redFighter.country;
-      matchObjTemp.fighters.redFighter.result = value.redFighter.result;
-      matchObjTemp.fighters.blueFighter.name = value.blueFighter.name;
-      matchObjTemp.fighters.blueFighter.code = value.blueFighter.code;
-      matchObjTemp.fighters.blueFighter.country = value.blueFighter.country;
-      matchObjTemp.fighters.blueFighter.result = value.blueFighter.result;
-      this.combatObj!.combat.push(matchObjTemp);
-    });
+    this.combatStandardArray = toStandardRows(this.matchs);
+    this.combatObj!.combat = toCombatMatches(this.matchs, this.matchObj);
 
     this.combatArrayRaw = [];
-    this.combatArrangeHeader = ["TRẬN", "HẠNG CÂN", "LOẠI TRẬN", "TÊN GIÁP ĐỎ", "CODE/ĐƠN VỊ GIÁP ĐỎ", "QUỐC GIA ĐỎ", "TÊN GIÁP XANH", "CODE/ĐƠN VỊ GIÁP XANH", "QUỐC GIA XANH"];
+    this.combatArrangeHeader = COMBAT_ARRANGE_HEADER.slice();
     this.setState({ data: this.combatStandardArray });
 
   }
@@ -724,188 +603,59 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
   arrangeCombatForWizard = () => {
     if (!this.combatArrayRaw || this.combatArrayRaw.length === 0) return;
 
-    // Lưu lại bản copy của combatArrayRaw
+    // Lưu lại bản copy của combatArrayRaw (buildCombatSchedule sort tại chỗ)
     const combatArrayRawBackup = JSON.parse(JSON.stringify(this.combatArrayRaw));
 
-    const weightCount: { [key: string]: number } = {};
-    this.combatArrayRaw.forEach((fighter) => {
-      const weight = fighter[1];
-      weightCount[weight] = (weightCount[weight] || 0) + 1;
-    });
+    this.matchs = buildCombatSchedule(this.combatArrayRaw, (groupedData) => {
+      // Áp dụng hạt giống: đưa seed #1 lên đầu, seed #2 xuống cuối mỗi hạng cân
+      const { wizardDkSeeding } = this.state;
+      for (const [weight, fighters] of groupedData.entries()) {
+        const seedKeys = Object.keys(wizardDkSeeding).filter(k => k.startsWith(`${weight}-`));
+        if (seedKeys.length > 0) {
+          let seed1Index = -1;
+          let seed2Index = -1;
 
-    this.combatArrayRaw.sort((a, b) => {
-      const weightA = a[1];
-      const weightB = b[1];
-      const countA = weightCount[weightA];
-      const countB = weightCount[weightB];
+          fighters.forEach((_, i) => {
+            const key = this.getSeedingKey(weight, i);
+            if (wizardDkSeeding[key] === 1) seed1Index = i;
+            if (wizardDkSeeding[key] === 2) seed2Index = i;
+          });
 
-      if (countB !== countA) {
-        return countB - countA;
-      }
-
-      if (weightA !== weightB) {
-        if (weightA.includes('>') && !weightB.includes('>')) {
-          return 1;
-        } else if (!weightA.includes('>') && weightB.includes('>')) {
-          return -1;
-        }
-        return weightA.localeCompare(weightB);
-      }
-
-      return this.combatArrayRaw.indexOf(a) - this.combatArrayRaw.indexOf(b);
-    });
-
-    const groupedData = new Map<string, any[][]>();
-    this.combatArrayRaw.forEach(item => {
-      const weight = String(item[1]).trim();
-      if (groupedData.has(weight)) {
-        groupedData.get(weight)!.push(item);
-      } else {
-        groupedData.set(weight, [item]);
-      }
-    });
-
-    // Áp dụng hạt giống: đưa seed #1 lên đầu, seed #2 xuống cuối mỗi hạng cân
-    const { wizardDkSeeding } = this.state;
-    for (const [weight, fighters] of groupedData.entries()) {
-      const seedKeys = Object.keys(wizardDkSeeding).filter(k => k.startsWith(`${weight}-`));
-      if (seedKeys.length > 0) {
-        let seed1Index = -1;
-        let seed2Index = -1;
-        
-        fighters.forEach((_, i) => {
-          const key = this.getSeedingKey(weight, i);
-          if (wizardDkSeeding[key] === 1) seed1Index = i;
-          if (wizardDkSeeding[key] === 2) seed2Index = i;
-        });
-        
-        // Đưa seed #1 lên đầu
-        if (seed1Index > 0) {
-          const seed1 = fighters.splice(seed1Index, 1)[0];
-          fighters.unshift(seed1);
-          if (seed2Index > seed1Index) seed2Index--;
-        }
-        
-        // Đưa seed #2 xuống cuối
-        if (seed2Index !== -1 && seed2Index < fighters.length - 1) {
-          const seed2 = fighters.splice(seed2Index, 1)[0];
-          fighters.push(seed2);
-        }
-      }
-    }
-
-    this.matchs = [];
-    let matchCount = 1;
-    for (const [key, value] of groupedData.entries()) {
-      this.groupMatch = this.getschedule(value);
-      this.changeMatchNumber(this.groupMatch, matchCount);
-
-      this.groupMatch.forEach(match => {
-        this.matchs.push(match);
-      });
-      matchCount += this.groupMatch.length;
-    }
-
-    this.matchs.sort((a, b) => {
-      const typeOrder: { [key: string]: number } = { 'Vòng loại-1': 0, 'Vòng loại-2': 1, 'Vòng loại-3': 2, 'Bán Kết': 3, 'Chung Kết': 4 };
-      return typeOrder[a.type] - typeOrder[b.type];
-    });
-
-    for (let i = 0; i < this.matchs.length; i++) {
-      const oldMatchNo = this.matchs[i].match;
-      const newMatchNo = i + 1;
-      if (this.matchs[i].match !== newMatchNo) {
-        this.matchs[i].match = newMatchNo;
-        for (let j = 0; j < this.matchs.length; j++) {
-          if (this.matchs[j].redFighter.name === "W." + oldMatchNo) {
-            this.matchs[j].redFighter.name = "W.." + newMatchNo;
-            this.matchs[j].redFighter.result = "W.." + newMatchNo;
+          // Đưa seed #1 lên đầu
+          if (seed1Index > 0) {
+            const seed1 = fighters.splice(seed1Index, 1)[0];
+            fighters.unshift(seed1);
+            if (seed2Index > seed1Index) seed2Index--;
           }
-          if (this.matchs[j].blueFighter.name === "W." + oldMatchNo) {
-            this.matchs[j].blueFighter.name = "W.." + newMatchNo;
-            this.matchs[j].blueFighter.result = "W.." + newMatchNo;
+
+          // Đưa seed #2 xuống cuối
+          if (seed2Index !== -1 && seed2Index < fighters.length - 1) {
+            const seed2 = fighters.splice(seed2Index, 1)[0];
+            fighters.push(seed2);
           }
         }
       }
-    }
-    for (let i = 0; i < this.matchs.length; i++) {
-      this.matchs[i].redFighter.name = this.matchs[i].redFighter.name.replace(/W\.\.(\d+)/g, "W.$1");
-      this.matchs[i].blueFighter.name = this.matchs[i].blueFighter.name.replace(/W\.\.(\d+)/g, "W.$1");
-      this.matchs[i].redFighter.result = this.matchs[i].redFighter.result.replace(/W\.\.(\d+)/g, "W.$1");
-      this.matchs[i].blueFighter.result = this.matchs[i].blueFighter.result.replace(/W\.\.(\d+)/g, "W.$1");
-    }
+    });
 
     this.combatObj = JSON.parse(JSON.stringify(this.combatConst));
-    this.combatStandardArray = [];
-    this.matchs.forEach(value => {
-      this.combatStandardArray.push([
-        value.match, value.weight, String(value.type).split('-')[0], value.redFighter.name, value.redFighter.code, value.redFighter.country, value.blueFighter.name, value.blueFighter.code, value.blueFighter.country
-      ]);
-      const matchObjTemp = JSON.parse(JSON.stringify(this.matchObj)) as MatchObj;
-      matchObjTemp.match.no = value.match;
-      matchObjTemp.match.category = String(value.weight);
-      matchObjTemp.match.type = String(value.type).split('-')[0];
-      matchObjTemp.fighters.redFighter.name = value.redFighter.name;
-      matchObjTemp.fighters.redFighter.code = value.redFighter.code;
-      matchObjTemp.fighters.redFighter.country = value.redFighter.country;
-      matchObjTemp.fighters.redFighter.result = value.redFighter.result;
-      matchObjTemp.fighters.blueFighter.name = value.blueFighter.name;
-      matchObjTemp.fighters.blueFighter.code = value.blueFighter.code;
-      matchObjTemp.fighters.blueFighter.country = value.blueFighter.country;
-      matchObjTemp.fighters.blueFighter.result = value.blueFighter.result;
-      this.combatObj!.combat.push(matchObjTemp);
-    });
+    this.combatStandardArray = toStandardRows(this.matchs);
+    this.combatObj!.combat = toCombatMatches(this.matchs, this.matchObj);
 
     // Khôi phục combatArrayRaw
     this.combatArrayRaw = combatArrayRawBackup;
-    this.combatArrangeHeader = ["TRẬN", "HẠNG CÂN", "LOẠI TRẬN", "TÊN GIÁP ĐỎ", "CODE/ĐƠN VỊ GIÁP ĐỎ", "QUỐC GIA ĐỎ", "TÊN GIÁP XANH", "CODE/ĐƠN VỊ GIÁP XANH", "QUỐC GIA XANH"];
-    
+    this.combatArrangeHeader = COMBAT_ARRANGE_HEADER.slice();
+
     // forceUpdate thay vì setState để không reset wizard
     this.forceUpdate();
 
   }
 
   getschedule(fighters: any[][]): MatchSchema[] {
-    const schemaFighter = JSON.parse(this.schemaFighters[fighters.length]) as MatchSchema[];
-    const matchs: MatchSchema[] = [];
-    for (let i = 0; i < schemaFighter.length; i++) {
-      const match = schemaFighter[i];
-      if (!isNaN(parseFloat(String(match.weight)))) {
-        match.weight = fighters[Number(match.weight) - 1][1];
-      }
-
-      if (!isNaN(parseFloat(String(match.redFighter.name)))) {
-        const index = Number(match.redFighter.name);
-        match.redFighter.name = fighters[index - 1][2];
-        match.redFighter.code = fighters[index - 1][3];
-        match.redFighter.country = fighters[index - 1][4];
-      }
-      if (!isNaN(parseFloat(String(match.blueFighter.name)))) {
-        const index = Number(match.blueFighter.name);
-        match.blueFighter.name = fighters[index - 1][2];
-        match.blueFighter.code = fighters[index - 1][3];
-        match.blueFighter.country = fighters[index - 1][4];
-      }
-      matchs.push(match);
-    }
-
-    return matchs;
+    return getSchedule(fighters);
   }
 
   changeMatchNumber(groupMatch: MatchSchema[], newMatchNumber: number): MatchSchema[] {
-    const variance = newMatchNumber - groupMatch[0].match;
-    groupMatch.forEach(match => {
-      match.match += variance;
-      if (String(match.redFighter.name).includes('W.')) {
-        const number = parseFloat(String(match.redFighter.name).split('.')[1]);
-        match.redFighter.name = 'W.' + (number + variance);
-      }
-      if (String(match.blueFighter.name).includes('W.')) {
-        const number = parseFloat(String(match.blueFighter.name).split('.')[1]);
-        match.blueFighter.name = 'W.' + (number + variance);
-      }
-    });
-    return groupMatch;
+    return changeMatchNumber(groupMatch, newMatchNumber);
   }
 
   exportExcel(header: string[], rowData: any[], fileName: string) {
@@ -955,58 +705,12 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
   arrangeMartial = () => {
 
     this.martialObj = JSON.parse(JSON.stringify(this.martialConst));
-    let matchMartialObjTemp = JSON.parse(JSON.stringify(this.matchMartialObj)) as MatchMartialObj;
-    let fighterMartialObjTemp = JSON.parse(JSON.stringify(this.fighterMartialObj)) as FighterMartialObj;
-    let fightersMartialObjTemp = JSON.parse(JSON.stringify(this.fightersMartialObj)) as FightersMartialObj;
-    this.martialStandardArray = [];
+    this.martialObj!.martial = buildMartialContents(this.martialArrayRaw);
+    this.martialStandardArray = toMartialStandardRows(this.martialArrayRaw);
     this.martialStandardFromFile = false;
 
-    const groupedData = new Map<string, any[][]>();
-    let matchNo = 0;
-    let prevMatch = '';
-    this.martialArrayRaw.forEach(item => {
-      const matchName = String(item[1]).trim();
-      if (groupedData.has(matchName)) {
-        groupedData.get(matchName)!.push(item);
-        if (prevMatch !== item[0] + String(item[1]).trim()) {
-          matchNo++;
-        }
-        fighterMartialObjTemp = JSON.parse(JSON.stringify(this.fighterMartialObj));
-        fighterMartialObjTemp.fighter.name = String(item[2]).trim();
-        fighterMartialObjTemp.fighter.code = String(item[3]).trim();
-        fighterMartialObjTemp.fighter.country = String(item[4]).trim();
-        fightersMartialObjTemp = JSON.parse(JSON.stringify(this.fightersMartialObj));
-        fightersMartialObjTemp.no = matchNo;
-        fightersMartialObjTemp.fighters.push(fighterMartialObjTemp);
-        if (prevMatch !== item[0] + String(item[1]).trim()) {
-          this.martialObj!.martial.slice(-1)[0].team.push(fightersMartialObjTemp);
-        } else {
-          this.martialObj!.martial.slice(-1)[0].team.slice(-1)[0].fighters.push(fighterMartialObjTemp);
-        }
-        this.martialStandardArray.push([matchNo, String(item[1]).trim(), String(item[2]).trim(), String(item[3]).trim(), String(item[4]).trim()]);
-
-      } else {
-        groupedData.set(matchName, [item]);
-        matchMartialObjTemp = JSON.parse(JSON.stringify(this.matchMartialObj));
-        this.martialObj!.martial.push(matchMartialObjTemp);
-        matchMartialObjTemp.match.name = matchName;
-        this.martialStandardArray.push([matchName, '', '', '', '']);
-        matchNo = 1;
-        fighterMartialObjTemp = JSON.parse(JSON.stringify(this.fighterMartialObj));
-        fighterMartialObjTemp.fighter.name = String(item[2]).trim();
-        fighterMartialObjTemp.fighter.code = String(item[3]).trim();
-        fighterMartialObjTemp.fighter.country = String(item[4]).trim();
-        fightersMartialObjTemp = JSON.parse(JSON.stringify(this.fightersMartialObj));
-        fightersMartialObjTemp.no = matchNo;
-        fightersMartialObjTemp.fighters.push(fighterMartialObjTemp);
-        this.martialObj!.martial.slice(-1)[0].team.push(fightersMartialObjTemp);
-        this.martialStandardArray.push([matchNo, String(item[1]).trim(), String(item[2]).trim(), String(item[3]).trim(), String(item[4]).trim()]);
-      }
-      prevMatch = item[0] + String(item[1]).trim();
-    });
-
     this.martialArrayRaw = [];
-    this.martialArrangeHeader = ['STT', 'NỘI DUNG', 'HỌ VÀ TÊN', 'MSSV/ĐƠN VỊ', 'QUỐC GIA'];
+    this.martialArrangeHeader = MARTIAL_ARRANGE_HEADER.slice();
     this.setState({ data: this.martialStandardArray });
 
   }
@@ -1821,7 +1525,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     const n = fighters.length;
     if (n < 2) return null;
     
-    const schema = this.schemaFighters[Math.min(n, 17)];
+    const schema = SCHEMA_FIGHTERS[Math.min(n, 17)];
     if (!schema || schema === '[]') return null;
     
     try {
