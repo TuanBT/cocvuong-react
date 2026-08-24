@@ -13,7 +13,7 @@ import { DEFAULT_COMBAT_CONST, DEFAULT_MATCH_OBJ } from '../constants/settings';
 import FitText from '../components/common/FitText';
 
 // Import utils
-import { convertWinLoseFormat, resizeTextToFit } from '../utils/helpers';
+import { convertWinLoseFormat } from '../utils/helpers';
 import { getReadableTextColor } from '../utils/contrast';
 
 // Import Score Sync utilities
@@ -371,7 +371,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
 
     componentDidMount(): void {
         document.addEventListener("keydown", this._handleKeyDown);
-        window.onresize = () => resizeTextToFit('referee-score-area-top', 'tournamentName');
         
         // Subscribe to network status changes for offline mode
         this.networkCleanup = onNetworkChange((online) => {
@@ -422,7 +421,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
     componentWillUnmount(): void {
         // Cleanup event listeners
         document.removeEventListener("keydown", this._handleKeyDown);
-        window.onresize = null;
 
         // Cleanup timers
         if (this.timer) {
@@ -560,7 +558,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             if (!this.settingObj) return;
 
             this.setState({ tournamentName: this.settingObj.tournamentName });
-            resizeTextToFit('referee-score-area-top', 'tournamentName');
             this.timerCoundown = this.settingObj.combat.timeRound;
             this.timeBreak = this.settingObj.combat.timeBreak;
             this.timeExtra = this.settingObj.combat.timeExtra;
