@@ -13,7 +13,7 @@ import { getReadableTextColor } from '../utils/contrast';
 import { AppUser } from '../services/authService';
 import { SupervisorAccess } from '../components/tournament/RequestAccessPanel';
 import CodeBoardModal from '../components/tournament/CodeBoardModal';
-import { resetDemoTournament } from '../services/demoService';
+import { displayTournamentName, resetDemoTournament } from '../services/demoService';
 import { AccountIdentityRow, AccountSignOutItem } from '../components/auth';
 
 // Import Offline Service
@@ -432,7 +432,7 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       if (this.settingObj) {
-        this.setState({ tournamentName: this.settingObj.tournamentName });
+        this.setState({ tournamentName: displayTournamentName(this.settingObj, 'martial') });
       }
       const isShowFiveReferee = this.settingObj?.martial.isShowFiveReferee ?? false;
       const isShowCountryFlag = this.settingObj?.martial.isShowCountryFlag ?? false;

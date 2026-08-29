@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import { submitMartialRefereeScore } from '../services/martialWriteService';
 import { setSlotPresence } from '../services/firebaseService';
 import { ensureAnonymous } from '../services/authService';
+import { displayTournamentName } from '../services/demoService';
 import {
   AccessCode, CodeSlot, clearSession, resolveRefereeSession,
   slotLabel, slotString, subscribeCode,
@@ -189,7 +190,7 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
           this.numReferee = 5;
         }
         this.setState({
-          tournamentName: this.settingObj.tournamentName,
+          tournamentName: displayTournamentName(this.settingObj, 'martial'),
           isDemo: this.settingObj.demo === true,
         });
       }

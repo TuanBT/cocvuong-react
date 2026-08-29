@@ -7,6 +7,7 @@ import { REFEREE_COUNT } from '../constants/rounds';
 import { sendScoreFromGiamDinh } from '../utils/scoreSync';
 import { setSlotPresence } from '../services/firebaseService';
 import { ensureAnonymous } from '../services/authService';
+import { displayTournamentName } from '../services/demoService';
 import {
   AccessCode, CodeSlot, clearSession, resolveRefereeSession,
   slotLabel, slotString, subscribeCode,
@@ -191,7 +192,7 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
       this.settingObj = snapshot.val();
       if (this.settingObj) {
         this.setState({
-          tournamentName: this.settingObj.tournamentName,
+          tournamentName: displayTournamentName(this.settingObj, 'combat'),
           isDemo: this.settingObj.demo === true,
         });
 

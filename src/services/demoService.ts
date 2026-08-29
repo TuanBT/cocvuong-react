@@ -19,7 +19,27 @@ import { DEFAULT_SETTING } from '../constants/settings';
 import { ensureTournamentCodes } from './accessCodeService';
 import { listTournaments, syncTournamentIndex } from './tournamentService';
 
-export const DEMO_NAME = 'CHẤM NHANH\n(chưa có giải chính thức)';
+/** Ten luu trong DB — chi de nguoi quan tri phan biet trong danh sach giai. */
+export const DEMO_NAME = 'CHẤM NHANH';
+
+/** Ten hien tren man cham diem, dat theo noi dung dang cham. */
+export const DEMO_SCREEN_NAME = { combat: 'ĐỐI KHÁNG', martial: 'THI QUYỀN' } as const;
+
+/**
+ * Ten giai de hien len man hinh.
+ *
+ * Man giam sat con dung de trinh chieu cho khan gia, nen dong chu to nhat
+ * khong duoc phep noi day la ban chay thu — no phai doc nhu ten noi dung dang
+ * cham. DB chi giu duoc mot ten cho ca hai mon, nen moi man tu lay ten theo
+ * noi dung cua chinh minh.
+ */
+export function displayTournamentName(
+  setting: { tournamentName?: string; demo?: boolean } | null | undefined,
+  kind: keyof typeof DEMO_SCREEN_NAME
+): string {
+  if (!setting) return '';
+  return setting.demo ? DEMO_SCREEN_NAME[kind] : setting.tournamentName || '';
+}
 
 function emptyReferee(n: number) {
   return Array.from({ length: n }, () => ({ blueScore: 0, redScore: 0 }));
@@ -63,10 +83,12 @@ function demoPayload() {
     },
     combat: [
       {
-        match: { no: 1, type: 'Chấm nhanh', category: 'Hạng 60kg Nam', win: '' },
+        match: { no: 1, type: 'Đối kháng', category: '', win: '' },
         fighters: {
-          redFighter: fighter('Nguyễn Văn A', 'A01'),
-          blueFighter: fighter('Trần Văn B', 'B01'),
+          // Ban cham nhanh khong sua duoc ten tren man hinh, nen khong bia ten
+          // nguoi that: goi thang theo mau goc dai — DO va XANH, khong don vi.
+          redFighter: fighter('ĐỎ', ''),
+          blueFighter: fighter('XANH', ''),
         },
       },
     ],
@@ -75,13 +97,13 @@ function demoPayload() {
     ],
     martial: [
       {
-        match: { name: 'Long hổ quyền' },
+        match: { name: 'Thi quyền' },
         team: [
           {
             no: 1,
-            teamName: 'Đội 1',
+            teamName: '',
             finalScore: 0,
-            fighters: [{ fighter: { code: 'TQ01', name: 'Lê Thị C', country: 'VN' } }],
+            fighters: [{ fighter: { code: '', name: 'VẬN ĐỘNG VIÊN', country: 'VN' } }],
             refereeMartial: emptyMartialReferee(5),
           },
         ],
@@ -108,12 +130,19 @@ export async function findDemoTournament(): Promise<number | null> {
 }
 
 /**
- * Tra ve index giai thu, dung mot cai o cuoi mang neu chua co.
- * Sinh san ma giam dinh de bang ma hien ngay tren man hinh nguoi thu.
+ * Tra ve index ban cham nhanh, dung mot cai o cuoi mang neu chua co.
+ * Sinh san ma giam dinh de bang ma hien ngay tren man hinh nguoi cham.
  */
 export async function ensureDemoTournament(): Promise<number> {
   const existing = await findDemoTournament();
   if (existing !== null) {
+    // Ban cu con mang ten cu thi sua moi cai ten — KHONG dung vao diem, vi
+    // luc nay rat co the dang co nguoi cham do dang tren chinh ban nay
+    const name = await get(child(ref(database), `tournament/${existing}/setting/tournamentName`));
+    if (name.val() !== DEMO_NAME) {
+      await set(ref(database, `tournament/${existing}/setting/tournamentName`), DEMO_NAME);
+      await syncTournamentIndex(existing);
+    }
     await ensureDemoCodes(existing);
     return existing;
   }

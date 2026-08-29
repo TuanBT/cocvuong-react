@@ -35,7 +35,7 @@ import {
 import { AppUser } from '../services/authService';
 import { SupervisorAccess } from '../components/tournament/RequestAccessPanel';
 import CodeBoardModal from '../components/tournament/CodeBoardModal';
-import { resetDemoTournament } from '../services/demoService';
+import { displayTournamentName, resetDemoTournament } from '../services/demoService';
 import { AccountIdentityRow, AccountSignOutItem } from '../components/auth';
 
 // Import Offline Service
@@ -481,7 +481,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             this.settingObj = snapshot.val();
             if (!this.settingObj) return;
 
-            this.setState({ tournamentName: this.settingObj.tournamentName });
+            this.setState({ tournamentName: displayTournamentName(this.settingObj, 'combat') });
             this.timerCoundown = this.settingObj.combat.timeRound;
             this.timeBreak = this.settingObj.combat.timeBreak;
             this.timeExtra = this.settingObj.combat.timeExtra;
