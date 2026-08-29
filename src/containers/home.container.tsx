@@ -1,11 +1,19 @@
 import React, { Component } from 'react';
 import { NavLink } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import logo from '../assets/img/logo.png';
-import { AppFooter } from '../components/ui';
+import { AppFooter, Button, Toast } from '../components/ui';
+import { AppUser, ensureAnonymous, onAuthChanged, signOut } from '../services/authService';
+import { ensureDemoTournament } from '../services/demoService';
 
-interface HomeContainerProps {}
+interface HomeContainerProps {
+  history?: { push: (path: string) => void };
+}
 
-type MenuGroupId = 'combat' | 'martial' | 'tool';
+interface HomeContainerState {
+  user: AppUser | null;
+  demoBusy: boolean;
+}
 
 interface MenuItem {
   title: string;
@@ -15,7 +23,7 @@ interface MenuItem {
 }
 
 interface MenuGroup {
-  id: MenuGroupId;
+  id: 'combat' | 'martial' | 'tool';
   label: string;
   icon: string;
   items: MenuItem[];
@@ -34,10 +42,10 @@ const MENU_GROUPS: MenuGroup[] = [
         description: 'Màn hình trình chiếu trận đấu',
       },
       {
-        title: 'Giám định đối kháng',
-        icon: 'fa-solid fa-table-columns',
-        path: 'giam-dinh-doi-khang',
-        description: 'Bấm điểm cho giám định',
+        title: 'Thông tin đối kháng',
+        icon: 'fa-solid fa-sitemap',
+        path: 'thong-tin-doi-khang',
+        description: 'Danh sách trận và sơ đồ thi đấu',
       },
     ],
   },
@@ -53,16 +61,16 @@ const MENU_GROUPS: MenuGroup[] = [
         description: 'Màn hình trình chiếu thi quyền',
       },
       {
-        title: 'Giám định thi quyền',
-        icon: 'fa-solid fa-calculator',
-        path: 'giam-dinh-thi-quyen',
-        description: 'Nhập điểm cho giám định',
+        title: 'Thông tin thi quyền',
+        icon: 'fa-solid fa-table-list',
+        path: 'thong-tin-thi-quyen',
+        description: 'Điểm từng giám định và xếp hạng',
       },
     ],
   },
   {
     id: 'tool',
-    label: 'Chuẩn bị & tra cứu',
+    label: 'Ban tổ chức',
     icon: 'fa-solid fa-toolbox',
     items: [
       {
@@ -75,43 +83,61 @@ const MENU_GROUPS: MenuGroup[] = [
         title: 'Thiết đặt',
         icon: 'fa-solid fa-gear',
         path: 'thiet-dat',
-        description: 'Thời gian hiệp, số giám định, mật khẩu',
-      },
-      {
-        title: 'Thông tin đối kháng',
-        icon: 'fa-solid fa-sitemap',
-        path: 'thong-tin-doi-khang',
-        description: 'Danh sách trận và sơ đồ thi đấu',
-      },
-      {
-        title: 'Thông tin thi quyền',
-        icon: 'fa-solid fa-table-list',
-        path: 'thong-tin-thi-quyen',
-        description: 'Điểm từng giám định và xếp hạng',
+        description: 'Bảng mã giám định, duyệt giám sát, mở/đóng giải',
       },
     ],
   },
 ];
 
 /**
- * Trang chu - diem vao cho ca 4 nhom nguoi dung (giam sat, giam dinh, ban to
- * chuc, nguoi xem).
+ * Trang chu — diem vao cho ca 4 nhom nguoi dung.
  *
- * Menu duoc gom theo nhom thay vi mot luoi 8 o phang: giam dinh mo may len
- * chi can tim dung mot o, gom nhom lam viec do nhanh hon han.
- * Moi o co ghi thiet bi chinh vi cung mot giai chay tren TV, laptop va dien
- * thoai cung luc.
- *
- * Khong dung state cho hieu ung vao trang: dong tac do CSS lo, tranh mot lan
- * ve lai toan trang va tranh viec noi dung vo hinh neu JS cham.
+ * Bo cuc dat theo **so nguoi**, khong theo so muc menu: giam dinh dong nhat
+ * nen o "Vao bang ma" chiem han mot khoi rieng o tren cung, khong lan trong
+ * luoi 8 o nhu truoc. Cac o con lai gom theo nhom viec.
  */
-class HomeContainer extends Component<HomeContainerProps> {
+class HomeContainer extends Component<HomeContainerProps, HomeContainerState> {
+  unsubscribe: (() => void) | null = null;
+  state: HomeContainerState = { user: null, demoBusy: false };
+
   constructor(props: HomeContainerProps) {
     super(props);
     document.title = 'Cóc Vương - Hệ thống chấm điểm Vovinam';
   }
 
+  componentDidMount() {
+    this.unsubscribe = onAuthChanged((user) =>
+      this.setState({ user: user && !user.isAnonymous ? user : null })
+    );
+  }
+
+  componentWillUnmount() {
+    this.unsubscribe?.();
+  }
+
+  go(path: string) {
+    if (this.props.history) this.props.history.push(path);
+    else window.location.href = path;
+  }
+
+  /**
+   * "Dung thu ngay": ky an danh (khong Google, khong nhap gi) roi vao thang
+   * man giam sat cua giai thu. Khong nhap Excel, khong boc tham, khong cho duyet.
+   */
+  handleDemo = async () => {
+    this.setState({ demoBusy: true });
+    try {
+      await ensureAnonymous();
+      await ensureDemoTournament();
+      this.go('/giam-sat-doi-khang?demo=1');
+    } catch {
+      toast.error('Chưa dựng được giải thử — kiểm tra kết nối mạng rồi thử lại.');
+      this.setState({ demoBusy: false });
+    }
+  };
+
   render() {
+    const { user, demoBusy } = this.state;
     let cardIndex = 0;
 
     return (
@@ -129,6 +155,31 @@ class HomeContainer extends Component<HomeContainerProps> {
 
         <main className="flex-1 px-4 pb-12">
           <div className="max-w-6xl mx-auto space-y-8">
+
+            {/* Giam dinh la nhom dong nguoi nhat va it thao tac nhat — cho
+                ho mot o rieng that to thay vi nam lan trong luoi menu */}
+            <section>
+              <NavLink
+                to="/vao"
+                className="group flex items-center gap-4 sm:gap-5 bg-accent-600 text-white
+                  rounded-card p-5 sm:p-6 shadow-card hover:shadow-card-hover
+                  hover:-translate-y-0.5 transition-[transform,box-shadow] duration-200"
+              >
+                <span className="w-14 h-14 sm:w-16 sm:h-16 rounded-control bg-white/15 flex
+                  items-center justify-center flex-shrink-0">
+                  <i className="fa-solid fa-keyboard text-2xl sm:text-3xl" aria-hidden="true" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-lg sm:text-xl font-bold">Tôi là giám định — vào bằng mã</span>
+                  <span className="block text-sm text-white/80 mt-0.5">
+                    Gõ 2 chữ số giám sát đọc cho. Không cần tài khoản, không cần mật khẩu.
+                  </span>
+                </span>
+                <i className="fa-solid fa-arrow-right text-xl opacity-70
+                  group-hover:translate-x-1 transition-transform" aria-hidden="true" />
+              </NavLink>
+            </section>
+
             {MENU_GROUPS.map((group) => (
               <section key={group.id} data-accent={group.id}>
                 <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide
@@ -160,8 +211,6 @@ class HomeContainer extends Component<HomeContainerProps> {
                         <h3 className="text-slate-800 font-semibold text-base mb-1">{item.title}</h3>
                         <p className="text-slate-500 text-sm m-0 flex-1">{item.description}</p>
 
-                        {/* Mui ten nam trong luong, khong dat absolute: the cao
-                            nhat trong hang se day no xuong day thay vi de len chu */}
                         <span className="mt-3 h-4 flex justify-end">
                           <i className="fa-solid fa-arrow-right text-accent-600 opacity-0
                             -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0
@@ -173,10 +222,48 @@ class HomeContainer extends Component<HomeContainerProps> {
                 </div>
               </section>
             ))}
+
+            <section className="bg-white border border-slate-200 rounded-card p-5 sm:p-6
+              flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-base font-bold text-slate-800 m-0 mb-1">
+                  Chưa có giải nào — muốn xem thử app chạy thế nào?
+                </h2>
+                <p className="text-sm text-slate-500 m-0">
+                  Vào thẳng một giải thử có sẵn 1 trận đối kháng và 1 lượt thi quyền.
+                  Không cần đăng nhập, không nhập Excel, chấm sai thì bấm “Chấm lại”.
+                </p>
+              </div>
+              <Button variant="success" size="lg" icon="fa-solid fa-play"
+                disabled={demoBusy} onClick={this.handleDemo}>
+                {demoBusy ? 'Đang dựng giải thử…' : 'Dùng thử ngay'}
+              </Button>
+            </section>
+
+            <section className="text-center text-sm">
+              {user ? (
+                <p className="m-0 text-slate-500">
+                  Đang đăng nhập:{' '}
+                  <strong className="text-slate-700">{user.email}</strong>{' '}
+                  ·{' '}
+                  <button type="button"
+                    onClick={() => signOut().then(() => window.location.reload())}
+                    className="text-red-600 hover:underline">Đăng xuất</button>
+                </p>
+              ) : (
+                <p className="m-0 text-slate-500">
+                  Ban tổ chức và giám sát:{' '}
+                  <NavLink to="/login" className="text-accent-700 font-medium hover:underline">
+                    đăng nhập bằng Google
+                  </NavLink>
+                </p>
+              )}
+            </section>
           </div>
         </main>
 
         <AppFooter />
+        <Toast />
       </div>
     );
   }

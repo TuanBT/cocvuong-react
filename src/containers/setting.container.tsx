@@ -1,45 +1,33 @@
 import React, { Component } from 'react';
 import { database } from '../firebase';
-import { ref, set, get, update, child, onValue, off, DatabaseReference, Database } from "firebase/database";
+import { ref, get, update, off, DatabaseReference, Database } from "firebase/database";
 import { toast } from 'react-toastify';
 import { NavLink } from "react-router-dom";
 
 import {
   PageShell, PageHeader, SectionCard, Button, Toggle, NumberField,
-  PasswordModal, ConfirmModal, Toast, AppFooter,
+  ConfirmModal, Toast, AppFooter,
 } from '../components/ui';
+import { AccountChip } from '../components/auth';
+import CodeBoard from '../components/tournament/CodeBoard';
+import StaffApprovalPanel from '../components/tournament/StaffApprovalPanel';
 
-// Import constants
-import { DEFAULT_SETTING, DEFAULT_COMMON_SETTING } from '../constants/settings';
+import { DEFAULT_SETTING } from '../constants/settings';
+import { AppUser } from '../services/authService';
+import {
+  TournamentSummary, closeTournament, isLegacy, listTournaments,
+  openTournament, reopenTournament, setOpenAccess, claimTournament,
+} from '../services/tournamentService';
+import { ensureTournamentCodes } from '../services/accessCodeService';
 
-interface Tournament {
-  setting: {
-    tournamentName: string;
-    combat: {
-      timeRound: number;
-      timeBreak: number;
-      timeExtra: number;
-      timeExtraBreak: number;
-      isShowCountryFlag: boolean;
-      isShowCautionBox: boolean;
-      isShowFiveReferee: boolean;
-    };
-    martial: {
-      isShowCountryFlag: boolean;
-      isShowFiveReferee: boolean;
-    };
-  };
-  combat: any[];
-  combatArena: any[];
-  martial: any[];
-  martialArena: any[];
+interface SettingContainerProps {
+  user: AppUser;
 }
 
-interface SettingContainerProps {}
-
 interface SettingContainerState {
-  data: [number, string][];
-  password: string;
+  tournaments: TournamentSummary[];
+  selected: TournamentSummary | null;
+  loading: boolean;
   tournamentName: string;
   timeRound: number;
   timeBreak: number;
@@ -51,34 +39,36 @@ interface SettingContainerState {
   prioritizeUnitNameCombat: boolean;
   flexSwitchCountryFlagMartial: boolean;
   quantityRefereeMartial: boolean;
-  passwordSetting: string;
-  passwordGiamDinh: string;
-  passwordGiamSat: string;
-  showPasswordModal: boolean;
-  selectedTournament: number;
   /** Hop thoai xac nhan cho cac hanh dong khong hoan tac duoc */
-  confirm: { title: string; message: string; action: () => void } | null;
+  confirm: { title: string; message: string; label?: string; action: () => void } | null;
+  regenerating: boolean;
 }
 
+/**
+ * Trang thiet dat — nay la ban dieu khien cua **chu giai**.
+ *
+ * Ba thay doi lon so voi ban cu:
+ *  - Bo han modal mat khau. Mat khau chung nam cong khai o `commonSetting` nen
+ *    ai mo DevTools cung lay duoc; dang nhap Google roi thi giu no lai chi de
+ *    trang tri.
+ *  - Chi thay **giai cua minh** (+ giai cu chua co chu, co nut nhan ve).
+ *  - O "Mat khau" cu doi thanh **"Bang ma giam dinh"** — dung cho nguoi dung
+ *    dang quen bam vao, khong phai hoc lai duong di moi.
+ */
 class SettingContainer extends Component<SettingContainerProps, SettingContainerState> {
-  // Firebase listener references for cleanup
   firebaseListeners: DatabaseReference[] = [];
   db: Database;
   settingObj: any = null;
-  tournamentObj: Tournament[] | null = null;
-  commonSettingObj: any = null;
-  tournamentNoIndex: number = 0;
-  tournaments: [number, string][] = [];
   settingConst: any;
-  commonSettingConst: any;
 
   constructor(props: SettingContainerProps) {
     super(props);
     document.title = 'Thiết Đặt';
-    
+
     this.state = {
-      data: [],
-      password: '',
+      tournaments: [],
+      selected: null,
+      loading: true,
       tournamentName: '',
       timeRound: 120,
       timeBreak: 60,
@@ -90,225 +80,261 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
       prioritizeUnitNameCombat: false,
       flexSwitchCountryFlagMartial: false,
       quantityRefereeMartial: false,
-      passwordSetting: '',
-      passwordGiamDinh: '',
-      passwordGiamSat: '',
-      showPasswordModal: true,
-      selectedTournament: 0,
-      confirm: null
+      confirm: null,
+      regenerating: false,
     };
 
     this.db = database;
-
-    // Use constants instead of hardcoded values
     this.settingConst = JSON.parse(JSON.stringify(DEFAULT_SETTING));
-    this.commonSettingConst = JSON.parse(JSON.stringify(DEFAULT_COMMON_SETTING));
   }
 
   componentDidMount() {
-    // Check for cached password
-    this.checkCachedPassword();
-  }
-
-  checkCachedPassword = () => {
-    const cachedValid = localStorage.getItem('setting_password_valid');
-    const cachedTime = localStorage.getItem('setting_password_timestamp');
-    
-    if (cachedValid === 'true' && cachedTime) {
-      const timestamp = parseInt(cachedTime, 10);
-      const now = Date.now();
-      const sixHours = 6 * 60 * 60 * 1000;
-      
-      if (now - timestamp < sixHours) {
-        // Password still valid, skip modal
-        this.setState({ showPasswordModal: false });
-        this.main();
-        return;
-      }
-    }
-  }
-
-  cachePassword = () => {
-    localStorage.setItem('setting_password_valid', 'true');
-    localStorage.setItem('setting_password_timestamp', Date.now().toString());
+    void this.loadTournaments();
   }
 
   componentWillUnmount() {
-    // Cleanup Firebase listeners
-    this.firebaseListeners.forEach(listenerRef => {
-      off(listenerRef);
-    });
+    this.firebaseListeners.forEach((listenerRef) => off(listenerRef));
     this.firebaseListeners = [];
   }
 
-  verifyPassword = () => {
-    const { password } = this.state;
+  get index(): number {
+    return this.state.selected?.index ?? 0;
+  }
 
-    if (password != null && password !== "") {
-      const passwordRef = ref(this.db, 'commonSetting/passwordSetting');
-      onValue(passwordRef, (snapshot) => {
-        if (password === String(snapshot.val())) {
-          this.cachePassword();
-          this.setState({ showPasswordModal: false });
-          this.main();
-        } else {
-          toast.error("Sai mật khẩu!");
-          window.location.reload();
-        }
-      }, { onlyOnce: true });
-    } else {
-      toast.error("Sai mật khẩu!");
+  /**
+   * Chi hien giai cua minh va giai cu chua co chu.
+   *
+   * Giai da dong van hien o day (chu giai con phai tra cuu, mo lai) — chi bang
+   * chon cua giam sat / giam dinh moi an giai da dong.
+   */
+  async loadTournaments() {
+    const { user } = this.props;
+    this.setState({ loading: true });
+    try {
+      const all = await listTournaments();
+      const mine = all.filter((t) => t.ownerUid === user.uid || isLegacy(t));
+      this.setState({ tournaments: mine, loading: false });
+      if (mine.length) this.selectTournament(mine[0]);
+    } catch {
+      this.setState({ loading: false });
+      toast.error('Không đọc được danh sách giải.');
     }
   }
 
-  main() {
-    get(child(ref(this.db), 'tournament')).then((snapshot) => {
-      this.tournamentObj = snapshot.val();
-      this.tournaments = [];
+  selectTournament = (t: TournamentSummary) => {
+    this.setState({ selected: t });
+    this.loadSetting(t.index);
+  };
 
-      if (this.tournamentObj) {
-        for (let i = 0; i < this.tournamentObj.length; i++) {
-          this.tournaments.push([i, this.tournamentObj[i].setting.tournamentName]);
-        }
-      }
-      this.setState({ data: this.tournaments });
-    });
-
-    get(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
+  loadSetting(index: number) {
+    get(ref(this.db, 'tournament/' + index + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
-      if (this.settingObj) {
-        this.setState({
-          timeRound: this.settingObj.combat.timeRound,
-          timeBreak: this.settingObj.combat.timeBreak,
-          timeExtra: this.settingObj.combat.timeExtra,
-          timeExtraBreak: this.settingObj.combat.timeExtraBreak,
-          tournamentName: this.settingObj.tournamentName,
-          flexSwitchCountryFlagCombat: this.settingObj.combat.isShowCountryFlag,
-          showCautionBoxCombat: this.settingObj.combat.isShowCautionBox,
-          quantityRefereeCombat: this.settingObj.combat.isShowFiveReferee,
-          prioritizeUnitNameCombat: this.settingObj.combat.isPrioritizeUnitName || false,
-          flexSwitchCountryFlagMartial: this.settingObj.martial.isShowCountryFlag,
-          quantityRefereeMartial: this.settingObj.martial.isShowFiveReferee
-        });
-      }
-    });
-
-    get(ref(this.db, 'commonSetting')).then((snapshot) => {
-      const commonSetting = snapshot.val();
-      if (commonSetting) {
-        this.setState({
-          passwordSetting: String(commonSetting.passwordSetting),
-          passwordGiamDinh: String(commonSetting.passwordGiamDinh),
-          passwordGiamSat: String(commonSetting.passwordGiamSat)
-        });
-      }
+      if (!this.settingObj) return;
+      this.setState({
+        timeRound: this.settingObj.combat.timeRound,
+        timeBreak: this.settingObj.combat.timeBreak,
+        timeExtra: this.settingObj.combat.timeExtra,
+        timeExtraBreak: this.settingObj.combat.timeExtraBreak,
+        tournamentName: this.settingObj.tournamentName,
+        flexSwitchCountryFlagCombat: this.settingObj.combat.isShowCountryFlag,
+        showCautionBoxCombat: this.settingObj.combat.isShowCautionBox,
+        quantityRefereeCombat: this.settingObj.combat.isShowFiveReferee,
+        prioritizeUnitNameCombat: this.settingObj.combat.isPrioritizeUnitName || false,
+        flexSwitchCountryFlagMartial: this.settingObj.martial.isShowCountryFlag,
+        quantityRefereeMartial: this.settingObj.martial.isShowFiveReferee,
+      });
     });
   }
 
-  resetTournament = () => {
-    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/')).then((snapshot) => {
-      const tournamentData = snapshot.val();
-      
-      if (tournamentData) {
-        for (let i = 0; i < tournamentData.combat.length; i++) {
-          tournamentData.combat[i].fighters.redFighter.caution.bound = 0;
-          tournamentData.combat[i].fighters.redFighter.caution.fall = 0;
-          tournamentData.combat[i].fighters.redFighter.caution.medical = 0;
-          tournamentData.combat[i].fighters.redFighter.caution.remind = 0;
-          tournamentData.combat[i].fighters.redFighter.caution.warning = 0;
-          tournamentData.combat[i].fighters.redFighter.result = "";
-          tournamentData.combat[i].fighters.redFighter.score = 0;
+  /** Doc lai dong tom tat sau khi doi trang thai / cong tac */
+  async refreshSummary() {
+    const all = await listTournaments();
+    const mine = all.filter((t) => t.ownerUid === this.props.user.uid || isLegacy(t));
+    const fresh = mine.find((t) => t.index === this.index) || null;
+    this.setState({ tournaments: mine, selected: fresh });
+  }
 
-          tournamentData.combat[i].fighters.blueFighter.caution.bound = 0;
-          tournamentData.combat[i].fighters.blueFighter.caution.fall = 0;
-          tournamentData.combat[i].fighters.blueFighter.caution.medical = 0;
-          tournamentData.combat[i].fighters.blueFighter.caution.remind = 0;
-          tournamentData.combat[i].fighters.blueFighter.caution.warning = 0;
-          tournamentData.combat[i].fighters.blueFighter.result = "";
-          tournamentData.combat[i].fighters.blueFighter.score = 0;
+  // ==================== Trang thai giai ====================
 
-          tournamentData.combat[i].match.win = "";
-        }
-        
-        for (let i = 0; i < tournamentData.combatArena.length; i++) {
-          tournamentData.combatArena[i].lastMatch.no = 1;
-          for (let j = 0; j < tournamentData.combatArena[i].referee.length; j++) {
-            tournamentData.combatArena[i].referee[j].redScore = 0;
-            tournamentData.combatArena[i].referee[j].blueScore = 0;
-          }
-        }
-        
-        for (let i = 0; i < tournamentData.martial.length; i++) {
-          for (let j = 0; j < tournamentData.martial[i].team.length; j++) {
-            tournamentData.martial[i].team[j].finalScore = 0;
-            for (let k = 0; k < tournamentData.martial[i].team[j].refereeMartial.length; k++) {
-              tournamentData.martial[i].team[j].refereeMartial[k].score = 0;
-            }
-          }
-        }
-        
-        for (let i = 0; i < tournamentData.martialArena.length; i++) {
-          tournamentData.martialArena[i].lastMatchMartial.matchMartialNo = 1;
-          tournamentData.martialArena[i].lastMatchMartial.teamMartialNo = 1;
-        }
-        
-        update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/'), tournamentData).then(() => {
-          toast.success("Cài đặt trận đấu thành công!");
-        });
+  handleOpen = async () => {
+    try {
+      await openTournament(this.index);
+      await this.refreshSummary();
+      toast.success('Đã mở giải — từ giờ giải nhận được đơn xin quyền giám sát.');
+    } catch {
+      toast.error('Không mở được giải này.');
+    }
+  };
+
+  confirmClose = () => this.askConfirm(
+    'Đóng giải',
+    'Giải sẽ biến mất khỏi bảng chọn của giám sát và giám định, và TOÀN BỘ mã giám định của giải bị thu hồi ngay lập tức. Thông tin giải vẫn tra cứu được ở trang công khai.',
+    this.handleClose,
+    'Đóng giải'
+  );
+
+  handleClose = async () => {
+    try {
+      const revoked = await closeTournament(this.index);
+      await this.refreshSummary();
+      toast.success(`Đã đóng giải và thu hồi ${revoked} mã giám định.`);
+    } catch {
+      toast.error('Không đóng được giải này.');
+    }
+  };
+
+  handleReopen = async () => {
+    try {
+      await reopenTournament(this.index);
+      await this.refreshSummary();
+      toast.info('Đã mở lại giải. Mã giám định phải cấp lại — bấm “Cấp lại toàn bộ mã”.');
+    } catch {
+      toast.error('Không mở lại được giải này.');
+    }
+  };
+
+  handleClaim = async () => {
+    const { user } = this.props;
+    try {
+      await claimTournament(this.index, user);
+      await this.refreshSummary();
+      toast.success('Giải này giờ thuộc tài khoản của bạn.');
+    } catch (err: any) {
+      toast.error(err?.message || 'Không nhận được giải này.');
+    }
+  };
+
+  /**
+   * Cong tac "Mo tu do". Mac dinh TAT cho moi giai — muon giam sat thi phai
+   * xin duyet, khong co ngoai le mac dinh. Bat len la bo han buoc duyet nen
+   * phai hoi lai mot lan.
+   */
+  handleToggleOpenAccess = () => {
+    const { selected } = this.state;
+    if (!selected) return;
+
+    if (selected.openAccess) {
+      void setOpenAccess(this.index, false).then(() => {
+        this.refreshSummary();
+        toast.success('Đã tắt — giám sát phải xin duyệt như bình thường.');
+      });
+      return;
+    }
+
+    this.askConfirm(
+      'Bật “Mở tự do”?',
+      'BẤT KỲ AI đăng nhập Google cũng chấm điểm được trên giải này, không cần bạn duyệt. Chỉ bật cho giải nội bộ hoặc buổi tập huấn.',
+      async () => {
+        await setOpenAccess(this.index, true);
+        await this.refreshSummary();
+        toast.warn('Giải đang MỞ TỰ DO — nhớ tắt lại sau buổi tập.');
+      },
+      'Tôi hiểu, vẫn bật'
+    );
+  };
+
+  // ==================== Ma giam dinh ====================
+
+  handleRegenerateAll = async () => {
+    const { selected } = this.state;
+    const { user } = this.props;
+    if (!selected) return;
+
+    this.setState({ regenerating: true });
+    try {
+      const result = await ensureTournamentCodes(
+        selected.index,
+        {
+          combatReferees: this.state.quantityRefereeCombat ? 5 : 3,
+          martialReferees: this.state.quantityRefereeMartial ? 5 : 3,
+          useArenaB: this.settingObj?.combat?.isShowArenaB !== false,
+          tournamentName: selected.name,
+        },
+        user.uid
+      );
+
+      if (result.created === 0) {
+        toast.info('Mọi ô chấm điểm đều đã có mã.');
+      } else {
+        toast.success(`Đã cấp thêm ${result.created} mã.`);
       }
+
+      // Khong doc nguoc duoc kho ma nen khong dem truc tiep duoc do day —
+      // so lan phai random lai la thuoc do gian tiep duy nhat co
+      if (result.poolPressure) {
+        toast.warn('Kho mã sắp hết — kiểm tra xem còn giải cũ chưa đóng không.', { autoClose: 8000 });
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Không cấp được mã.');
+    } finally {
+      this.setState({ regenerating: false });
+    }
+  };
+
+  // ==================== Thiet dat ====================
+
+  resetTournament = () => {
+    get(ref(this.db, 'tournament/' + this.index + '/')).then((snapshot) => {
+      const tournamentData = snapshot.val();
+      if (!tournamentData) return;
+
+      for (let i = 0; i < tournamentData.combat.length; i++) {
+        const red = tournamentData.combat[i].fighters.redFighter;
+        const blue = tournamentData.combat[i].fighters.blueFighter;
+        for (const f of [red, blue]) {
+          f.caution.bound = 0;
+          f.caution.fall = 0;
+          f.caution.medical = 0;
+          f.caution.remind = 0;
+          f.caution.warning = 0;
+          f.result = "";
+          f.score = 0;
+        }
+        tournamentData.combat[i].match.win = "";
+      }
+
+      for (let i = 0; i < tournamentData.combatArena.length; i++) {
+        tournamentData.combatArena[i].lastMatch.no = 1;
+        for (let j = 0; j < tournamentData.combatArena[i].referee.length; j++) {
+          tournamentData.combatArena[i].referee[j].redScore = 0;
+          tournamentData.combatArena[i].referee[j].blueScore = 0;
+        }
+      }
+
+      for (let i = 0; i < tournamentData.martial.length; i++) {
+        for (let j = 0; j < tournamentData.martial[i].team.length; j++) {
+          tournamentData.martial[i].team[j].finalScore = 0;
+          for (let k = 0; k < tournamentData.martial[i].team[j].refereeMartial.length; k++) {
+            tournamentData.martial[i].team[j].refereeMartial[k].score = 0;
+          }
+        }
+      }
+
+      for (let i = 0; i < tournamentData.martialArena.length; i++) {
+        tournamentData.martialArena[i].lastMatchMartial.matchMartialNo = 1;
+        tournamentData.martialArena[i].lastMatchMartial.teamMartialNo = 1;
+      }
+
+      update(ref(this.db, 'tournament/' + this.index + '/'), tournamentData).then(() => {
+        toast.success("Cài đặt trận đấu thành công!");
+      });
     });
   }
 
   resetSetting = () => {
-    this.settingObj = JSON.parse(JSON.stringify(this.settingConst));
-
-    update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/setting'), this.settingObj.setting).then(() => {
-      get(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
-        this.settingObj = snapshot.val();
-        if (this.settingObj) {
-          this.setState({
-            timeRound: this.settingObj.combat.timeRound,
-            timeBreak: this.settingObj.combat.timeBreak,
-            timeExtra: this.settingObj.combat.timeExtra,
-            timeExtraBreak: this.settingObj.combat.timeExtraBreak,
-            flexSwitchCountryFlagCombat: this.settingObj.combat.isShowCountryFlag,
-            showCautionBoxCombat: this.settingObj.combat.isShowCautionBox,
-            quantityRefereeCombat: this.settingObj.combat.isShowFiveReferee,
-            prioritizeUnitNameCombat: this.settingObj.combat.isPrioritizeUnitName || false,
-            flexSwitchCountryFlagMartial: this.settingObj.martial.isShowCountryFlag,
-            quantityRefereeMartial: this.settingObj.martial.isShowFiveReferee
-          });
-        }
-      });
-
+    const fresh = JSON.parse(JSON.stringify(this.settingConst)).setting;
+    update(ref(this.db, 'tournament/' + this.index + '/setting'), fresh).then(() => {
+      this.loadSetting(this.index);
       toast.success("Cài lại thiết đặt thành công!");
     });
   }
 
-  resetPassword = () => {
-    this.commonSettingObj = JSON.parse(JSON.stringify(this.commonSettingConst));
-    update(ref(this.db, 'commonSetting'), this.commonSettingObj).then(() => {
-      get(ref(this.db, 'commonSetting')).then((snapshot) => {
-        this.commonSettingObj = snapshot.val();
-        if (this.commonSettingObj) {
-          this.setState({
-            passwordSetting: String(this.commonSettingObj.passwordSetting),
-            passwordGiamDinh: String(this.commonSettingObj.passwordGiamDinh),
-            passwordGiamSat: String(this.commonSettingObj.passwordGiamSat)
-          });
-        }
-      });
-
-      toast.success("Cài lại thiết đặt mật khẩu thành công!");
-    });
-  }
-
   updateSetting = () => {
-    const { timeRound, timeBreak, timeExtra, timeExtraBreak, tournamentName, 
+    const { timeRound, timeBreak, timeExtra, timeExtraBreak, tournamentName,
             flexSwitchCountryFlagCombat, showCautionBoxCombat, quantityRefereeCombat, prioritizeUnitNameCombat,
             flexSwitchCountryFlagMartial, quantityRefereeMartial } = this.state;
-    
-    this.settingObj = {
+
+    const payload = {
       "combat/timeRound": timeRound,
       "combat/timeBreak": timeBreak,
       "combat/timeExtra": timeExtra,
@@ -321,38 +347,10 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
       "martial/isShowCountryFlag": flexSwitchCountryFlagMartial,
       "martial/isShowFiveReferee": quantityRefereeMartial,
     };
-    update(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/setting'), this.settingObj).then(() => {
+    update(ref(this.db, 'tournament/' + this.index + '/setting'), payload).then(() => {
+      void this.refreshSummary();
       toast.success("Cập nhập thông tin giải đấu thành công!");
     });
-  }
-
-  updatePassword = () => {
-    const { passwordSetting, passwordGiamDinh, passwordGiamSat } = this.state;
-    
-    this.commonSettingObj = {
-      "passwordSetting": parseInt(passwordSetting),
-      "passwordGiamDinh": parseInt(passwordGiamDinh),
-      "passwordGiamSat": parseInt(passwordGiamSat),
-    };
-    update(ref(this.db, 'commonSetting'), this.commonSettingObj).then(() => {
-      toast.success("Cập nhập thông tin mật khẩu thành công!");
-    });
-  }
-
-  chooseTournament = (tournamentNoIndex: number) => {
-    this.tournamentNoIndex = tournamentNoIndex;
-    this.setState({ selectedTournament: tournamentNoIndex });
-    this.main();
-  }
-
-  inputPw = (value: string) => {
-    if (value === "-1") {
-      this.setState({ password: '' });
-    } else {
-      this.setState(prevState => ({ 
-        password: prevState.password + value 
-      }));
-    }
   }
 
   handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -367,8 +365,8 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     }
   }
 
-  askConfirm = (title: string, message: string, action: () => void) => {
-    this.setState({ confirm: { title, message, action } });
+  askConfirm = (title: string, message: string, action: () => void, label?: string) => {
+    this.setState({ confirm: { title, message, action, label } });
   }
 
   closeConfirm = () => this.setState({ confirm: null });
@@ -390,66 +388,187 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     this.resetSetting
   );
 
-  confirmResetPassword = () => this.askConfirm(
-    'Cài lại mật khẩu',
-    'Cả ba mật khẩu sẽ trở về giá trị mặc định.',
-    this.resetPassword
-  );
+  copyUid = async () => {
+    try {
+      await navigator.clipboard.writeText(this.props.user.uid);
+      toast.success('Đã chép mã tài khoản.');
+    } catch {
+      toast.info(this.props.user.uid);
+    }
+  };
 
-  hidePasswordModal = () => this.setState({ showPasswordModal: false });
+  renderStatusBar() {
+    const { selected } = this.state;
+    if (!selected) return null;
+
+    const legacy = isLegacy(selected);
+    const badge = {
+      draft: { text: 'Chưa mở', className: 'bg-slate-100 text-slate-600 border-slate-200' },
+      open: { text: 'Đang mở', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+      closed: { text: 'Đã đóng', className: 'bg-red-50 text-red-700 border-red-200' },
+    }[selected.status];
+
+    return (
+      <div className="flex flex-wrap items-center gap-2.5 pt-4 mt-4 border-t border-slate-100">
+        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${badge.className}`}>
+          {badge.text}
+        </span>
+
+        {legacy && (
+          <>
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full border
+              bg-amber-50 text-amber-700 border-amber-200">Giải cũ — chưa có chủ</span>
+            <Button size="sm" variant="primary" icon="fa-solid fa-hand-holding-heart"
+              onClick={this.handleClaim}>
+              Nhận giải này về tài khoản tôi
+            </Button>
+          </>
+        )}
+
+        {!legacy && selected.status !== 'open' && (
+          <Button size="sm" variant="success" icon="fa-solid fa-door-open"
+            onClick={selected.status === 'closed' ? this.handleReopen : this.handleOpen}>
+            {selected.status === 'closed' ? 'Mở lại giải' : 'Mở giải'}
+          </Button>
+        )}
+
+        {!legacy && selected.status === 'open' && (
+          <Button size="sm" variant="danger" icon="fa-solid fa-flag-checkered"
+            onClick={this.confirmClose}>
+            Đóng giải
+          </Button>
+        )}
+
+        {selected.openAccess && (
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full border
+            bg-red-50 text-red-700 border-red-200">
+            <i className="fa-solid fa-lock-open mr-1" aria-hidden="true" />
+            ĐANG MỞ TỰ DO
+          </span>
+        )}
+      </div>
+    );
+  }
 
   render() {
     const {
-      password, tournamentName, timeRound, timeBreak, timeExtra, timeExtraBreak,
+      tournaments, selected, loading, tournamentName,
+      timeRound, timeBreak, timeExtra, timeExtraBreak,
       flexSwitchCountryFlagCombat, showCautionBoxCombat, quantityRefereeCombat, prioritizeUnitNameCombat,
       flexSwitchCountryFlagMartial, quantityRefereeMartial,
-      passwordSetting, passwordGiamDinh, passwordGiamSat,
-      showPasswordModal, selectedTournament, confirm
+      confirm, regenerating,
     } = this.state;
+    const { user } = this.props;
 
     return (
       <PageShell accent="tool">
-        <PageHeader title="Thiết đặt" icon="fa-solid fa-gear" badge={tournamentName} />
+        <PageHeader title="Thiết đặt" icon="fa-solid fa-gear" badge={tournamentName}>
+          <div className="flex justify-end">
+            <AccountChip user={user} />
+          </div>
+        </PageHeader>
 
         <main className="flex-1 w-full max-w-4xl mx-auto px-3 sm:px-4 py-5 space-y-5">
           <SectionCard title="Giải đang cấu hình" icon="fa-solid fa-trophy">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 mb-5">
-              {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
-                <label
-                  key={tournament[0]}
-                  className={`flex items-center gap-3 p-3.5 border-2 rounded-control cursor-pointer transition-colors
-                    ${selectedTournament === i
-                      ? 'border-accent-500 bg-accent-50'
-                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
-                >
-                  <input
-                    type="radio"
-                    name="tournamentRadio"
-                    checked={selectedTournament === i}
-                    onChange={() => this.chooseTournament(i)}
-                    className="w-4 h-4 flex-shrink-0"
-                  />
-                  <span className="font-medium text-slate-700 whitespace-pre-line min-w-0">
-                    {tournament[1]}
-                  </span>
-                </label>
-              )) : (
-                <p className="text-slate-400 italic col-span-2 m-0">Không có giải đấu</p>
-              )}
-            </div>
+            {loading ? (
+              <p className="text-slate-400 italic m-0">Đang đọc danh sách giải…</p>
+            ) : tournaments.length === 0 ? (
+              <p className="text-slate-500 m-0">
+                Bạn chưa tạo giải nào. Sang trang{' '}
+                <NavLink to="/tao-giai" className="text-accent-700 font-medium underline">Tạo giải</NavLink>{' '}
+                để bắt đầu.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                {tournaments.map((t) => (
+                  <label
+                    key={t.index}
+                    className={`flex items-center gap-3 p-3.5 border-2 rounded-control cursor-pointer transition-colors
+                      ${selected?.index === t.index
+                        ? 'border-accent-500 bg-accent-50'
+                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
+                  >
+                    <input
+                      type="radio"
+                      name="tournamentRadio"
+                      checked={selected?.index === t.index}
+                      onChange={() => this.selectTournament(t)}
+                      className="w-4 h-4 flex-shrink-0"
+                    />
+                    <span className="min-w-0">
+                      <span className="block font-medium text-slate-700 whitespace-pre-line">{t.name}</span>
+                      {t.status === 'closed' && (
+                        <span className="block text-xs text-red-600 mt-0.5">đã đóng</span>
+                      )}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
 
-            {/* Them / xoa giai da chuyen sang trang Tao giai: trang nay chi
-                cau hinh giai da co, khong tao hay xoa giai */}
-            <p className="text-xs text-slate-500 m-0 bg-slate-50 border border-slate-200
+            {this.renderStatusBar()}
+
+            <p className="text-xs text-slate-500 m-0 mt-4 bg-slate-50 border border-slate-200
               rounded-control px-3 py-2.5">
               <i className="fa-solid fa-circle-info mr-1.5 text-slate-400" aria-hidden="true" />
-              Thiết đặt bên dưới áp dụng cho giải đang chọn. Thêm giải mới, xoá giải hoặc nhập
-              danh sách vận động viên ở trang{' '}
-              <NavLink to="/tao-giai" className="text-accent-700 font-medium underline">
-                Tạo giải
-              </NavLink>.
+              Chỉ hiện giải của bạn. Thêm giải mới hoặc nhập danh sách vận động viên ở trang{' '}
+              <NavLink to="/tao-giai" className="text-accent-700 font-medium underline">Tạo giải</NavLink>.
             </p>
           </SectionCard>
+
+          {selected && (
+            <SectionCard title="Bảng mã giám định" icon="fa-solid fa-key" tone="neutral">
+              <p className="text-sm text-slate-500 mt-0 mb-4">
+                Mỗi mã vào thẳng đúng một ô chấm điểm — giám định không phải chọn giải, chọn sân,
+                chọn vị trí nữa. Đọc số cho họ gõ vào máy, hoặc in ra dán ở bàn.
+              </p>
+
+              <CodeBoard
+                tournamentIndex={selected.index}
+                tournamentName={selected.name}
+                canManage
+                ownerUid={user.uid}
+              />
+
+              <div className="pt-4 mt-4 border-t border-slate-100">
+                <Button variant="secondary" icon="fa-solid fa-wand-magic-sparkles"
+                  disabled={regenerating} onClick={this.handleRegenerateAll}>
+                  {regenerating ? 'Đang cấp mã…' : 'Cấp mã cho ô còn thiếu'}
+                </Button>
+                <p className="text-xs text-slate-400 m-0 mt-2">
+                  Mã được sinh sẵn lúc tạo giải. Nút này chỉ cần dùng cho giải cũ, hoặc sau khi
+                  đổi số giám định / bật thêm Sân B.
+                </p>
+              </div>
+            </SectionCard>
+          )}
+
+          {selected && !isLegacy(selected) && (
+            <SectionCard title="Giám sát của giải" icon="fa-solid fa-user-shield">
+              <StaffApprovalPanel
+                tournamentIndex={selected.index}
+                ownerUid={user.uid}
+                tournamentStatus={selected.status}
+              />
+
+              <div className="pt-5 mt-5 border-t border-slate-100">
+                <Toggle
+                  name="openAccess"
+                  checked={selected.openAccess}
+                  onChange={this.handleToggleOpenAccess}
+                  label="Mở tự do — bỏ hẳn bước duyệt"
+                  hint="Chỉ dùng cho giải nội bộ hoặc buổi tập huấn"
+                />
+                {selected.openAccess && (
+                  <p className="m-0 mt-2 text-xs text-red-700 bg-red-50 border border-red-200
+                    rounded-control px-3 py-2.5">
+                    <i className="fa-solid fa-triangle-exclamation mr-1.5" aria-hidden="true" />
+                    Ai đăng nhập cũng chấm điểm được trên giải này. Nhớ tắt lại khi xong.
+                  </p>
+                )}
+              </div>
+            </SectionCard>
+          )}
 
           <SectionCard title="Thông tin giải đấu" icon="fa-solid fa-sliders">
             <div className="space-y-6">
@@ -533,60 +652,12 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
             </div>
           </SectionCard>
 
-          <SectionCard title="Mật khẩu" icon="fa-solid fa-key" tone="neutral">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label htmlFor="field-passwordSetting" className="block text-sm font-semibold text-slate-600 mb-2">
-                  <i className="fa-solid fa-gear mr-1.5 text-slate-400" aria-hidden="true" />
-                  Thiết đặt
-                </label>
-                <input id="field-passwordSetting" type="number" inputMode="numeric" name="passwordSetting"
-                  value={passwordSetting} onChange={this.handleInputChange}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-control text-center
-                    tracking-[0.3em] tabular-nums text-slate-800
-                    focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-shadow" />
-              </div>
-              <div>
-                <label htmlFor="field-passwordGiamSat" className="block text-sm font-semibold text-slate-600 mb-2">
-                  <i className="fa-solid fa-tv mr-1.5 text-slate-400" aria-hidden="true" />
-                  Giám sát
-                </label>
-                <input id="field-passwordGiamSat" type="number" inputMode="numeric" name="passwordGiamSat"
-                  value={passwordGiamSat} onChange={this.handleInputChange}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-control text-center
-                    tracking-[0.3em] tabular-nums text-slate-800
-                    focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-shadow" />
-              </div>
-              <div>
-                <label htmlFor="field-passwordGiamDinh" className="block text-sm font-semibold text-slate-600 mb-2">
-                  <i className="fa-solid fa-user-check mr-1.5 text-slate-400" aria-hidden="true" />
-                  Giám định
-                </label>
-                <input id="field-passwordGiamDinh" type="number" inputMode="numeric" name="passwordGiamDinh"
-                  value={passwordGiamDinh} onChange={this.handleInputChange}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-control text-center
-                    tracking-[0.3em] tabular-nums text-slate-800
-                    focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-shadow" />
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2.5 pt-5 mt-5 border-t border-slate-100">
-              <Button variant="primary" icon="fa-solid fa-floppy-disk" onClick={this.updatePassword}>
-                Lưu mật khẩu
-              </Button>
-              <Button variant="secondary" icon="fa-solid fa-rotate-left" onClick={this.confirmResetPassword}>
-                Cài lại mật khẩu
-              </Button>
-            </div>
-          </SectionCard>
-
           <nav className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm pt-2">
             {[
               { to: '/', label: 'Trang chủ' },
               { to: '/giam-sat-doi-khang', label: 'Giám sát đối kháng' },
-              { to: '/giam-dinh-doi-khang', label: 'Giám định đối kháng' },
               { to: '/giam-sat-thi-quyen', label: 'Giám sát thi quyền' },
-              { to: '/giam-dinh-thi-quyen', label: 'Giám định thi quyền' },
+              { to: '/vao', label: 'Vào bằng mã (giám định)' },
               { to: '/tao-giai', label: 'Tạo giải' },
             ].map((link) => (
               <NavLink key={link.to} to={link.to}
@@ -595,22 +666,24 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
               </NavLink>
             ))}
           </nav>
+
+          {/* Ma tai khoan de o day de lan sau cap quyen admin cho nguoi khac
+              khoi phai mo Firebase Console di mo tung dong */}
+          <p className="text-center text-[11px] text-slate-400 m-0 pt-2">
+            Mã tài khoản của bạn:{' '}
+            <code className="bg-slate-100 px-1.5 py-0.5 rounded">{user.uid}</code>{' '}
+            <button type="button" onClick={this.copyUid}
+              className="text-accent-600 hover:underline">chép</button>
+          </p>
         </main>
 
         <AppFooter />
-
-        <PasswordModal
-          isOpen={showPasswordModal}
-          value={password}
-          onInput={this.inputPw}
-          onSubmit={this.verifyPassword}
-          onClose={this.hidePasswordModal}
-        />
 
         <ConfirmModal
           isOpen={confirm !== null}
           title={confirm?.title || ''}
           message={confirm?.message || ''}
+          confirmLabel={confirm?.label}
           onConfirm={this.runConfirm}
           onCancel={this.closeConfirm}
         />

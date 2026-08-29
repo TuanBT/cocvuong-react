@@ -72,6 +72,9 @@ class InformationTqContainer extends Component<InformationTqContainerProps, Info
 
       if (this.tournamentObj) {
         for (let i = 0; i < this.tournamentObj.length; i++) {
+          // Giai thu khong hien o trang cong khai — tuyet doi khong de ai
+          // nham no voi giai that khi tra cuu ket qua
+          if (this.tournamentObj[i]?.setting?.demo === true) continue;
           tournaments.push([i, this.tournamentObj[i].setting.tournamentName]);
         }
       }

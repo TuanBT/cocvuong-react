@@ -28,5 +28,4 @@ input/*
 .gitignore
 
 # e2e tests
-tests/tmp/
-tests/e2e/.out/
+tests/*

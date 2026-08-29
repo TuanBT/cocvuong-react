@@ -10,6 +10,12 @@ import FitText from '../components/common/FitText';
 // Import utils
 import { getReadableTextColor } from '../utils/contrast';
 
+import { AppUser } from '../services/authService';
+import { SupervisorAccess } from '../components/tournament/RequestAccessPanel';
+import CodeBoardModal from '../components/tournament/CodeBoardModal';
+import { resetDemoTournament } from '../services/demoService';
+import { AccountChip } from '../components/auth';
+
 // Import Offline Service
 import {
   isOnline,
@@ -92,11 +98,13 @@ interface RankedTeam {
 }
 
 // Props and State interfaces
-interface GiamSatThiQuyenProps {}
+interface GiamSatThiQuyenProps {
+  user: AppUser;
+  access: SupervisorAccess;
+}
 
 interface GiamSatThiQuyenState {
   data: any;
-  password: string;
   tournamentName: string;
   arenaName: string;
   matchMartialName: string;
@@ -111,7 +119,7 @@ interface GiamSatThiQuyenState {
   confirmModalTitle: string;
   confirmModalBody: string;
   isInternetConnected: boolean;
-  showPasswordModal: boolean;
+  showCodeBoard: boolean;
   showChooseArenaNoModal: boolean;
   showTakeMainScoreModal: boolean;
   showModalConfirm: boolean;
@@ -121,8 +129,6 @@ interface GiamSatThiQuyenState {
   matchChooseValue: string;
   isShowFiveReferee: boolean;
   isShowCountryFlag: boolean;
-  selectedTournament: number;
-  selectedArena: number;
   specScoreWidth: string;
   // Connection status tracking
   showHelpModal: boolean;
@@ -303,7 +309,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
 
     this.state = {
       data: null,
-      password: '',
       tournamentName: '',
       arenaName: '',
       matchMartialName: '',
@@ -318,7 +323,7 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       confirmModalTitle: '',
       confirmModalBody: '',
       isInternetConnected: true,
-      showPasswordModal: true,
+      showCodeBoard: false,
       showChooseArenaNoModal: false,
       showTakeMainScoreModal: false,
       showModalConfirm: false,
@@ -328,8 +333,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       matchChooseValue: '',
       isShowFiveReferee: false,
       isShowCountryFlag: false,
-      selectedTournament: 0,
-      selectedArena: 0,
       specScoreWidth: '',
       // Connection status
       showHelpModal: false,
@@ -392,24 +395,13 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       }
     });
     
-    // Check for saved password in localStorage (valid for 6 hours)
-    const savedPassword = localStorage.getItem('giamSatPassword');
-    const savedTime = localStorage.getItem('giamSatPasswordTime');
-    if (savedPassword && savedTime) {
-      const timeDiff = Date.now() - parseInt(savedTime);
-      const sixHours = 6 * 60 * 60 * 1000;
-      if (timeDiff < sixHours) {
-        // Auto verify saved password
-        this.setState({ password: savedPassword }, () => {
-          this.autoVerifyPassword(savedPassword);
-        });
-        return;
-      } else {
-        // Clear expired password
-        localStorage.removeItem('giamSatPassword');
-        localStorage.removeItem('giamSatPasswordTime');
-      }
-    }
+    // Giai va san da duoc cong RequestAccessPanel quyet dinh xong — vao thang,
+    // khong hoi mat khau, khong hien modal chon san lan nao nua.
+    const { access } = this.props;
+    this.tournamentNoIndex = access.tournament.index;
+    this.martialArenaNoIndex = access.arenaIndex;
+    this.arenaNo = access.arenaIndex === 0 ? 'A' : 'B';
+    this.main();
   }
 
   componentWillUnmount(): void {
@@ -427,79 +419,9 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     }
   }
 
-  autoVerifyPassword = (savedPassword: string): void => {
-    onValue(ref(this.db, 'commonSetting/passwordGiamSat'), (snapshot) => {
-      if (savedPassword === String(snapshot.val())) {
-        this.setState({ showPasswordModal: false });
-        this.main();
-      } else {
-        // Password changed, clear and show modal
-        localStorage.removeItem('giamSatPassword');
-        localStorage.removeItem('giamSatPasswordTime');
-        this.setState({ password: '', showPasswordModal: true });
-      }
-    }, { onlyOnce: true });
-  }
-
-  verifyPassword = (): void => {
-    const { password } = this.state;
-
-    if (password != null && password !== "") {
-      onValue(ref(this.db, 'commonSetting/passwordGiamSat'), (snapshot) => {
-        if (password === String(snapshot.val())) {
-          // Save password to localStorage for 6 hours
-          localStorage.setItem('giamSatPassword', password);
-          localStorage.setItem('giamSatPasswordTime', Date.now().toString());
-          this.setState({ showPasswordModal: false });
-          this.main();
-        } else {
-          toast.error("Sai mật khẩu!");
-          window.location.reload();
-        }
-      }, { onlyOnce: true });
-    } else {
-      toast.error("Sai mật khẩu!");
-    }
-  }
-
   main(): void {
-    get(child(ref(this.db), 'tournament')).then((snapshot) => {
-      this.tournamentObj = snapshot.val();
-      this.tournaments = [];
-
-      if (this.tournamentObj) {
-        for (let i = 0; i < this.tournamentObj.length; i++) {
-          this.tournaments.push([i, this.tournamentObj[i].setting.tournamentName]);
-        }
-      }
-      this.setState({ data: this.tournaments });
-    });
-
-    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
-      this.settingObj = snapshot.val();
-      if (this.settingObj && this.settingObj.martial.isShowArenaB === true) {
-        this.setState({ showChooseArenaNoModal: true });
-      } else {
-        // Single arena
-        this.arenaNo = 'A';
-        this.showMartialInfo();
-      }
-    });
-  }
-
-  chooseArenaNo = (): void => {
-    const { selectedArena } = this.state;
-    this.setState({ showChooseArenaNoModal: false });
-    this.martialArenaNoIndex = selectedArena;
-    this.arenaNo = selectedArena === 0 ? 'A' : 'B';
-    
+    // San da co san tu phan cong — chi con doc thiet dat roi vao thang luot thi
     this.showMartialInfo();
-  }
-
-
-  chooseTournament = (tournamentNoIndex: number): void => {
-    this.tournamentNoIndex = tournamentNoIndex;
-    this.setState({ selectedTournament: tournamentNoIndex });
   }
 
   showMartialInfo = (): void => {
@@ -590,13 +512,11 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
   _handleKeyDown = (e: KeyboardEvent): void => {
     // ESC - Đóng modal đang mở
     if (e.which === 27) {
-      const { showPasswordModal, showChooseArenaNoModal, showModalChooseMatch, showModalConfirm, showTakeMainScoreModal, showHelpModal, showRankingModal } = this.state;
+      const { showCodeBoard, showModalChooseMatch, showModalConfirm, showTakeMainScoreModal, showHelpModal, showRankingModal } = this.state;
       if (showRankingModal) {
         this.setState({ showRankingModal: false });
-      } else if (showPasswordModal) {
-        this.setState({ showPasswordModal: false });
-      } else if (showChooseArenaNoModal) {
-        this.setState({ showChooseArenaNoModal: false });
+      } else if (showCodeBoard) {
+        this.setState({ showCodeBoard: false });
       } else if (showModalChooseMatch) {
         this.setState({ showModalChooseMatch: false });
       } else if (showModalConfirm) {
@@ -895,23 +815,23 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     }
   }
 
-  inputPw = (value: string): void => {
-    if (value === "-1") {
-      this.setState({ password: '' });
-    } else {
-      this.setState(prevState => ({ 
-        password: prevState.password + value 
-      }));
+  /**
+   * Cham lai giai thu. Giai thu co dung 1 luot nen "cham lai giai" =
+   * "cham lai luot" — khong phai viet logic reset moi.
+   */
+  resetDemo = async (): Promise<void> => {
+    try {
+      await resetDemoTournament(this.props.access.tournament.index);
+      toast.success('Đã chấm lại giải thử.');
+      window.location.reload();
+    } catch {
+      toast.error('Không chấm lại được giải thử.');
     }
   }
 
-  handleArenaChange = (arenaIndex: number) => {
-    this.setState({ selectedArena: arenaIndex });
-  }
-
   render(): React.ReactNode {
+    const { user, access } = this.props;
     const {
-      password,
       tournamentName,
       arenaName,
       matchMartialName,
@@ -928,8 +848,7 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       isInternetConnected,
       isOffline,
       pendingWritesCount,
-      showPasswordModal,
-      showChooseArenaNoModal,
+      showCodeBoard,
       showTakeMainScoreModal,
       showModalConfirm,
       showModalShortcut,
@@ -938,8 +857,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       matchChooseValue,
       isShowFiveReferee,
       isShowCountryFlag,
-      selectedTournament,
-      selectedArena,
       specScoreWidth,
       showHelpModal,
       showRankingModal
@@ -1087,6 +1004,19 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
           </div>
           <div className="flex items-center gap-3 flex-shrink-0 z-10">
             <span className="bg-slate-200 px-4 py-1.5 rounded font-bold text-base">{arenaName}</span>
+
+            {/* Giai dang mo toang / giai thu phai nhin thay duoc,
+                khong de ai quen minh dang cham vao dau */}
+            {access.tournament.demo && (
+              <span className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">GIẢI THỬ</span>
+            )}
+            {access.tournament.openAccess && !access.tournament.demo && (
+              <span className="bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded"
+                title="Ai đăng nhập cũng chấm được trên giải này">MỞ TỰ DO</span>
+            )}
+
+            <AccountChip user={user} subtitle={`${arenaName || 'Sân'} · Thi quyền`} />
+
             {/* Quick Menu Button */}
             <div className="relative">
               <button 
@@ -1103,6 +1033,32 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
                     onClick={() => this.setState({ showQuickMenu: false })}
                   ></div>
                   <div className="absolute right-0 top-10 bg-white rounded-lg shadow-xl border border-slate-200 py-2 min-w-[200px] z-50">
+                    {access.tournament.demo && (
+                      <button
+                        onClick={() => { this.setState({ showQuickMenu: false }); this.resetDemo(); }}
+                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                      >
+                        <i className="fa fa-rotate-left"></i>
+                        Chấm lại giải thử
+                      </button>
+                    )}
+                    <button
+                      onClick={() => { this.setState({ showQuickMenu: false, showCodeBoard: true }); }}
+                      className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                    >
+                      <i className="fa fa-key text-amber-500"></i>
+                      Mã giám định sân này
+                    </button>
+                    {access.availableArenas.length > 1 && (
+                      <button
+                        onClick={() => { this.setState({ showQuickMenu: false }); access.onChangeArena(); }}
+                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                      >
+                        <i className="fa fa-arrows-left-right text-slate-400"></i>
+                        Đổi sân
+                      </button>
+                    )}
+                    <div className="border-t border-slate-200 my-1"></div>
                     <button 
                       onClick={() => { this.setState({ showQuickMenu: false, showModalChooseMatch: true }); }}
                       className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
@@ -1295,181 +1251,14 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
           </div>
         </div>
 
-        {/* Choose Arena Modal */}
-        <div className={`fixed inset-0 z-50 ${showChooseArenaNoModal ? 'flex' : 'hidden'} items-center justify-center bg-black/50 backdrop-blur-sm p-4`}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden max-h-[85vh] overflow-y-auto">
-            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4 sticky top-0">
-              <div className="flex items-center justify-between">
-                <h5 className="text-white font-bold text-lg flex items-center gap-2">
-                  <i className="fa-solid fa-id-badge"></i>Chọn thông tin
-                </h5>
-                <button onClick={() => this.setState({ showChooseArenaNoModal: false })} className="text-white/80 hover:text-white transition-colors">
-                  <i className="fa-solid fa-xmark text-xl"></i>
-                </button>
-              </div>
-            </div>
-            
-            <div className="p-4 space-y-4">
-              {/* Tournament Selection */}
-              <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Giải đấu</p>
-                <div className="space-y-1.5 max-h-32 overflow-y-auto">
-                  {this.tournaments && this.tournaments.length > 0 ? this.tournaments.map((tournament, i) => (
-                    <label key={i} onClick={() => this.chooseTournament(i)}
-                      className="flex items-center gap-2 p-2 border border-slate-200 rounded-lg cursor-pointer hover:bg-blue-50">
-                      <input 
-                        type="radio" 
-                        name="tournamentRadio" 
-                        checked={selectedTournament === i}
-                        onChange={() => this.chooseTournament(i)} 
-                        className="w-4 h-4 text-blue-500" 
-                      />
-                      <span className="text-sm text-slate-700 whitespace-pre-line">{tournament[1]}</span>
-                    </label>
-                  )) : <p className="text-slate-400 italic text-sm">Không có giải đấu</p>}
-                </div>
-              </div>
-
-              {/* Arena Selection */}
-              <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Sân thi đấu</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="relative">
-                    <input 
-                      type="radio" 
-                      name="optionsArena" 
-                      value="0" 
-                      checked={selectedArena === 0}
-                      onChange={() => this.handleArenaChange(0)}
-                      className="peer sr-only" 
-                    />
-                    <div className="p-3 border-2 border-slate-200 rounded-xl text-center peer-checked:border-blue-500 peer-checked:bg-blue-50 flex flex-col items-center justify-center min-h-[60px]">
-                      <i className="fa-solid fa-chess-board text-xl text-blue-500"></i>
-                      <span className="font-bold text-sm text-slate-700 mt-1">Sân A</span>
-                    </div>
-                  </label>
-                  <label className="relative">
-                    <input 
-                      type="radio" 
-                      name="optionsArena" 
-                      value="1" 
-                      checked={selectedArena === 1}
-                      onChange={() => this.handleArenaChange(1)}
-                      className="peer sr-only" 
-                    />
-                    <div className="p-3 border-2 border-slate-200 rounded-xl text-center peer-checked:border-blue-500 peer-checked:bg-blue-50 flex flex-col items-center justify-center min-h-[60px]">
-                      <i className="fa-solid fa-chess-board text-xl text-blue-500"></i>
-                      <span className="font-bold text-sm text-slate-700 mt-1">Sân B</span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex gap-2 p-3 bg-slate-50 border-t sticky bottom-0">
-              <button onClick={() => this.setState({ showChooseArenaNoModal: false })}
-                className="flex-1 py-2 px-3 rounded-xl border border-slate-200 text-slate-600 font-medium">Hủy</button>
-              <button onClick={this.chooseArenaNo}
-                className="flex-1 py-2 px-3 rounded-xl bg-blue-500 text-white font-medium">OK</button>
-            </div>
-          </div>
-        </div>
-
-        {/* Take Main Score Modal */}
-        <div className={`fixed inset-0 z-50 ${showTakeMainScoreModal ? 'flex' : 'hidden'} items-center justify-center bg-black/50`}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4">
-            <div className="flex items-center justify-between px-6 py-4 border-b">
-              <h5 className="text-lg font-semibold text-slate-800">Chấm điểm</h5>
-              <button onClick={() => this.setState({ showTakeMainScoreModal: false })} className="text-slate-400 hover:text-slate-600 text-2xl">×</button>
-            </div>
-            <div className="p-6">
-              <div className="text-6xl font-bold text-center text-slate-800 mb-6 py-4 bg-slate-100 rounded-xl">{refereeResultBox}</div>
-              <div className="grid grid-cols-3 gap-3">
-                {['7', '8', '9', '4', '5', '6', '1', '2', '3'].map(n => (
-                  <button key={n} onClick={() => this.input(n)} className="py-4 text-2xl font-semibold bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
-                    {n}
-                  </button>
-                ))}
-                <button onClick={this.clearInput} className="py-4 text-2xl font-semibold bg-red-100 hover:bg-red-200 text-red-600 rounded-xl transition-colors">
-                  <i className="fa-regular fa-trash-can"></i>
-                </button>
-                <button onClick={() => this.input('0')} className="py-4 text-2xl font-semibold bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
-                  0
-                </button>
-                <button onClick={this.submitInput} className="py-4 text-2xl font-semibold bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors">
-                  <i className="fa-solid fa-check"></i>
-                </button>
-              </div>
-            </div>
-            <div className="flex justify-end px-6 py-4 border-t bg-slate-50">
-              <button onClick={() => this.setState({ showTakeMainScoreModal: false })} className="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-lg transition-colors">Cancel</button>
-            </div>
-          </div>
-        </div>
-
-        {/* Password Modal */}
-        <div className={`fixed inset-0 z-50 ${showPasswordModal ? 'flex' : 'hidden'} items-center justify-center bg-black/50`}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4">
-            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
-              <div className="flex items-center justify-between">
-                <h5 className="text-white font-bold text-lg flex items-center gap-2">
-                  <i className="fa-solid fa-lock"></i>Vui lòng nhập mật khẩu
-                </h5>
-                <button onClick={() => this.setState({ showPasswordModal: false })} className="text-white/80 hover:text-white transition-colors">
-                  <i className="fa-solid fa-xmark text-xl"></i>
-                </button>
-              </div>
-            </div>
-            <div className="p-6">
-              <div className="flex mb-4">
-                <span className="flex items-center px-4 bg-slate-100 border border-r-0 border-slate-300 rounded-l-lg">
-                  <i className="fa fa-key text-slate-500"></i>
-                </span>
-                <input type="password" className="flex-1 px-4 py-3 border border-slate-300 text-lg" placeholder="Mật khẩu" value={password} disabled />
-                <button onClick={() => this.inputPw('-1')} className="px-4 bg-red-500 hover:bg-red-600 text-white rounded-r-lg">
-                  <i className="fas fa-trash-alt"></i>
-                </button>
-              </div>
-              <div className="grid grid-cols-5 gap-2 mb-2">
-                {['1', '2', '3', '4', '5'].map(n => (
-                  <button key={n} onClick={() => this.inputPw(n)} className="py-4 text-xl font-semibold bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
-                    {n}
-                  </button>
-                ))}
-              </div>
-              <div className="grid grid-cols-5 gap-2">
-                {['6', '7', '8', '9', '0'].map(n => (
-                  <button key={n} onClick={() => this.inputPw(n)} className="py-4 text-xl font-semibold bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
-                    {n}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex justify-end gap-3 px-6 py-4 border-t bg-slate-50">
-              <button onClick={this.verifyPassword} className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors">OK</button>
-              <button onClick={() => this.setState({ showPasswordModal: false })} className="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-lg transition-colors">Cancel</button>
-            </div>
-          </div>
-        </div>
-
-        {/* Confirm Modal */}
-        <div className={`fixed inset-0 z-50 ${showModalConfirm ? 'flex' : 'hidden'} items-center justify-center bg-black/50`}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4">
-            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4">
-              <div className="flex items-center justify-between">
-                <h5 className="text-white font-bold text-lg">{confirmModalTitle}</h5>
-                <button onClick={() => this.setState({ showModalConfirm: false })} className="text-white/80 hover:text-white transition-colors">
-                  <i className="fa-solid fa-xmark text-xl"></i>
-                </button>
-              </div>
-            </div>
-            <div className="p-6 text-slate-600" dangerouslySetInnerHTML={{ __html: confirmModalBody }}></div>
-            <div className="flex justify-end gap-3 px-6 py-4 border-t bg-slate-50">
-              <button onClick={this.confirmSubmit} className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors">OK</button>
-              <button onClick={() => this.setState({ showModalConfirm: false })} className="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-lg transition-colors">Cancel</button>
-            </div>
-          </div>
-        </div>
+        <CodeBoardModal
+          isOpen={showCodeBoard}
+          onClose={() => this.setState({ showCodeBoard: false })}
+          tournamentIndex={access.tournament.index}
+          tournamentName={access.tournament.name}
+          arenaKeys={[access.arenaKey]}
+          ownerUid={access.tournament.ownerUid}
+        />
 
         {/* Choose Match Modal - Grouped by Content Type */}
         <div className={`fixed inset-0 z-50 ${showModalChooseMatch ? 'flex' : 'hidden'} items-center justify-center bg-black/50`}>

@@ -28,6 +28,7 @@
     "test:e2e:live": "tsx tests/e2e/run.ts --live",
     "test:e2e:parallel:live": "tsx tests/e2e/run.ts --live --only=song-song",
     "test:e2e:thiquyen": "./tests/e2e/with-emulator.sh --only=thi-quyen",
+    "test:e2e:phanquyen": "./tests/e2e/with-emulator.sh --only=phan-quyen",
     "test:e2e:data": "./tests/e2e/with-emulator.sh --only=het-data",
     "test:e2e:thiquyen:live": "tsx tests/e2e/run.ts --live --only=thi-quyen",
     "test:e2e:data:live": "tsx tests/e2e/run.ts --live --only=het-data",

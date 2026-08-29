@@ -125,21 +125,6 @@ export const subscribeToConnectionStatus = (callback: (connected: boolean) => vo
   };
 };
 
-/**
- * Xác thực mật khẩu
- */
-export const verifyPassword = async (
-  passwordType: 'passwordSetting' | 'passwordGiamSat' | 'passwordGiamDinh', 
-  inputPassword: string
-): Promise<boolean> => {
-  if (!inputPassword) {
-    return false;
-  }
-  
-  const correctPassword = await getData<string | number>(`commonSetting/${passwordType}`);
-  return String(inputPassword) === String(correctPassword);
-};
-
 interface TournamentListItem {
   index: number;
   name: string;
@@ -336,3 +321,48 @@ export { ref, set, get, update, remove, child, onValue, off };
 
 // Giữ backward compatibility với code cũ
 export default getFirebaseDb;
+
+// ==================== PRESENCE THEO SLOT (ma giam dinh) ====================
+
+/**
+ * Presence khoa theo `slot` cua ma giam dinh (`3:combat:gd:0:1`).
+ *
+ * Nhanh `presence/giam_dinh/{arena}_{t}_{r}` cu chi phu duoc doi khang va
+ * khong phan biet duoc mon. Bang ma can biet **tung o** da co nguoi vao chua,
+ * ke ca thi quyen — nen khoa thang bang chuoi slot. Dau ':' hop le trong key
+ * cua Realtime Database.
+ */
+export const setSlotPresence = async (
+  slot: string,
+  label: string
+): Promise<() => void> => {
+  const db = getFirebaseDb();
+  const presenceRef = ref(db, `presence/giam_dinh/${slot}`);
+  const { onDisconnect, serverTimestamp } = await import('firebase/database');
+
+  await set(presenceRef, { online: true, slot, label, lastSeen: serverTimestamp() });
+  await onDisconnect(presenceRef).remove();
+
+  return async () => {
+    await remove(presenceRef);
+  };
+};
+
+/** Tap hop cac `slot` dang online — dung ve den tren bang ma. */
+export const subscribeSlotPresence = (
+  callback: (onlineSlots: Set<string>) => void
+): (() => void) => {
+  const db = getFirebaseDb();
+  const presenceRef = ref(db, 'presence/giam_dinh');
+
+  onValue(presenceRef, (snapshot) => {
+    const data = snapshot.val() || {};
+    const out = new Set<string>();
+    for (const key of Object.keys(data)) {
+      if (data[key]?.online && data[key]?.slot) out.add(String(data[key].slot));
+    }
+    callback(out);
+  });
+
+  return () => off(presenceRef);
+};

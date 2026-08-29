@@ -5,11 +5,16 @@ import { toast } from 'react-toastify';
 
 // Import Martial Write Service (logic ghi thi quyền — dùng chung với bộ test e2e)
 import { submitMartialRefereeScore } from '../services/martialWriteService';
+import { setSlotPresence } from '../services/firebaseService';
+import { ensureAnonymous } from '../services/authService';
+import {
+  AccessCode, CodeSlot, clearSession, resolveRefereeSession,
+  slotLabel, slotString, subscribeCode,
+} from '../services/accessCodeService';
 
-import { PasswordModal, Toast } from '../components/ui';
+import { Button, Toast } from '../components/ui';
 import {
   RefereeHeader,
-  RefereeSetupModal,
   RefereeHelpModal,
   ShortcutModal,
   ScoreKey,
@@ -18,28 +23,32 @@ import {
 /** 1..9 - hang 0 va hai phim chuc nang duoc dat rieng o cuoi ban phim */
 const NUMPAD_KEYS = [7, 8, 9, 4, 5, 6, 1, 2, 3];
 
-interface GiamDinhThiQuyenContainerProps {}
+interface GiamDinhThiQuyenContainerProps {
+  history?: { push: (path: string) => void };
+}
+
+/** Vi sao man cham diem khong dung duoc nua — moi ly do mot cau, khong lap lo */
+type LockReason = null | 'no-session' | 'unlocked' | 'closed';
 
 interface GiamDinhThiQuyenContainerState {
-  data: any;
-  password: string;
   arenaName: string;
+  tournamentName: string;
+  isDemo: boolean;
   gdName: string;
   matchMartialName: string;
   matchMartialNo: string;
   refereeResultBox: string;
   isInternetConnected: boolean;
-  showPasswordModal: boolean;
-  showChooseRefereeNoModal: boolean;
-  isShowFiveReferee: boolean;
-  selectedTournament: number;
-  selectedArena: number;
-  selectedReferee: number;
   showHelpModal: boolean;
   showModalShortcut: boolean;
+  /** Man chan khi mat quyen cham — khong de bam vao hu khong roi loi am tham */
+  lock: LockReason;
+  ready: boolean;
 }
 
 interface TournamentSetting {
+  tournamentName: string;
+  demo?: boolean;
   martial: {
     isShowFiveReferee: boolean;
   };
@@ -48,10 +57,13 @@ interface TournamentSetting {
 class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps, GiamDinhThiQuyenContainerState> {
   firebaseListeners: DatabaseReference[] = [];
   db: Database;
-  tournamentObj: any[] | null = null;
   settingObj: TournamentSetting | null = null;
-  tournaments: [number, string][] = [];
   numReferee: number = 3;
+  presenceCleanup: (() => void) | null = null;
+  unsubCode: (() => void) | null = null;
+  uid = '';
+  code = '';
+  slot: CodeSlot | null = null;
   refereeName: string = "";
   referreIndex: number = -1;
   path: string = "";
@@ -68,30 +80,25 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
     document.title = 'Giám Định Thi Quyền';
     
     this.state = {
-      data: null,
-      password: '',
       arenaName: '',
+      tournamentName: '',
+      isDemo: false,
       gdName: '',
       matchMartialName: '',
       matchMartialNo: '',
       refereeResultBox: '00',
       isInternetConnected: true,
-      showPasswordModal: true,
-      showChooseRefereeNoModal: false,
-      isShowFiveReferee: false,
-      selectedTournament: 0,
-      selectedArena: 0,
-      selectedReferee: 1,
       showHelpModal: false,
-      showModalShortcut: false
+      showModalShortcut: false,
+      lock: null,
+      ready: false,
     };
     
     this.db = database;
   }
 
   componentDidMount() {
-    // Check for cached password
-    this.checkCachedPassword();
+    void this.startSession();
   }
 
   componentWillUnmount() {
@@ -100,102 +107,112 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
       off(listenerRef);
     });
     this.firebaseListeners = [];
+
+    this.presenceCleanup?.();
+    this.presenceCleanup = null;
+    this.unsubCode?.();
+    this.unsubCode = null;
   }
 
-  checkCachedPassword = () => {
-    const cachedValid = localStorage.getItem('giamDinh_password_valid');
-    const cachedTime = localStorage.getItem('giamDinh_password_timestamp');
-    
-    if (cachedValid === 'true' && cachedTime) {
-      const timestamp = parseInt(cachedTime, 10);
-      const now = Date.now();
-      const sixHours = 6 * 60 * 60 * 1000;
-      
-      if (now - timestamp < sixHours) {
-        // Password still valid, skip modal
-        this.setState({ showPasswordModal: false });
-        document.addEventListener("keydown", this._handleKeyDown);
-        this.main();
-        return;
-      }
+  /**
+   * Vao thang tu ma da go o `/vao` — khong hoi mat khau, khong chon giai/san/
+   * vi tri lan nao nua. Chua co phien thi day ve `/vao`.
+   */
+  async startSession() {
+    let uid = '';
+    try {
+      const user = await ensureAnonymous();
+      uid = user.uid;
+    } catch {
+      this.setState({ lock: 'no-session' });
+      return;
     }
-  }
 
-  cachePassword = () => {
-    localStorage.setItem('giamDinh_password_valid', 'true');
-    localStorage.setItem('giamDinh_password_timestamp', Date.now().toString());
-  }
-
-  verifyPassword = () => {
-    const { password } = this.state;
-
-    if (password != null && password !== "") {
-      const passwordRef = ref(this.db, 'commonSetting/passwordGiamDinh');
-      onValue(passwordRef, (snapshot) => {
-        if (password === String(snapshot.val())) {
-          this.cachePassword();
-          this.setState({ showPasswordModal: false });
-          document.addEventListener("keydown", this._handleKeyDown);
-          this.main();
-        } else {
-          toast.error("Sai mật khẩu!");
-          window.location.reload();
-        }
-      }, { onlyOnce: true });
-    } else {
-      toast.error("Sai mật khẩu!");
+    const session = await resolveRefereeSession(uid, 'martial');
+    if (!session) {
+      this.goToEnterCode();
+      return;
     }
-  }
 
-  main() {
-    get(child(ref(this.db), 'tournament')).then((snapshot) => {
-      this.tournamentObj = snapshot.val();
-      this.tournaments = [];
+    this.uid = uid;
+    this.code = session.code;
+    this.slot = session.slot;
+    this.tournamentNoIndex = session.slot.t;
+    this.martialArenaNoIndex = session.slot.a;
+    this.referreIndex = session.slot.r;
+    this.refereeName = `Giám Định ${session.slot.r + 1}`;
 
-      if (this.tournamentObj) {
-        for (let i = 0; i < this.tournamentObj.length; i++) {
-          this.tournaments.push([i, this.tournamentObj[i].setting.tournamentName]);
-        }
-      }
-      this.setState({ data: this.tournaments });
+    this.setState({
+      gdName: this.refereeName,
+      tournamentName: session.tournamentName,
+      ready: true,
     });
 
+    document.addEventListener("keydown", this._handleKeyDown);
+    this.watchCode();
+    this.main();
+    this.attachArenaListeners();
+  }
+
+  goToEnterCode() {
+    if (this.props.history) this.props.history.push('/vao');
+    else window.location.href = '/vao';
+  }
+
+  /**
+   * Theo doi CHINH ma minh dang giu: giam sat bam "Mo khoa" hoac chu giai dong
+   * giai thi phai hien man hinh ro rang ngay.
+   */
+  watchCode() {
+    this.unsubCode?.();
+    this.unsubCode = subscribeCode(this.code, (data: AccessCode | null) => {
+      if (!data) {
+        this.setState({ lock: 'closed' });
+      } else if (data.claimedUid !== this.uid) {
+        this.setState({ lock: 'unlocked' });
+      } else {
+        this.setState({ lock: null });
+      }
+    });
+  }
+
+  exitSession = async () => {
+    await clearSession(this.uid).catch(() => undefined);
+    this.goToEnterCode();
+  };
+
+  main() {
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       if (this.settingObj) {
         if (this.settingObj.martial.isShowFiveReferee === true) {
           this.numReferee = 5;
         }
-        const isShowFiveReferee = this.settingObj.martial.isShowFiveReferee;
-        this.setState({ 
-          isShowFiveReferee,
-          showChooseRefereeNoModal: true 
-        });
-
-        // Kiểm tra kết nối internet
-        const connectedRef = ref(this.db, '.info/connected');
-        this.firebaseListeners.push(connectedRef);
-        onValue(connectedRef, (snapshot) => {
-          this.setState({ isInternetConnected: snapshot.val() === true });
+        this.setState({
+          tournamentName: this.settingObj.tournamentName,
+          isDemo: this.settingObj.demo === true,
         });
       }
     });
-  }
 
-  chooseTournament = (tournamentNoIndex: number) => {
-    this.tournamentNoIndex = tournamentNoIndex;
-    this.setState({ selectedTournament: tournamentNoIndex });
+    const connectedRef = ref(this.db, '.info/connected');
+    this.firebaseListeners.push(connectedRef);
+    onValue(connectedRef, (snapshot) => {
+      this.setState({ isInternetConnected: snapshot.val() === true });
+    });
   }
 
   /** Con modal nao dang mo thi ban phim thuoc ve modal do */
   isAnyModalOpen(): boolean {
-    const { showPasswordModal, showChooseRefereeNoModal, showHelpModal, showModalShortcut } = this.state;
-    return showPasswordModal || showChooseRefereeNoModal || showHelpModal || showModalShortcut;
+    const { showHelpModal, showModalShortcut } = this.state;
+    return showHelpModal || showModalShortcut;
   }
 
   _handleKeyDown = (e: KeyboardEvent) => {
-    // Modal tu xu ly phim cua no (Esc de dong, so de nhap mat khau)
+    // Modal tu xu ly phim cua no (Esc de dong)
     if (this.isAnyModalOpen()) return;
+    // Mat quyen cham thi ban phim khong lam gi
+    if (this.state.lock) return;
 
     if (e.key === 'Escape') {
       this.clearInput();
@@ -212,47 +229,43 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
     }
   }
 
-  chooseRefereeNo = () => {
-    const { selectedArena, selectedReferee } = this.state;
-    this.martialArenaNoIndex = selectedArena;
-    
+  /** Noi listener cho dung o da duoc ma troi san */
+  attachArenaListeners = () => {
     get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/martialArena/' + this.martialArenaNoIndex + '/martialArenaName')).then((snapshot) => {
       this.setState({ arenaName: snapshot.val() });
     });
-    
-    if (selectedReferee != null) {
-      this.setState({ showChooseRefereeNoModal: false });
 
-      this.refereeName = "Giám Định " + selectedReferee;
-      this.referreIndex = selectedReferee - 1;
-      this.setState({ gdName: this.refereeName });
+    const lastMatchRef = ref(this.db, 'tournament/' + this.tournamentNoIndex + '/martialArena/' + this.martialArenaNoIndex + '/lastMatchMartial');
+    this.firebaseListeners.push(lastMatchRef);
+    onValue(lastMatchRef, (snapshot) => {
+      const lastMatchMartial = snapshot.val();
+      if (!lastMatchMartial) return;
 
-      const lastMatchRef = ref(this.db, 'tournament/' + this.tournamentNoIndex + '/martialArena/' + this.martialArenaNoIndex + '/lastMatchMartial');
-      this.firebaseListeners.push(lastMatchRef);
-      onValue(lastMatchRef, (snapshot) => {
-        // Kiểm tra kết nối internet
-        const connectedRef = ref(this.db, '.info/connected');
-        onValue(connectedRef, (connSnapshot) => {
-          this.setState({ isInternetConnected: connSnapshot.val() === true });
-        });
+      this.matchNoCurrentIndex = lastMatchMartial.matchMartialNo - 1;
+      this.teamNoCurrentIndex = lastMatchMartial.teamMartialNo - 1;
 
-        const lastMatchMartial = snapshot.val();
-
-        this.matchNoCurrentIndex = lastMatchMartial.matchMartialNo - 1;
-        this.teamNoCurrentIndex = lastMatchMartial.teamMartialNo - 1;
-
-        get(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/martial/' + this.matchNoCurrentIndex)).then((martialSnapshot) => {
-          const martialData = martialSnapshot.val();
-          if (martialData) {
-            this.setState({
-              matchMartialName: martialData.match.name,
-              matchMartialNo: martialData.team[this.teamNoCurrentIndex].no
-            });
-          }
-        });
-
-        this.pathMartial = "tournament/" + this.tournamentNoIndex + "/martial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex + "/refereeMartial/" + this.referreIndex;
+      get(ref(this.db, 'tournament/' + this.tournamentNoIndex + '/martial/' + this.matchNoCurrentIndex)).then((martialSnapshot) => {
+        const martialData = martialSnapshot.val();
+        if (martialData) {
+          this.setState({
+            matchMartialName: martialData.match.name,
+            matchMartialNo: martialData.team[this.teamNoCurrentIndex].no
+          });
+        }
       });
+
+      this.pathMartial = "tournament/" + this.tournamentNoIndex + "/martial/" + this.matchNoCurrentIndex + "/team/" + this.teamNoCurrentIndex + "/refereeMartial/" + this.referreIndex;
+    });
+
+    this.setupPresence();
+  }
+
+  setupPresence = async () => {
+    if (!this.slot) return;
+    try {
+      this.presenceCleanup = await setSlotPresence(slotString(this.slot), slotLabel(this.slot));
+    } catch (err) {
+      // Silent fail - presence là tính năng phụ
     }
   }
 
@@ -294,28 +307,6 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
   }
 
 
-  inputPw = (value: string) => {
-    if (value === "-1") {
-      this.setState({ password: '' });
-    } else {
-      this.setState(prevState => ({ 
-        password: prevState.password + value 
-      }));
-    }
-  }
-
-  handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({ password: e.target.value });
-  }
-
-  handleArenaChange = (arenaIndex: number) => {
-    this.setState({ selectedArena: arenaIndex });
-  }
-
-  handleRefereeChange = (refereeIndex: number) => {
-    this.setState({ selectedReferee: refereeIndex });
-  }
-
   openShortcuts = () => this.setState({ showModalShortcut: true });
 
   openHelp = () => this.setState({ showHelpModal: true });
@@ -323,10 +314,6 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
   closeShortcuts = () => this.setState({ showModalShortcut: false });
 
   closeHelp = () => this.setState({ showHelpModal: false });
-
-  hidePasswordModal = () => this.setState({ showPasswordModal: false });
-
-  hideChooseRefereeNoModal = () => this.setState({ showChooseRefereeNoModal: false });
 
   renderSkeleton() {
     return (
@@ -356,30 +343,77 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
     );
   }
 
+  /**
+   * Man chan khi mat quyen cham.
+   *
+   * Ba tinh huong deu ket thuc o day: giam sat bam Mo khoa (doi may, het pin),
+   * chu giai dong giai, hoac may nay chua co phien nao. Moi truong hop mot cau
+   * tieng Viet ro va mot duong di tiep — khong bao gio de man hinh dung im.
+   */
+  renderLock() {
+    const { lock, tournamentName } = this.state;
+    if (!lock) return null;
+
+    const copy = {
+      'unlocked': {
+        icon: 'fa-solid fa-unlock',
+        title: 'Mã đã được mở khoá',
+        body: 'Giám sát vừa mở khoá mã này cho máy khác. Gõ lại đúng số mã cũ để vào lại bàn chấm.',
+        cta: 'Gõ lại mã',
+      },
+      'closed': {
+        icon: 'fa-solid fa-flag-checkered',
+        title: 'Giải đã kết thúc',
+        body: 'Chủ giải đã đóng giải nên mã này không còn hiệu lực. Điểm đã chấm vẫn được lưu.',
+        cta: 'Về trang vào mã',
+      },
+      'no-session': {
+        icon: 'fa-solid fa-plug-circle-xmark',
+        title: 'Chưa vào được hệ thống',
+        body: 'Máy chưa kết nối được. Kiểm tra mạng hoặc cài đặt chặn cookie của trình duyệt.',
+        cta: 'Thử lại',
+      },
+    }[lock];
+
+    return (
+      <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-900/85 p-5">
+        <div className="bg-white rounded-card shadow-pop max-w-sm w-full p-6 text-center">
+          <i className={`${copy.icon} text-4xl text-amber-500 mb-4 block`} aria-hidden="true" />
+          <h2 className="text-lg font-bold text-slate-800 m-0 mb-2">{copy.title}</h2>
+          {tournamentName && (
+            <p className="text-xs text-slate-400 m-0 mb-3 whitespace-pre-line">{tournamentName}</p>
+          )}
+          <p className="text-sm text-slate-600 m-0 mb-5 leading-relaxed">{copy.body}</p>
+          <Button variant="primary" size="lg" block icon="fa-solid fa-keyboard"
+            onClick={this.exitSession}>
+            {copy.cta}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   render() {
     const {
-      password,
       arenaName,
       gdName,
+      tournamentName,
+      isDemo,
       matchMartialName,
       matchMartialNo,
       refereeResultBox,
       isInternetConnected,
-      showPasswordModal,
-      showChooseRefereeNoModal,
-      isShowFiveReferee,
       showHelpModal,
       showModalShortcut,
-      selectedTournament,
-      selectedArena,
-      selectedReferee,
+      ready,
     } = this.state;
 
     const hasInput = this.refereeMartialScore !== '';
 
     return (
       <div data-accent="martial" className="app-fullscreen bg-slate-100">
-        {!gdName && this.renderSkeleton()}
+        {(!gdName || !ready) && this.renderSkeleton()}
+        {this.renderLock()}
 
         <RefereeHeader
           isOnline={isInternetConnected}
@@ -391,6 +425,9 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
             },
           ]}
           refereeName={gdName}
+          tournamentName={tournamentName}
+          isDemo={isDemo}
+          onExit={this.exitSession}
           onOpenShortcuts={this.openShortcuts}
           onOpenHelp={this.openHelp}
         />
@@ -458,28 +495,6 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
             </ScoreKey>
           </div>
         </div>
-
-        <PasswordModal
-          isOpen={showPasswordModal}
-          value={password}
-          onInput={this.inputPw}
-          onSubmit={this.verifyPassword}
-          onClose={this.hidePasswordModal}
-        />
-
-        <RefereeSetupModal
-          isOpen={showChooseRefereeNoModal}
-          tournaments={this.tournaments}
-          selectedTournament={selectedTournament}
-          onSelectTournament={this.chooseTournament}
-          selectedArena={selectedArena}
-          onSelectArena={this.handleArenaChange}
-          selectedReferee={selectedReferee}
-          onSelectReferee={this.handleRefereeChange}
-          showFiveReferees={isShowFiveReferee}
-          onConfirm={this.chooseRefereeNo}
-          onClose={this.hideChooseRefereeNoModal}
-        />
 
         <RefereeHelpModal isOpen={showHelpModal} onClose={this.closeHelp} />
 

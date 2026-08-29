@@ -1,6 +1,207 @@
 {
+  // ===========================================================================
+  //  Cóc Vương — Security Rules
+  //
+  //  Ba vai, ba cách chứng minh danh tính:
+  //    · chủ giải  -> tournament/{t}/setting/ownerUid === auth.uid
+  //    · giám sát  -> tournamentStaff/{t}/{uid}/assignments/{sân} === true
+  //    · giám định -> codeSession/{uid} trỏ tới một mã mình đã claim
+  //
+  //  Giải CŨ (chưa có ownerUid) vẫn mở như trước, để dữ liệu cũ và bộ e2e
+  //  không bị khoá. Giải mới luôn có chủ nên không rơi vào nhánh này.
+  //
+  //  Mệnh đề appAdmin nằm sẵn trong mọi rule của chủ giải nhưng NẰM IM cho tới
+  //  khi có người tự tay tạo appAdmin/{uid}=true trong Firebase Console —
+  //  không có đường cấp quyền admin từ trong app.
+  //
+  //  Rollback: firebase deploy --only database với database.rules.legacy.json
+  //  (30 giây là app chạy lại như trước).
+  //
+  //  File này được sinh ra có chủ ý ở dạng MỘT DÒNG cho mỗi biểu thức: JSON
+  //  không cho phép xuống dòng giữa chuỗi.
+  // ===========================================================================
   "rules": {
-    ".read": "true",
-    ".write": "true"
+
+    "tournament": {
+      // Trang thông tin vẫn public — người ngoài chỉ đọc.
+      // Rules CASCADE: cha đã true thì con KHÔNG tắt lại được. Vì thế danh sách
+      // nhân sự và đơn xin quyền (có tên, email thật) bắt buộc nằm ngoài đây.
+      ".read": true,
+
+      "$t": {
+        // Chủ giải toàn quyền trên giải mình; giải chưa có chủ vẫn mở.
+        ".write": "!data.child('setting/ownerUid').exists() || data.child('setting/ownerUid').val() === auth.uid || root.child('appAdmin/'+auth.uid).val() === true",
+
+        "combat": {
+          // Giám sát BẤT KỲ sân nào của giải: replaceFighter điền VĐV thắng
+          // sang trận kế tiếp, mà trận đó có thể thuộc sân kia.
+          ".write": "root.child('tournamentStaff/'+$t+'/'+auth.uid+'/assignments/combat0').val() === true || root.child('tournamentStaff/'+$t+'/'+auth.uid+'/assignments/combat1').val() === true || root.child('tournament/'+$t+'/setting/ownerUid').val() === auth.uid || (auth != null && root.child('tournament/'+$t+'/setting/openAccess').val() === true) || (auth != null && !root.child('tournament/'+$t+'/setting/ownerUid').exists()) || root.child('appAdmin/'+auth.uid).val() === true"
+        },
+
+        "combatArena": {
+          "$a": {
+            ".write": "root.child('tournamentStaff/'+$t+'/'+auth.uid+'/assignments/'+'combat'+$a).val() === true || root.child('tournament/'+$t+'/setting/ownerUid').val() === auth.uid || (auth != null && root.child('tournament/'+$t+'/setting/openAccess').val() === true) || (auth != null && !root.child('tournament/'+$t+'/setting/ownerUid').exists()) || root.child('appAdmin/'+auth.uid).val() === true",
+            "referee": {
+              "$r": {
+                // Giám định chỉ ghi đúng ô của mình. Vế "claimedUid vẫn là
+                // mình" làm cho Mở khoá và Đóng giải chặn được NGAY, không
+                // phải chờ hết phiên.
+                ".write": "root.child('codeSession/'+auth.uid+'/code').isString() && root.child('codeSession/'+auth.uid+'/slot').isString() && root.child('accessCode/'+root.child('codeSession/'+auth.uid+'/code').val()+'/claimedUid').val() === auth.uid && root.child('codeSession/'+auth.uid+'/slot').val() === $t+':combat:gd:'+$a+':'+$r"
+              }
+            }
+          }
+        },
+
+        "martial": {
+          ".write": "root.child('tournamentStaff/'+$t+'/'+auth.uid+'/assignments/martial0').val() === true || root.child('tournamentStaff/'+$t+'/'+auth.uid+'/assignments/martial1').val() === true || root.child('tournament/'+$t+'/setting/ownerUid').val() === auth.uid || (auth != null && root.child('tournament/'+$t+'/setting/openAccess').val() === true) || (auth != null && !root.child('tournament/'+$t+'/setting/ownerUid').exists()) || root.child('appAdmin/'+auth.uid).val() === true",
+          "$m": {
+            "team": {
+              "$k": {
+                // Điểm tổng của đội do CHÍNH máy giám định tính lại sau mỗi
+                // lần chấm (submitMartialRefereeScore). Khoá ô này thì điểm
+                // tổng đứng im mãi.
+                "finalScore": {
+                  ".write": "root.child('codeSession/'+auth.uid+'/code').isString() && root.child('codeSession/'+auth.uid+'/slot').isString() && root.child('accessCode/'+root.child('codeSession/'+auth.uid+'/code').val()+'/claimedUid').val() === auth.uid && root.child('codeSession/'+auth.uid+'/slot').val().beginsWith($t+':martial:gd:')"
+                },
+                "refereeMartial": {
+                  "$r": {
+                    // Đường chấm thi quyền KHÔNG chứa số sân, nên rules chỉ
+                    // kiểm được đúng giải + đúng vị trí giám định, không kiểm
+                    // được đúng sân. Vá bằng lastMatchMartial — việc tuỳ chọn,
+                    // xem mục 6 của kế hoạch.
+                    ".write": "root.child('codeSession/'+auth.uid+'/code').isString() && root.child('codeSession/'+auth.uid+'/slot').isString() && root.child('accessCode/'+root.child('codeSession/'+auth.uid+'/code').val()+'/claimedUid').val() === auth.uid && root.child('codeSession/'+auth.uid+'/slot').val().beginsWith($t+':martial:gd:') && root.child('codeSession/'+auth.uid+'/slot').val().endsWith(':'+$r)"
+                  }
+                }
+              }
+            }
+          }
+        },
+
+        "martialArena": {
+          "$a": {
+            ".write": "root.child('tournamentStaff/'+$t+'/'+auth.uid+'/assignments/'+'martial'+$a).val() === true || root.child('tournament/'+$t+'/setting/ownerUid').val() === auth.uid || (auth != null && root.child('tournament/'+$t+'/setting/openAccess').val() === true) || (auth != null && !root.child('tournament/'+$t+'/setting/ownerUid').exists()) || root.child('appAdmin/'+auth.uid).val() === true"
+          }
+        }
+      }
+    },
+
+    // ----- Đơn xin quyền giám sát ---------------------------------------------
+    "tournamentRequest": {
+      ".read": "root.child('appAdmin/'+auth.uid).val() === true",
+      "$t": {
+        ".read": "root.child('tournament/'+$t+'/setting/ownerUid').val() === auth.uid || root.child('appAdmin/'+auth.uid).val() === true",
+        // Chủ giải phải xoá được CẢ nhánh đơn của giải mình — không có dòng này
+        // thì một dấu `rejectedAt` cũ nằm lại vĩnh viễn và người bị từ chối
+        // không bao giờ nộp lại được, kể cả khi giải đã đóng rồi mở lại.
+        // Không nới lỏng gì: cascade xuống `$uid` cũng chỉ là quyền chủ giải
+        // vốn đã có ở đó.
+        ".write": "root.child('tournament/'+$t+'/setting/ownerUid').val() === auth.uid || root.child('appAdmin/'+auth.uid).val() === true",
+        "$uid": {
+          ".read": "auth.uid === $uid",
+          // Tự nộp / tự rút đơn, chỉ khi giải đang mở và chưa bị từ chối.
+          // Key là uid nên tối đa 1 đơn / người / giải: không spam được.
+          ".write": "(auth.uid === $uid && root.child('tournament/'+$t+'/setting/status').val() === 'open' && !data.child('rejectedAt').exists()) || root.child('tournament/'+$t+'/setting/ownerUid').val() === auth.uid || root.child('appAdmin/'+auth.uid).val() === true"
+        }
+      }
+    },
+
+    // ----- Nhân sự đã được duyệt ----------------------------------------------
+    "tournamentStaff": {
+      ".read": "root.child('appAdmin/'+auth.uid).val() === true",
+      "$t": {
+        ".read": "root.child('tournament/'+$t+'/setting/ownerUid').val() === auth.uid || root.child('appAdmin/'+auth.uid).val() === true",
+        // Xoá cả nhánh nhân sự của giải mình (dọn giải cũ, dọn dữ liệu test).
+        ".write": "root.child('tournament/'+$t+'/setting/ownerUid').val() === auth.uid || root.child('appAdmin/'+auth.uid).val() === true",
+        "$uid": {
+          ".read": "auth.uid === $uid",
+          // CHỈ chủ giải duyệt. Người được duyệt chỉ được TỰ RÚT LUI.
+          ".write": "root.child('tournament/'+$t+'/setting/ownerUid').val() === auth.uid || root.child('appAdmin/'+auth.uid).val() === true || (auth.uid === $uid && !newData.exists())",
+          // Sân vào lần gần nhất do chính giám sát ghi, để lần sau vào thẳng.
+          "lastArena": {
+            ".write": "auth.uid === $uid && data.parent().exists()"
+          }
+        }
+      }
+    },
+
+    // ----- Kho mã giám định ----------------------------------------------------
+    "accessCode": {
+      // Không ai quét được toàn bộ kho mã...
+      ".read": false,
+      "$code": {
+        // ...phải biết mã mới đọc được.
+        ".read": true,
+        // tKey và arenaKey là bản sao dạng CHUỖI của t và kind+a, để mọi phép
+        // nối trong rules là chuỗi + chuỗi.
+        // Vế đầu cho lúc tạo/sửa (đọc newData), vế sau cho lúc xoá (newData
+        // không tồn tại nên phải đọc data).
+        ".write": "(newData.child('tKey').isString() && (root.child('tournament/'+newData.child('tKey').val()+'/setting/ownerUid').val() === auth.uid || (auth != null && !root.child('tournament/'+newData.child('tKey').val()+'/setting/ownerUid').exists()) || (auth != null && root.child('tournament/'+newData.child('tKey').val()+'/setting/openAccess').val() === true) || root.child('tournamentStaff/'+newData.child('tKey').val()+'/'+auth.uid+'/assignments/'+newData.child('arenaKey').val()).val() === true)) || (data.child('tKey').isString() && (root.child('tournament/'+data.child('tKey').val()+'/setting/ownerUid').val() === auth.uid || (auth != null && !root.child('tournament/'+data.child('tKey').val()+'/setting/ownerUid').exists()) || (auth != null && root.child('tournament/'+data.child('tKey').val()+'/setting/openAccess').val() === true) || root.child('tournamentStaff/'+data.child('tKey').val()+'/'+auth.uid+'/assignments/'+data.child('arenaKey').val()).val() === true)) || root.child('appAdmin/'+auth.uid).val() === true",
+        // Giám định tự nhận mã về máy mình; đã có người giữ thì chặn — đúng
+        // cái lỗi "hai người gõ trùng một mã" cần chặn.
+        "claimedUid": {
+          ".write": "newData.val() === auth.uid && (!data.exists() || data.val() === auth.uid)"
+        },
+        "claimedAt": {
+          ".write": "newData.parent().child('claimedUid').val() === auth.uid"
+        }
+      }
+    },
+
+    // ----- Phiên chấm điểm của giám định ---------------------------------------
+    "codeSession": {
+      "$uid": {
+        ".read": "auth.uid === $uid",
+        // Không tự bịa slot được: nó phải khớp đúng slot của mã đã claim.
+        ".write": "auth.uid === $uid && (!newData.exists() || (newData.child('code').isString() && root.child('accessCode/'+newData.child('code').val()+'/claimedUid').val() === auth.uid && newData.child('slot').val() === root.child('accessCode/'+newData.child('code').val()+'/slot').val()))"
+      }
+    },
+
+    // ----- Chỉ mục mã theo giải ------------------------------------------------
+    // Bắt buộc phải có: accessCode để .read false nên chính chủ giải cũng không
+    // liệt kê ngược ra được mã của giải mình. Không có nhánh này thì bảng mã
+    // không dựng được.
+    "tournamentCodeIndex": {
+      "$t": {
+        ".read": "root.child('tournament/'+$t+'/setting/ownerUid').val() === auth.uid || (auth != null && !root.child('tournament/'+$t+'/setting/ownerUid').exists()) || root.child('appAdmin/'+auth.uid).val() === true",
+        ".write": "root.child('tournament/'+$t+'/setting/ownerUid').val() === auth.uid || (auth != null && !root.child('tournament/'+$t+'/setting/ownerUid').exists()) || root.child('appAdmin/'+auth.uid).val() === true",
+        "$sanKey": {
+          // Giám sát chỉ đọc/ghi đúng sân mình được phân công.
+          ".read": "root.child('tournamentStaff/'+$t+'/'+auth.uid+'/assignments/'+$sanKey).val() === true || (auth != null && root.child('tournament/'+$t+'/setting/openAccess').val() === true)",
+          ".write": "root.child('tournamentStaff/'+$t+'/'+auth.uid+'/assignments/'+$sanKey).val() === true || (auth != null && root.child('tournament/'+$t+'/setting/openAccess').val() === true)"
+        }
+      }
+    },
+
+    // ----- Hồ sơ người dùng ----------------------------------------------------
+    "users": {
+      ".read": "root.child('appAdmin/'+auth.uid).val() === true",
+      "$uid": {
+        ".read": "auth.uid === $uid",
+        ".write": "auth.uid === $uid"
+      }
+    },
+
+    // Quyền admin CHỈ sửa được trong Firebase Console. Cố ý không có đường cấp
+    // quyền admin từ trong app: không có server thì mọi đường cấp quyền trong
+    // app đều là đường để người khác leo lên.
+    "appAdmin": {
+      "$uid": {
+        ".read": "auth.uid === $uid",
+        ".write": false
+      }
+    },
+
+    // Mật khẩu chung đã bỏ hẳn khỏi app. Node cũ khoá lại; xoá tay trong Console.
+    "commonSetting": {
+      ".read": false,
+      ".write": false
+    },
+
+    "presence": {
+      ".read": true,
+      "$k": {
+        ".write": "auth != null"
+      }
+    }
   }
 }

@@ -1,7 +1,7 @@
 export { default as Button } from './Button';
 export type { ButtonVariant, ButtonSize } from './Button';
 export { default as Modal } from './Modal';
-export { default as PasswordModal } from './PasswordModal';
+export { default as NumericKeypad } from './NumericKeypad';
 export { default as ConfirmModal } from './ConfirmModal';
 export { default as PageShell } from './PageShell';
 export type { Accent } from './PageShell';

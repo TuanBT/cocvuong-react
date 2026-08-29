@@ -237,38 +237,80 @@ import { ref, set, update, Database } from 'firebase/database';
 /**
  * Sync tất cả pending writes lên Firebase
  */
-export async function syncPendingWrites(db: Database): Promise<{ success: number; failed: number }> {
+export async function syncPendingWrites(
+  db: Database
+): Promise<{ success: number; failed: number; rejected: number }> {
   const writes = getPendingWrites();
   if (writes.length === 0) {
-    return { success: 0, failed: 0 };
+    return { success: 0, failed: 0, rejected: 0 };
   }
   
   console.log(`[Offline] Syncing ${writes.length} pending writes...`);
   
   let success = 0;
   let failed = 0;
-  
+  let rejected = 0;
+
   for (const write of writes) {
     try {
       const dbRef = ref(db, write.path);
-      
+
       if (write.operation === 'set') {
         await set(dbRef, write.data);
       } else {
         await update(dbRef, write.data);
       }
-      
+
       removePendingWrite(write.id);
       success++;
       console.log(`[Offline] Synced: ${write.path}`);
-    } catch (err) {
-      console.error(`[Offline] Failed to sync: ${write.path}`, err);
-      failed++;
+    } catch (err: any) {
+      // Rules tu choi la loi VINH VIEN, khong phai loi mang: quyen da bi thu
+      // hoi, hoac giai da dong. Giu lai trong hang doi thi lan sau van truot,
+      // ma nguoi dung khong bao gio biet diem cua minh khong len.
+      if (isPermissionDenied(err)) {
+        removePendingWrite(write.id);
+        rejected++;
+        console.warn(`[Offline] Rejected by rules, dropped: ${write.path}`);
+      } else {
+        console.error(`[Offline] Failed to sync: ${write.path}`, err);
+        failed++;
+      }
     }
   }
-  
-  console.log(`[Offline] Sync complete: ${success} success, ${failed} failed`);
-  return { success, failed };
+
+  console.log(`[Offline] Sync complete: ${success} success, ${failed} failed, ${rejected} rejected`);
+
+  // Nuot loi o day la kieu hong te nhat: nguoi dung tuong da cham xong
+  if (rejected > 0) {
+    notifyRejected(rejected);
+  }
+
+  return { success, failed, rejected };
+}
+
+function isPermissionDenied(err: any): boolean {
+  const code = String(err?.code || '');
+  const message = String(err?.message || '');
+  return code.includes('permission-denied') || message.includes('PERMISSION_DENIED');
+}
+
+/**
+ * Bao ra man hinh khi ghi bi rules tu choi.
+ *
+ * Nap `react-toastify` dong de `offlineService` van dung duoc trong bo e2e
+ * (chay tren Node, khong co DOM).
+ */
+function notifyRejected(count: number): void {
+  const text =
+    `${count} thay đổi không lưu được — quyền chấm của bạn đã bị thu hồi ` +
+    `hoặc giải đã đóng. Báo giám sát trước khi chấm tiếp.`;
+
+  import('react-toastify')
+    .then(({ toast }) => toast.error(text, { autoClose: 10000 }))
+    .catch(() => {
+      if (typeof window !== 'undefined') window.alert(text);
+    });
 }
 
 // =============================================================================

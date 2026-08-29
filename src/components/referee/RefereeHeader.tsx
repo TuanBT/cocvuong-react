@@ -13,6 +13,17 @@ interface RefereeHeaderProps {
   chips: RefereeHeaderChip[];
   /** Ten vi tri giam dinh, hien noi bat ben phai */
   refereeName: string;
+  /**
+   * Ten giai, hien co dinh duoi thanh chip.
+   *
+   * Bat buoc tu khi dung ma 2 so: go nham mot chu so co the roi vao giai cua
+   * nguoi khac, va ten giai la thu duy nhat de nhan ra minh dang o nham cho.
+   */
+  tournamentName?: string;
+  /** Nhan "GIAI THU" do — tuyet doi khong de ai nham voi giai that */
+  isDemo?: boolean;
+  /** Thoat phien / doi vai tro */
+  onExit?: () => void;
   onOpenShortcuts: () => void;
   onOpenHelp: () => void;
 }
@@ -28,6 +39,9 @@ const RefereeHeader: React.FC<RefereeHeaderProps> = ({
   isOnline,
   chips,
   refereeName,
+  tournamentName,
+  isDemo,
+  onExit,
   onOpenShortcuts,
   onOpenHelp,
 }) => {
@@ -88,12 +102,34 @@ const RefereeHeader: React.FC<RefereeHeaderProps> = ({
                     <i className="fa-solid fa-circle-question text-slate-400 w-4" aria-hidden="true" />
                     Giúp đỡ
                   </button>
+                  {onExit && (
+                    <button
+                      type="button"
+                      onClick={() => { setMenuOpen(false); onExit(); }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50
+                        flex items-center gap-2 transition-colors border-t border-slate-100"
+                    >
+                      <i className="fa-solid fa-right-from-bracket w-4" aria-hidden="true" />
+                      Thoát / đổi vai trò
+                    </button>
+                  )}
                 </div>
               </>
             )}
           </div>
         </div>
       </div>
+
+      {(tournamentName || isDemo) && (
+        <p className="mt-1.5 mb-0 flex items-center gap-2 text-[11px] leading-tight">
+          {isDemo && (
+            <span className="bg-red-600 text-white font-bold px-1.5 py-0.5 rounded flex-shrink-0">
+              GIẢI THỬ
+            </span>
+          )}
+          <span className="text-slate-500 truncate">{tournamentName}</span>
+        </p>
+      )}
 
       {!isOnline && (
         <p className="mt-2 mb-0 bg-red-50 text-red-700 py-1.5 px-2 text-center text-xs font-medium

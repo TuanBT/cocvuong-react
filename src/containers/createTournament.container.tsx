@@ -1,12 +1,14 @@
 import React, { Component } from 'react';
 import { database } from '../firebase';
-import { ref, get, update, remove, child, onValue, Database } from "firebase/database";
+import { ref, get, update, remove, child, Database } from "firebase/database";
 import { toast } from 'react-toastify';
 
 import {
-  PageShell, PageHeader, Button, SectionCard, PasswordModal, ConfirmModal,
-  LoadingOverlay, Modal, Toast, AppFooter,
+  PageShell, PageHeader, Button, SectionCard, ConfirmModal,
+  LoadingOverlay, Toast, AppFooter,
 } from '../components/ui';
+import { AccountChip } from '../components/auth';
+import StaffApprovalPanel from '../components/tournament/StaffApprovalPanel';
 import { read, write, utils } from 'xlsx';
 import FileSaver from "file-saver";
 import { NavLink } from "react-router-dom";
@@ -30,15 +32,23 @@ import mauchuandoikhang from '../assets/template/1-Mau_Chuan_Doi_Khang.xlsx';
 import mauchuanthiquyen from '../assets/template/2-Mau_Chuan_Thi_Quyen.xlsx';
 import mauthodoikhang from '../assets/template/3-Mau_Tho_Doi_Khang.xlsx';
 import mauthothiquyen from '../assets/template/4-Mau_Tho_Thi_Quyen.xlsx';
+import { AppUser } from '../services/authService';
+import {
+  TournamentSummary, addTournament as createTournamentRecord,
+  claimTournament, closeTournament, isLegacy, listTournaments,
+  openTournament, reopenTournament,
+} from '../services/tournamentService';
+import { ensureTournamentCodes } from '../services/accessCodeService';
 
-interface CreateTournamentContainerProps {}
+interface CreateTournamentContainerProps {
+  user: AppUser;
+}
 
 interface CreateTournamentContainerState {
   data: any[];
-  password: string;
   tournamentName: string;
-  showPasswordModal: boolean;
-  showChooseArenaNoModal: boolean;
+  /** Tom tat cac giai cua chinh minh (+ giai cu chua co chu) */
+  summaries: TournamentSummary[];
   // UI State
   collapsedSections: {[key: string]: boolean};
   isLoading: boolean;
@@ -207,10 +217,8 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     
     this.state = {
       data: [],
-      password: '',
       tournamentName: '',
-      showPasswordModal: true,
-      showChooseArenaNoModal: false,
+      summaries: [],
       // UI State
       collapsedSections: {},
       isLoading: false,
@@ -236,82 +244,46 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
 
   componentDidMount() {
-    // Check for cached password
-    this.checkCachedPassword();
+    this.main();
   }
 
-  checkCachedPassword = () => {
-    const cachedValid = localStorage.getItem('createTournament_password_valid');
-    const cachedTime = localStorage.getItem('createTournament_password_timestamp');
-    
-    if (cachedValid === 'true' && cachedTime) {
-      const timestamp = parseInt(cachedTime, 10);
-      const now = Date.now();
-      const sixHours = 6 * 60 * 60 * 1000;
-      
-      if (now - timestamp < sixHours) {
-        // Password still valid, skip modal and show arena selection
-        this.setState({ showPasswordModal: false, showChooseArenaNoModal: true });
-        this.main();
-        return;
-      }
-    }
-    // Show password modal if cache invalid
-    this.setState({ showPasswordModal: true });
-  }
-
-  cachePassword = () => {
-    localStorage.setItem('createTournament_password_valid', 'true');
-    localStorage.setItem('createTournament_password_timestamp', Date.now().toString());
-  }
-
-  verifyPassword = () => {
-    const password = this.state.password;
-
-    if (password != null && password !== "") {
-      onValue(ref(this.db, 'commonSetting/passwordSetting'), (snapshot) => {
-        if (password === String(snapshot.val())) {
-          this.cachePassword();
-          this.setState({ showPasswordModal: false, showChooseArenaNoModal: true });
-          this.main();
-        } else {
-          toast.error("Sai mật khẩu!");
-          window.location.reload();
-        }
-      }, { onlyOnce: true });
-    } else {
-      toast.error("Sai mật khẩu!");
-    }
-  }
-
+  /**
+   * Chi liet ke **giai cua minh** (+ giai cu chua co chu, de du lieu cu khong
+   * bi bo roi). Danh sach giu dang `[index that, ten]` — sau khi loc thi vi tri
+   * trong mang KHONG con trung voi index trong DB nua, nen moi cho chon phai
+   * dung `tournament[0]`.
+   */
   main() {
+    const { user } = this.props;
     this.setState({ tournamentsLoading: true });
-    get(child(ref(this.db), 'tournament')).then((snapshot) => {
-      this.tournamentObj = snapshot.val();
-      this.tournaments = [];
 
-      if (this.tournamentObj) {
-        for (let i = 0; i < this.tournamentObj.length; i++) {
-          this.tournaments.push([i, this.tournamentObj[i].setting.tournamentName]);
+    listTournaments()
+      .then((all) => {
+        const mine = all.filter((t) => t.ownerUid === user.uid || isLegacy(t));
+        this.tournaments = mine.map((t) => [t.index, t.name] as [number, string]);
+
+        // Giai dang chon khong con trong danh sach thi ve giai dau tien
+        if (!mine.some((t) => t.index === this.tournamentNoIndex)) {
+          this.tournamentNoIndex = mine.length ? mine[0].index : 0;
+          this.martialArenaNoIndex = this.tournamentNoIndex;
         }
-      }
-      this.setState({
-        data: this.tournaments,
-        tournamentsLoading: false,
-        selectedTournament: this.tournamentNoIndex,
+
+        this.setState({
+          data: this.tournaments,
+          summaries: mine,
+          tournamentsLoading: false,
+          selectedTournament: this.tournamentNoIndex,
+        });
+        this.loadTournamentName();
+      })
+      .catch(() => {
+        this.setState({ tournamentsLoading: false });
+        toast.error('Không đọc được danh sách giải.');
       });
-    }).catch(() => {
-      this.setState({ tournamentsLoading: false });
-    });
+  }
 
-    get(ref(this.db, 'commonSetting')).then((snapshot) => {
-      this.settingObj = snapshot.val();
-    });
-
-    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
-      this.settingObj = snapshot.val();
-      this.setState({ tournamentName: this.settingObj?.tournamentName || '' });
-    });
+  get summary(): TournamentSummary | null {
+    return this.state.summaries.find((t) => t.index === this.tournamentNoIndex) || null;
   }
 
   chooseTournament = (tournamentNoIndex: number) => {
@@ -330,61 +302,146 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     });
   }
 
-  /** Them mot giai moi vao cuoi danh sach, dung thiet dat mac dinh */
-  addTournament = () => {
-    get(child(ref(this.db), 'tournament')).then((snapshot) => {
-      const tournamentObj = snapshot.val();
-      const newIndex = tournamentObj ? tournamentObj.length : 0;
-      const defaultSetting = JSON.parse(JSON.stringify(DEFAULT_SETTING));
+  /**
+   * Them mot giai moi vao cuoi danh sach, dong dau chu so huu, va **sinh san
+   * ma giam dinh** — mo Thiet dat ra la da co ma de doc, khong bat bam them
+   * mot buoc nua.
+   */
+  addTournament = async () => {
+    const { user } = this.props;
+    this.setState({ isLoading: true, loadingMessage: 'Đang tạo giải…' });
+    try {
+      const newIndex = await createTournamentRecord(user);
+      this.tournamentNoIndex = newIndex;
+      this.martialArenaNoIndex = newIndex;
 
-      update(ref(this.db, 'tournament/' + newIndex + '/setting'), defaultSetting.setting).then(() => {
-        this.tournamentNoIndex = newIndex;
-        this.martialArenaNoIndex = newIndex;
-        this.setState({ selectedTournament: newIndex, tournamentCreated: false });
-        this.main();
-        toast.success("Đã thêm giải đấu mới!");
-      });
-    });
-  }
-
-  /** Xoa giai cuoi danh sach. Khong cho xoa neu chi con mot giai. */
-  deleteTournament = () => {
-    get(child(ref(this.db), 'tournament')).then((snapshot) => {
-      const tournamentObj = snapshot.val();
-      if (!tournamentObj) return;
-
-      if (tournamentObj.length <= 1) {
-        toast.error("Không thể xoá giải đấu duy nhất!");
-        return;
+      const setting = JSON.parse(JSON.stringify(DEFAULT_SETTING)).setting;
+      try {
+        const result = await ensureTournamentCodes(
+          newIndex,
+          {
+            combatReferees: setting.combat.isShowFiveReferee ? 5 : 3,
+            martialReferees: setting.martial.isShowFiveReferee ? 5 : 3,
+            useArenaB: setting.combat.isShowArenaB !== false,
+            tournamentName: setting.tournamentName,
+          },
+          user.uid
+        );
+        if (result.poolPressure) {
+          toast.warn('Kho mã sắp hết — kiểm tra xem còn giải cũ chưa đóng không.', { autoClose: 8000 });
+        }
+      } catch (err: any) {
+        toast.warn(err?.message || 'Chưa cấp được mã giám định — vào Thiết đặt cấp lại.');
       }
 
-      const lastIndex = tournamentObj.length - 1;
-      remove(ref(this.db, 'tournament/' + lastIndex)).then(() => {
-        // Chi doi lua chon khi giai dang chon chinh la giai vua bi xoa
-        const nextIndex = this.tournamentNoIndex >= lastIndex ? lastIndex - 1 : this.tournamentNoIndex;
-        this.tournamentNoIndex = nextIndex;
-        this.martialArenaNoIndex = nextIndex;
-        this.setState({ selectedTournament: nextIndex, tournamentCreated: false });
-        this.main();
-        toast.success("Xoá giải đấu thành công!");
-      });
-    });
+      this.setState({ selectedTournament: newIndex, tournamentCreated: false });
+      this.main();
+      toast.success('Đã thêm giải đấu mới!');
+    } catch (err: any) {
+      toast.error(err?.message || 'Không tạo được giải mới.');
+    } finally {
+      this.setState({ isLoading: false, loadingMessage: '' });
+    }
+  }
+
+  // ==================== Trang thai giai ====================
+
+  handleOpenTournament = async () => {
+    try {
+      await openTournament(this.tournamentNoIndex);
+      this.main();
+      toast.success('Đã mở giải — từ giờ giải nhận được đơn xin quyền giám sát.');
+    } catch {
+      toast.error('Không mở được giải này.');
+    }
+  }
+
+  handleCloseTournament = () => {
+    this.showConfirm(
+      'Đóng giải',
+      'Giải sẽ biến mất khỏi bảng chọn của giám sát và giám định, và TOÀN BỘ mã giám định bị thu hồi ngay. Thông tin giải vẫn tra cứu được ở trang công khai.',
+      async () => {
+        try {
+          const revoked = await closeTournament(this.tournamentNoIndex);
+          this.main();
+          toast.success(`Đã đóng giải và thu hồi ${revoked} mã giám định.`);
+        } catch {
+          toast.error('Không đóng được giải này.');
+        }
+      }
+    );
+  }
+
+  handleReopenTournament = async () => {
+    try {
+      await reopenTournament(this.tournamentNoIndex);
+      this.main();
+      toast.info('Đã mở lại giải. Mã giám định phải cấp lại ở trang Thiết đặt.');
+    } catch {
+      toast.error('Không mở lại được giải này.');
+    }
+  }
+
+  /** Nhan mot giai cu ve tai khoan minh — migrate dan qua UI thay vi chay script */
+  handleClaimTournament = async () => {
+    try {
+      await claimTournament(this.tournamentNoIndex, this.props.user);
+      this.main();
+      toast.success('Giải này giờ thuộc tài khoản của bạn.');
+    } catch (err: any) {
+      toast.error(err?.message || 'Không nhận được giải này.');
+    }
+  }
+
+  /**
+   * Xoa giai CUOI danh sach. Van la giai cuoi cua ca mang chu khong phai cua
+   * rieng minh — `tournament` la mang theo index, xoa phan tu giua mang la
+   * lam xe dich moi thu phia sau.
+   *
+   * Co "dong giai" roi thi gan nhu khong con phai xoa nua, nen o day chi siet
+   * lai: khong cho xoa giai cua nguoi khac va khong cho xoa giai thu.
+   */
+  deleteTournament = async () => {
+    const all = await listTournaments();
+    if (all.length <= 1) {
+      toast.error("Không thể xoá giải đấu duy nhất!");
+      return;
+    }
+
+    const last = all[all.length - 1];
+    if (last.demo) {
+      toast.error('Giải cuối là GIẢI THỬ — không xoá được. Bấm “Chấm lại” nếu muốn làm sạch.');
+      return;
+    }
+    if (last.ownerUid && last.ownerUid !== this.props.user.uid) {
+      toast.error(`Giải cuối "${last.name.replace(/\n/g, ' ')}" là của người khác — không xoá được.`);
+      return;
+    }
+
+    try {
+      await remove(ref(this.db, 'tournament/' + last.index));
+      if (this.tournamentNoIndex >= last.index) {
+        this.tournamentNoIndex = Math.max(0, last.index - 1);
+        this.martialArenaNoIndex = this.tournamentNoIndex;
+      }
+      this.setState({ tournamentCreated: false });
+      this.main();
+      toast.success("Xoá giải đấu thành công!");
+    } catch {
+      toast.error('Không xoá được giải này.');
+    }
   }
 
   confirmDeleteTournament = () => {
     const lastName = this.tournaments.length > 0
       ? this.tournaments[this.tournaments.length - 1][1]
       : '';
+
     this.showConfirm(
       'Xoá giải đấu cuối',
       `Giải "${lastName}" cùng toàn bộ danh sách vận động viên, lịch thi đấu và điểm số sẽ bị xoá vĩnh viễn.`,
       this.deleteTournament
     );
-  }
-
-  chooseInfoNo = () => {
-    this.setState({ showChooseArenaNoModal: false });
-    this.main();
   }
 
   importCombat = () => {
@@ -722,14 +779,6 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
     this.exportExcel(this.martialArrangeHeader, this.state.data, "Thong tin THI QUYEN");
   }
 
-  inputPw = (value: string) => {
-    if (value === "-1") {
-      this.setState({ password: '' });
-    } else {
-      this.setState(prevState => ({ password: prevState.password + value }));
-    }
-  }
-
   // Ô trống trong Excel là undefined => String(undefined) sẽ ra chuỗi "undefined" ghi thẳng vào DB
   cell = (value: any) => (value !== undefined && value !== null ? String(value).trim() : '')
 
@@ -885,19 +934,6 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
       });
     }
   }
-
-  showPasswordModal = () => {
-    this.setState({ showPasswordModal: true });
-  };
-  hidePasswordModal = () => {
-    this.setState({ showPasswordModal: false });
-  };
-  showChooseArenaNoModal = () => {
-    this.setState({ showChooseArenaNoModal: true });
-  };
-  hideChooseInfoNoModal = () => {
-    this.setState({ showChooseArenaNoModal: false });
-  };
 
   // UI Helper Functions
   toggleSection = (sectionKey: string) => {
@@ -2489,14 +2525,20 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
   render() {
     const {
-      showPasswordModal, showChooseArenaNoModal, password, tournamentName,
+      tournamentName,
       isLoading, loadingMessage, showConfirmModal, confirmTitle, confirmMessage,
       wizardType, tournamentsLoading, selectedTournament,
     } = this.state;
+    const { user } = this.props;
+    const summary = this.summary;
 
     return (
       <PageShell accent={wizardType === 'doikhang' ? 'combat' : 'martial'}>
-        <PageHeader title="Tạo giải đấu" icon="fa-solid fa-file-arrow-up" badge={tournamentName} />
+        <PageHeader title="Tạo giải đấu" icon="fa-solid fa-file-arrow-up" badge={tournamentName}>
+          <div className="flex justify-end">
+            <AccountChip user={user} />
+          </div>
+        </PageHeader>
 
         <main className="flex-1 w-full">
           {/* Quan ly giai dau nam o day chu khong o trang Thiet dat: tao va xoa
@@ -2519,26 +2561,38 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
                 </div>
               ) : this.tournaments.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                  {this.tournaments.map((tournament, i) => (
-                    <label
-                      key={tournament[0]}
-                      className={`flex items-center gap-3 p-3.5 border-2 rounded-control cursor-pointer transition-colors
-                        ${selectedTournament === i
-                          ? 'border-accent-500 bg-accent-50'
-                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
-                    >
-                      <input
-                        type="radio"
-                        name="tournamentPicker"
-                        checked={selectedTournament === i}
-                        onChange={() => this.chooseTournament(i)}
-                        className="w-4 h-4 flex-shrink-0"
-                      />
-                      <span className="font-medium text-slate-700 whitespace-pre-line min-w-0">
-                        {tournament[1]}
-                      </span>
-                    </label>
-                  ))}
+                  {this.tournaments.map((tournament) => {
+                    const row = this.state.summaries.find((x) => x.index === tournament[0]);
+                    return (
+                      <label
+                        key={tournament[0]}
+                        className={`flex items-center gap-3 p-3.5 border-2 rounded-control cursor-pointer transition-colors
+                          ${selectedTournament === tournament[0]
+                            ? 'border-accent-500 bg-accent-50'
+                            : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
+                      >
+                        <input
+                          type="radio"
+                          name="tournamentPicker"
+                          checked={selectedTournament === tournament[0]}
+                          onChange={() => this.chooseTournament(tournament[0])}
+                          className="w-4 h-4 flex-shrink-0"
+                        />
+                        <span className="min-w-0">
+                          <span className="block font-medium text-slate-700 whitespace-pre-line">
+                            {tournament[1]}
+                          </span>
+                          {row && (
+                            <span className="block text-xs text-slate-400 mt-0.5">
+                              {row.status === 'open' ? 'đang mở'
+                                : row.status === 'closed' ? 'đã đóng' : 'chưa mở'}
+                              {!row.ownerUid && ' · giải cũ chưa có chủ'}
+                            </span>
+                          )}
+                        </span>
+                      </label>
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-slate-400 italic m-0">Chưa có giải đấu nào</p>
@@ -2554,10 +2608,32 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
                 </NavLink>.
               </p>
 
-              <div className="flex flex-wrap gap-2.5 mt-4 pt-4 border-t border-slate-100">
+              <div className="flex flex-wrap items-center gap-2.5 mt-4 pt-4 border-t border-slate-100">
                 <Button variant="success" icon="fa-solid fa-plus" onClick={this.addTournament}>
                   Thêm giải đấu
                 </Button>
+
+                {summary && !summary.ownerUid && (
+                  <Button variant="primary" icon="fa-solid fa-hand-holding-heart"
+                    onClick={this.handleClaimTournament}>
+                    Nhận giải này về tài khoản tôi
+                  </Button>
+                )}
+
+                {summary && summary.ownerUid && summary.status !== 'open' && (
+                  <Button variant="primary" icon="fa-solid fa-door-open"
+                    onClick={summary.status === 'closed' ? this.handleReopenTournament : this.handleOpenTournament}>
+                    {summary.status === 'closed' ? 'Mở lại giải' : 'Mở giải'}
+                  </Button>
+                )}
+
+                {summary && summary.ownerUid && summary.status === 'open' && (
+                  <Button variant="warning" icon="fa-solid fa-flag-checkered"
+                    onClick={this.handleCloseTournament}>
+                    Đóng giải
+                  </Button>
+                )}
+
                 <Button
                   variant="danger"
                   icon="fa-solid fa-trash-can"
@@ -2567,69 +2643,34 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
                   Xoá giải đấu cuối
                 </Button>
               </div>
+
+              {summary && summary.status === 'draft' && summary.ownerUid && (
+                <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200
+                  rounded-control px-3 py-2.5 mt-3 mb-0">
+                  <i className="fa-solid fa-circle-info mr-1.5" aria-hidden="true" />
+                  Giải chưa mở nên chưa nhận được đơn xin quyền giám sát. Nhập xong danh sách
+                  thì bấm <strong>Mở giải</strong>.
+                </p>
+              )}
             </SectionCard>
           </div>
+
+          {summary && summary.ownerUid && (
+            <div className="w-full max-w-5xl mx-auto px-3 sm:px-4 pt-5">
+              <SectionCard title="Giám sát của giải" icon="fa-solid fa-user-shield">
+                <StaffApprovalPanel
+                  tournamentIndex={summary.index}
+                  ownerUid={user.uid}
+                  tournamentStatus={summary.status}
+                />
+              </SectionCard>
+            </div>
+          )}
 
           {this.renderWizardMode()}
         </main>
 
         <AppFooter />
-
-        <PasswordModal
-          isOpen={showPasswordModal}
-          value={password}
-          onInput={this.inputPw}
-          onSubmit={this.verifyPassword}
-          onClose={this.hidePasswordModal}
-        />
-
-        <Modal
-          isOpen={showChooseArenaNoModal}
-          onClose={this.hideChooseInfoNoModal}
-          title="Chọn giải đấu"
-          icon="fa-solid fa-trophy"
-          footer={
-            <>
-              <Button variant="secondary" block onClick={this.hideChooseInfoNoModal}>Hủy</Button>
-              <Button variant="primary" block onClick={this.chooseInfoNo}>Xác nhận</Button>
-            </>
-          }
-        >
-          {tournamentsLoading ? (
-            <div className="flex items-center justify-center py-8 gap-3">
-              <span className="w-8 h-8 border-[3px] border-accent-100 border-t-accent-600 rounded-full animate-spin" />
-              <span className="text-slate-500">Đang tải danh sách...</span>
-            </div>
-          ) : this.tournaments && this.tournaments.length > 0 ? (
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {this.tournaments.map((tournament, i) => (
-                <label
-                  key={tournament[0]}
-                  className={`flex items-center gap-3 p-3 border-2 rounded-control cursor-pointer transition-colors
-                    ${selectedTournament === i
-                      ? 'border-accent-500 bg-accent-50'
-                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
-                >
-                  <input
-                    type="radio"
-                    name="tournamentRadio"
-                    checked={selectedTournament === i}
-                    onChange={() => this.chooseTournament(i)}
-                    className="w-4 h-4 flex-shrink-0"
-                  />
-                  <span className="font-medium text-slate-700 whitespace-pre-line min-w-0">
-                    {tournament[1]}
-                  </span>
-                </label>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-6 text-slate-400">
-              <i className="fa-solid fa-folder-open text-3xl mb-2 block" aria-hidden="true" />
-              <p className="m-0">Không có giải đấu</p>
-            </div>
-          )}
-        </Modal>
 
         <LoadingOverlay isOpen={isLoading} message={loadingMessage} />
 
