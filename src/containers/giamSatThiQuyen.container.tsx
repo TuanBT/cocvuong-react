@@ -14,7 +14,7 @@ import { AppUser } from '../services/authService';
 import { SupervisorAccess } from '../components/tournament/RequestAccessPanel';
 import CodeBoardModal from '../components/tournament/CodeBoardModal';
 import { resetDemoTournament } from '../services/demoService';
-import { AccountChip } from '../components/auth';
+import { AccountIdentityRow, AccountSignOutItem } from '../components/auth';
 
 // Import Offline Service
 import {
@@ -822,10 +822,10 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
   resetDemo = async (): Promise<void> => {
     try {
       await resetDemoTournament(this.props.access.tournament.index);
-      toast.success('Đã chấm lại giải thử.');
+      toast.success('Đã xoá điểm — chấm cặp mới được rồi.');
       window.location.reload();
     } catch {
-      toast.error('Không chấm lại được giải thử.');
+      toast.error('Không xoá được điểm cũ.');
     }
   }
 
@@ -1008,14 +1008,12 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
             {/* Giai dang mo toang / giai thu phai nhin thay duoc,
                 khong de ai quen minh dang cham vao dau */}
             {access.tournament.demo && (
-              <span className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">GIẢI THỬ</span>
+              <span className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">CHẤM NHANH</span>
             )}
             {access.tournament.openAccess && !access.tournament.demo && (
               <span className="bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded"
                 title="Ai đăng nhập cũng chấm được trên giải này">MỞ TỰ DO</span>
             )}
-
-            <AccountChip user={user} subtitle={`${arenaName || 'Sân'} · Thi quyền`} />
 
             {/* Quick Menu Button */}
             <div className="relative">
@@ -1032,14 +1030,17 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
                     className="fixed inset-0 z-40" 
                     onClick={() => this.setState({ showQuickMenu: false })}
                   ></div>
-                  <div className="absolute right-0 top-10 bg-white rounded-lg shadow-xl border border-slate-200 py-2 min-w-[200px] z-50">
+                  <div className="absolute right-0 top-10 bg-white rounded-lg shadow-xl border border-slate-200 py-2 min-w-[220px] z-50">
+                    {/* Trang nay con dung de trinh chieu: ten nguoi dang truc
+                        nam trong day, khong bay tren man hinh ca giai cung nhin */}
+                    <AccountIdentityRow user={user} subtitle={`${arenaName || 'Sân'} · Thi quyền`} />
                     {access.tournament.demo && (
                       <button
                         onClick={() => { this.setState({ showQuickMenu: false }); this.resetDemo(); }}
                         className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                       >
                         <i className="fa fa-rotate-left"></i>
-                        Chấm lại giải thử
+                        Chấm cặp mới
                       </button>
                     )}
                     <button
@@ -1089,6 +1090,8 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
                       Cài đặt
                       <i className="fa fa-external-link text-slate-300 text-xs ml-auto"></i>
                     </button>
+                    <div className="border-t border-slate-200 my-1"></div>
+                    <AccountSignOutItem user={user} />
                   </div>
                 </>
               )}
@@ -1257,7 +1260,6 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
           tournamentIndex={access.tournament.index}
           tournamentName={access.tournament.name}
           arenaKeys={[access.arenaKey]}
-          ownerUid={access.tournament.ownerUid}
         />
 
         {/* Choose Match Modal - Grouped by Content Type */}

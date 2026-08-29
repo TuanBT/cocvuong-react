@@ -17,8 +17,9 @@ import { ref, get, set, update, child } from 'firebase/database';
 import { database } from '../firebase';
 import { DEFAULT_SETTING } from '../constants/settings';
 import { ensureTournamentCodes } from './accessCodeService';
+import { listTournaments, syncTournamentIndex } from './tournamentService';
 
-export const DEMO_NAME = 'GIẢI THỬ\n(dùng để tập dùng app)';
+export const DEMO_NAME = 'CHẤM NHANH\n(chưa có giải chính thức)';
 
 function emptyReferee(n: number) {
   return Array.from({ length: n }, () => ({ blueScore: 0, redScore: 0 }));
@@ -62,7 +63,7 @@ function demoPayload() {
     },
     combat: [
       {
-        match: { no: 1, type: 'Giải thử', category: 'Hạng 60kg Nam', win: '' },
+        match: { no: 1, type: 'Chấm nhanh', category: 'Hạng 60kg Nam', win: '' },
         fighters: {
           redFighter: fighter('Nguyễn Văn A', 'A01'),
           blueFighter: fighter('Trần Văn B', 'B01'),
@@ -74,11 +75,11 @@ function demoPayload() {
     ],
     martial: [
       {
-        match: { name: 'Long hổ quyền — Giải thử' },
+        match: { name: 'Long hổ quyền' },
         team: [
           {
             no: 1,
-            teamName: 'Đội thử 1',
+            teamName: 'Đội 1',
             finalScore: 0,
             fighters: [{ fighter: { code: 'TQ01', name: 'Lê Thị C', country: 'VN' } }],
             refereeMartial: emptyMartialReferee(5),
@@ -95,17 +96,15 @@ function demoPayload() {
   };
 }
 
-/** Tim giai thu dang co. Tra ve index, hoac null neu chua co. */
+/**
+ * Tim giai thu dang co. Tra ve index, hoac null neu chua co.
+ *
+ * Di qua chi muc chu khong doc ca cay: nut "Cham nhanh" bam vao la vao day,
+ * khong dang de tai vai MB chi de biet ban thu nam o o so may.
+ */
 export async function findDemoTournament(): Promise<number | null> {
-  const snap = await get(child(ref(database), 'tournament'));
-  const raw = snap.val();
-  if (!raw) return null;
-
-  const keys = Object.keys(raw).map(Number).filter((n) => !Number.isNaN(n));
-  for (const i of keys.sort((a, b) => a - b)) {
-    if (raw[i]?.setting?.demo === true) return i;
-  }
-  return null;
+  const all = await listTournaments();
+  return all.find((t) => t.demo)?.index ?? null;
 }
 
 /**
@@ -125,11 +124,12 @@ export async function ensureDemoTournament(): Promise<number> {
   const index = keys.length ? Math.max(...keys) + 1 : 0;
 
   await set(ref(database, `tournament/${index}`), demoPayload());
+  await syncTournamentIndex(index);
   await ensureDemoCodes(index);
   return index;
 }
 
-/** Giai thu 1 san x 2 mon x 3 giam dinh = 6 ma. Tinh vao tran kho ma. */
+/** Ban cham nhanh: 1 san x 2 mon x 3 giam dinh. Tinh vao tran kho ma. */
 async function ensureDemoCodes(index: number): Promise<void> {
   try {
     await ensureTournamentCodes(
@@ -138,7 +138,7 @@ async function ensureDemoCodes(index: number): Promise<void> {
         combatReferees: 3,
         martialReferees: 3,
         useArenaB: false,
-        tournamentName: 'Giải thử',
+        tournamentName: 'Chấm nhanh',
       },
       ''
     );

@@ -3,8 +3,16 @@ import React, { useCallback, useEffect } from 'react';
 interface NumericKeypadProps {
   /** Chuoi so dang go */
   value: string;
-  /** So o hien thi (do dai ma) */
+  /** So o hien thi (do dai ma dai nhat) */
   length: number;
+  /**
+   * Go du ngan nay so la bam xac nhan duoc.
+   *
+   * Co hai do dai ma cung ton tai: 2 so (kieu cu, moi o mot ma) va 4 so (kieu
+   * ca giai chung 2 so dau). O hien thi ve theo ma dai nhat, con nut xac nhan
+   * phai mo tu ma ngan nhat.
+   */
+  minLength?: number;
   onChange: (next: string) => void;
   onSubmit?: () => void;
   /** Bat phim so vat ly tren laptop */
@@ -24,6 +32,7 @@ const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 const NumericKeypad: React.FC<NumericKeypadProps> = ({
   value,
   length,
+  minLength,
   onChange,
   onSubmit,
   captureKeyboard = true,
@@ -63,6 +72,7 @@ const NumericKeypad: React.FC<NumericKeypadProps> = ({
   }, [captureKeyboard, press, backspace, onSubmit]);
 
   const cells = Array.from({ length }, (_, i) => value[i] ?? '');
+  const enough = value.length >= (minLength ?? length);
 
   return (
     <div className={className}>
@@ -125,7 +135,7 @@ const NumericKeypad: React.FC<NumericKeypadProps> = ({
 
         <button
           type="button"
-          disabled={disabled || value.length < length}
+          disabled={disabled || !enough}
           onClick={onSubmit}
           aria-label="Xác nhận mã"
           className="py-5 text-2xl text-white bg-emerald-600 rounded-control shadow-sm

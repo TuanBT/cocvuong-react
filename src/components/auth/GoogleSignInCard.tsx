@@ -85,7 +85,7 @@ const GoogleSignInCard: React.FC<GoogleSignInCardProps> = ({
             Bạn là giám định?
           </p>
           <p className="text-xs text-amber-700 m-0 mb-3">
-            Giám định không cần đăng nhập. Chỉ cần gõ mã 2 số do giám sát đọc cho.
+            Giám định không cần đăng nhập. Chỉ cần gõ mã do giám sát đọc cho.
           </p>
           <Link
             to="/vao"

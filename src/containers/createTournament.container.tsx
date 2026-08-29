@@ -35,7 +35,7 @@ import mauthothiquyen from '../assets/template/4-Mau_Tho_Thi_Quyen.xlsx';
 import { AppUser } from '../services/authService';
 import {
   TournamentSummary, addTournament as createTournamentRecord,
-  claimTournament, closeTournament, isLegacy, listTournaments,
+  claimTournament, closeTournament, dropTournamentIndex, isLegacy, listTournaments,
   openTournament, reopenTournament,
 } from '../services/tournamentService';
 import { ensureTournamentCodes } from '../services/accessCodeService';
@@ -410,7 +410,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
     const last = all[all.length - 1];
     if (last.demo) {
-      toast.error('Giải cuối là GIẢI THỬ — không xoá được. Bấm “Chấm lại” nếu muốn làm sạch.');
+      toast.error('Giải cuối là bàn CHẤM NHANH — không xoá được. Bấm “Chấm cặp mới” nếu muốn làm sạch.');
       return;
     }
     if (last.ownerUid && last.ownerUid !== this.props.user.uid) {
@@ -420,6 +420,9 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
     try {
       await remove(ref(this.db, 'tournament/' + last.index));
+      // Bo luon dong chi muc: de lai thi giai da xoa con nam trong danh sach
+      // cong khai mai, va khong phep kiem nao bat duoc
+      await dropTournamentIndex(last.index);
       if (this.tournamentNoIndex >= last.index) {
         this.tournamentNoIndex = Math.max(0, last.index - 1);
         this.martialArenaNoIndex = this.tournamentNoIndex;
@@ -2534,11 +2537,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
     return (
       <PageShell accent={wizardType === 'doikhang' ? 'combat' : 'martial'}>
-        <PageHeader title="Tạo giải đấu" icon="fa-solid fa-file-arrow-up" badge={tournamentName}>
-          <div className="flex justify-end">
-            <AccountChip user={user} />
-          </div>
-        </PageHeader>
+        <PageHeader title="Tạo giải đấu" icon="fa-solid fa-file-arrow-up" badge={tournamentName} action={<AccountChip user={user} />} />
 
         <main className="flex-1 w-full">
           {/* Quan ly giai dau nam o day chu khong o trang Thiet dat: tao va xoa

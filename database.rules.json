@@ -85,6 +85,26 @@
       }
     },
 
+    // ----- Chỉ mục giải (bản sao nhẹ của setting) ------------------------------
+    // `tournament` là một cây NẶNG. RTDB đọc theo đường dẫn là all-or-nothing,
+    // nên chỉ để dựng một danh sách tên giải, trang thông tin công khai phải tải
+    // cả lịch thi đấu, danh sách VĐV và từng điểm thành phần của MỌI giải.
+    //
+    // Nhánh này là bản sao vài trăm byte mỗi giải. Nguồn sự thật vẫn là
+    // `tournament/{t}/setting` — `.validate` bắt mỗi ô phải khớp đúng với nó,
+    // nên AI ĐĂNG NHẬP CŨNG ghi được mà không ai bịa được một dòng sai. Nhờ vậy
+    // chỉ mục tự vá khi chủ giải / giám sát mở app, không cần chạy migration.
+    //
+    // Xoá thì `.validate` không chạy (newData không tồn tại) — người đăng nhập
+    // xoá bậy một dòng chỉ làm danh sách quay về đường đọc cả cây: chậm, không sai.
+    "tournamentIndex": {
+      ".read": true,
+      "$t": {
+        ".write": "auth != null",
+        ".validate": "newData.child('tournamentName').val() === root.child('tournament/'+$t+'/setting/tournamentName').val() && newData.child('ownerUid').val() === root.child('tournament/'+$t+'/setting/ownerUid').val() && newData.child('ownerEmail').val() === root.child('tournament/'+$t+'/setting/ownerEmail').val() && newData.child('status').val() === root.child('tournament/'+$t+'/setting/status').val() && newData.child('openAccess').val() === root.child('tournament/'+$t+'/setting/openAccess').val() && newData.child('demo').val() === root.child('tournament/'+$t+'/setting/demo').val() && newData.child('createdAt').val() === root.child('tournament/'+$t+'/setting/createdAt').val() && newData.child('closedAt').val() === root.child('tournament/'+$t+'/setting/closedAt').val()"
+      }
+    },
+
     // ----- Đơn xin quyền giám sát ---------------------------------------------
     "tournamentRequest": {
       ".read": "root.child('appAdmin/'+auth.uid).val() === true",
@@ -151,8 +171,13 @@
     "codeSession": {
       "$uid": {
         ".read": "auth.uid === $uid",
-        // Không tự bịa slot được: nó phải khớp đúng slot của mã đã claim.
-        ".write": "auth.uid === $uid && (!newData.exists() || (newData.child('code').isString() && root.child('accessCode/'+newData.child('code').val()+'/claimedUid').val() === auth.uid && newData.child('slot').val() === root.child('accessCode/'+newData.child('code').val()+'/slot').val()))"
+        // Không tự bịa slot được: nó phải khớp đúng MỘT trong những slot mã đã
+        // claim mở được. Mã thường mở đúng một ô (`slot`). Mã dùng chung của
+        // kiểu "cả giải chung 2 số đầu" mở được ô đối kháng và ô thi quyền
+        // cùng sân cùng vị trí (`slotCombat` / `slotMartial`) — giám định chọn
+        // môn lúc vào. Trường vắng mặt trả về null nên không khớp được với
+        // chuỗi slot: không nới thêm cửa nào.
+        ".write": "auth.uid === $uid && (!newData.exists() || (newData.child('code').isString() && root.child('accessCode/'+newData.child('code').val()+'/claimedUid').val() === auth.uid && (newData.child('slot').val() === root.child('accessCode/'+newData.child('code').val()+'/slot').val() || newData.child('slot').val() === root.child('accessCode/'+newData.child('code').val()+'/slotCombat').val() || newData.child('slot').val() === root.child('accessCode/'+newData.child('code').val()+'/slotMartial').val())))"
       }
     },
 

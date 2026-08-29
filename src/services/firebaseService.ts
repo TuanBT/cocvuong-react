@@ -125,24 +125,6 @@ export const subscribeToConnectionStatus = (callback: (connected: boolean) => vo
   };
 };
 
-interface TournamentListItem {
-  index: number;
-  name: string;
-}
-
-/**
- * Lấy danh sách giải đấu
- */
-export const getTournaments = async (): Promise<TournamentListItem[]> => {
-  const tournaments = await getData<Tournament[]>('tournament');
-  if (!tournaments) return [];
-  
-  return tournaments.map((tournament, index) => ({
-    index,
-    name: tournament.setting?.tournamentName || `Giải ${index + 1}`
-  }));
-};
-
 /**
  * Lấy cài đặt giải đấu
  */

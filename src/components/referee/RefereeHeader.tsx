@@ -20,7 +20,7 @@ interface RefereeHeaderProps {
    * nguoi khac, va ten giai la thu duy nhat de nhan ra minh dang o nham cho.
    */
   tournamentName?: string;
-  /** Nhan "GIAI THU" do — tuyet doi khong de ai nham voi giai that */
+  /** Nhan do cua ban cham nhanh — tuyet doi khong de ai nham voi giai that */
   isDemo?: boolean;
   /** Thoat phien / doi vai tro */
   onExit?: () => void;
@@ -124,7 +124,7 @@ const RefereeHeader: React.FC<RefereeHeaderProps> = ({
         <p className="mt-1.5 mb-0 flex items-center gap-2 text-[11px] leading-tight">
           {isDemo && (
             <span className="bg-red-600 text-white font-bold px-1.5 py-0.5 rounded flex-shrink-0">
-              GIẢI THỬ
+              CHẤM NHANH
             </span>
           )}
           <span className="text-slate-500 truncate">{tournamentName}</span>

@@ -116,7 +116,7 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
       } catch {
         this.setState({
           phase: 'pick-tournament',
-          error: 'Chưa dựng được giải thử. Kiểm tra kết nối mạng rồi thử lại.',
+          error: 'Chưa mở được bàn chấm nhanh. Kiểm tra kết nối mạng rồi thử lại.',
         });
         return;
       }
@@ -203,7 +203,7 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
   resolveArena(t: TournamentSummary, staff: StaffMember | null, freePass: boolean) {
     const { kind } = this.props;
 
-    // Giai thu dung 1 san — dung hoi nguoi thu mot cau nao ca
+    // Ban cham nhanh dung 1 san — dung hoi ho mot cau nao ca
     if (t.demo) {
       this.setState({ arenaIndex: 0, phase: 'ready' });
       return;

@@ -209,7 +209,7 @@ class AdminContainer extends Component<AdminContainerProps, AdminContainerState>
                 </span>
                 {row.demo && (
                   <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-600 text-white">
-                    GIẢI THỬ
+                    CHẤM NHANH
                   </span>
                 )}
                 {row.openAccess && (
@@ -265,7 +265,7 @@ class AdminContainer extends Component<AdminContainerProps, AdminContainerState>
 
             {row.index === demoIndex && (
               <span className="text-[11px] text-slate-400 self-center">
-                giải thử dùng chung — không xoá
+                bàn chấm nhanh dùng chung — không xoá
               </span>
             )}
           </div>
@@ -305,7 +305,6 @@ class AdminContainer extends Component<AdminContainerProps, AdminContainerState>
               <CodeBoard
                 tournamentIndex={row.index}
                 tournamentName={row.name}
-                ownerUid={row.ownerUid || this.props.user.uid}
                 canManage
                 compact
               />
@@ -355,11 +354,7 @@ class AdminContainer extends Component<AdminContainerProps, AdminContainerState>
 
     return (
       <PageShell accent="brand">
-        <PageHeader title="Quản trị" icon="fa-solid fa-shield-halved">
-          <div className="flex justify-end">
-            <AccountChip user={user} />
-          </div>
-        </PageHeader>
+        <PageHeader title="Quản trị" icon="fa-solid fa-shield-halved" action={<AccountChip user={user} />} />
 
         <main className="flex-1 w-full max-w-4xl mx-auto px-3 sm:px-4 py-5 space-y-5">
           <SectionCard

@@ -1,19 +1,24 @@
 import React, { Component } from 'react';
 import { database } from '../firebase';
 import { ref, get, child, Database } from "firebase/database";
-import { PageShell, PageHeader, ChipGroup, DataTable, AppFooter } from '../components/ui';
+import { PageShell, PageHeader, ChipGroup, DataTable, AppFooter, Button } from '../components/ui';
 import type { Column } from '../components/ui';
+import PublicTournamentPicker from '../components/tournament/PublicTournamentPicker';
+import { TournamentSummary, listPublicTournaments } from '../services/tournamentService';
 
 interface InformationTqContainerProps {}
 
 interface InformationTqContainerState {
-  tournaments: [number, string][];
+  tournaments: TournamentSummary[];
   categoryArray: string[];
   martialArray: any[][];
   tournamentName: string;
   isShowFiveReferee: boolean;
-  selectedTournament: number;
+  /** `null` = dang o man chon giai, chua doc du lieu giai nao */
+  selectedTournament: number | null;
   selectedCategory: string;
+  loadingList: boolean;
+  loadingDetail: boolean;
 }
 
 interface MartialTeam {
@@ -40,9 +45,8 @@ interface Martial {
 class InformationTqContainer extends Component<InformationTqContainerProps, InformationTqContainerState> {
   db: Database;
   martialObj: Martial[] | null = null;
-  tournamentObj: any[] | null = null;
-  settingObj: any = null;
-  tournamentNoIndex: number = 0;
+  /** Giai nay cham 3 hay 5 giam dinh — doc rieng mot o cua `setting` */
+  fiveReferee: boolean = false;
 
   constructor(props: InformationTqContainerProps) {
     super(props);
@@ -54,53 +58,82 @@ class InformationTqContainer extends Component<InformationTqContainerProps, Info
       martialArray: [],
       tournamentName: '',
       isShowFiveReferee: false,
-      selectedTournament: 0,
+      selectedTournament: null,
       selectedCategory: 'ALL',
+      loadingList: true,
+      loadingDetail: false,
     };
     
     this.db = database;
   }
 
   componentDidMount() {
-    this.main();
+    void this.loadTournaments();
   }
 
-  main() {
-    get(child(ref(this.db), 'tournament')).then((snapshot) => {
-      this.tournamentObj = snapshot.val();
-      const tournaments: [number, string][] = [];
+  /**
+   * Chi doc **chi muc** giai — vai tram byte mot dong.
+   *
+   * Ban cu doc thang `tournament`, tuc keo ca lich thi dau, danh sach VDV va
+   * tung diem thanh phan cua MOI giai ve may, chi de lay ra may cai ten. Nhan
+   * len so nguoi vao xem la thanh mot hoa don bang thong that.
+   */
+  async loadTournaments() {
+    try {
+      const tournaments = await listPublicTournaments();
+      // Phai doi state ve cho thi `chooseTournament` moi tra ra duoc ten giai
+      this.setState({ tournaments, loadingList: false }, () => {
+        // Chi co dung mot giai thi bat nguoi ta bam them mot cai la vo ly
+        if (tournaments.length === 1) this.chooseTournament(tournaments[0].index);
+      });
+    } catch {
+      this.setState({ loadingList: false });
+    }
+  }
 
-      if (this.tournamentObj) {
-        for (let i = 0; i < this.tournamentObj.length; i++) {
-          // Giai thu khong hien o trang cong khai — tuyet doi khong de ai
-          // nham no voi giai that khi tra cuu ket qua
-          if (this.tournamentObj[i]?.setting?.demo === true) continue;
-          tournaments.push([i, this.tournamentObj[i].setting.tournamentName]);
-        }
-      }
-      this.setState({ tournaments });
+  /** Du lieu that cua mot giai chi tai o day — luc nguoi ta thuc su muon xem no */
+  chooseTournament = (tournamentNoIndex: number) => {
+    const picked = this.state.tournaments.find((t) => t.index === tournamentNoIndex);
+    this.martialObj = null;
+    this.setState({
+      selectedTournament: tournamentNoIndex,
+      tournamentName: picked?.name || '',
+      loadingDetail: true,
+      categoryArray: [],
+      martialArray: [],
+      selectedCategory: 'ALL',
     });
 
-    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
-      this.settingObj = snapshot.val();
-      if (this.settingObj) {
-        this.setState({ 
-          tournamentName: this.settingObj.tournamentName,
-          isShowFiveReferee: this.settingObj.martial?.isShowFiveReferee || false
-        });
-      }
-    });
+    // Ten giai da co san trong chi muc; cua `setting` chi con can dung mot o
+    Promise.all([
+      get(child(ref(this.db), 'tournament/' + tournamentNoIndex + '/setting/martial/isShowFiveReferee')),
+      get(child(ref(this.db), 'tournament/' + tournamentNoIndex + '/martial/')),
+    ])
+      .then(([fiveSnap, martialSnap]) => {
+        // Bam sang giai khac giua chung thi bo ket qua ve muon
+        if (this.state.selectedTournament !== tournamentNoIndex) return;
+        this.fiveReferee = fiveSnap.val() === true;
+        this.martialObj = martialSnap.val();
+        this.setState({ loadingDetail: false }, () => this.showListInfo());
+      })
+      .catch(() => this.setState({ loadingDetail: false }));
+  }
 
-    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/martial/')).then((snapshot) => {
-      this.martialObj = snapshot.val();
-      this.showListInfo();
+  backToList = () => {
+    this.martialObj = null;
+    this.setState({
+      selectedTournament: null,
+      tournamentName: '',
+      categoryArray: [],
+      martialArray: [],
+      selectedCategory: 'ALL',
     });
   }
 
   showListMatchs(category: string) {
-    if (!this.settingObj || !this.martialObj) return;
-    
-    const isShowFiveReferee = this.settingObj.martial?.isShowFiveReferee || false;
+    if (!this.martialObj) return;
+
+    const isShowFiveReferee = this.fiveReferee;
     const martialArray: any[][] = [];
     
     for (let i = 0; i < this.martialObj.length; i++) {
@@ -180,12 +213,6 @@ class InformationTqContainer extends Component<InformationTqContainerProps, Info
     }
 
     return rank;
-  }
-
-  chooseTournament = (tournamentNoIndex: number) => {
-    this.tournamentNoIndex = tournamentNoIndex;
-    this.setState({ selectedTournament: tournamentNoIndex });
-    this.main();
   }
 
   chooseCategory = (categoryNoIndex: string) => {
@@ -313,39 +340,52 @@ class InformationTqContainer extends Component<InformationTqContainerProps, Info
 
   render() {
     const { tournaments, categoryArray, martialArray, tournamentName, isShowFiveReferee,
-      selectedTournament, selectedCategory } = this.state;
+      selectedTournament, selectedCategory, loadingList, loadingDetail } = this.state;
+    const picked = selectedTournament !== null;
 
     return (
       <PageShell accent="martial">
-        <PageHeader title="Thông tin thi quyền" icon="fa-solid fa-table-list" badge={tournamentName}>
-          <ChipGroup
-            label="Giải đấu:"
-            icon="fa-solid fa-trophy"
-            options={tournaments.map((tournament, i) => ({ value: i, label: tournament[1] }))}
-            selected={selectedTournament}
-            onSelect={this.chooseTournament}
-            emphasis
-          />
-          <ChipGroup
-            label="Nội dung:"
-            icon="fa-solid fa-filter"
-            options={categoryArray.map((category) => ({
-              value: category,
-              label: category === 'ALL' ? 'Tất cả' : category,
-            }))}
-            selected={selectedCategory}
-            onSelect={this.chooseCategory}
-          />
+        <PageHeader title="Thông tin thi quyền" icon="fa-solid fa-table-list"
+          badge={picked ? tournamentName : undefined}>
+          {picked && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button size="sm" variant="secondary" icon="fa-solid fa-arrow-left"
+                onClick={this.backToList}>
+                Chọn giải khác
+              </Button>
+              <ChipGroup
+                label="Nội dung:"
+                icon="fa-solid fa-filter"
+                options={categoryArray.map((category) => ({
+                  value: category,
+                  label: category === 'ALL' ? 'Tất cả' : category,
+                }))}
+                selected={selectedCategory}
+                onSelect={this.chooseCategory}
+              />
+            </div>
+          )}
         </PageHeader>
 
         <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 py-4">
-          <DataTable
-            columns={this.buildColumns(isShowFiveReferee)}
-            rows={martialArray}
-            rowKey={(row, i) => `${row[0]}-${i}`}
-            emptyTitle="Chưa có dữ liệu thi quyền"
-            emptyHint="Hãy tạo giải và nhập danh sách thi quyền ở trang Tạo giải."
-          />
+          {!picked ? (
+            <PublicTournamentPicker
+              tournaments={tournaments}
+              loading={loadingList}
+              onSelect={this.chooseTournament}
+              what="bảng điểm thi quyền"
+            />
+          ) : loadingDetail ? (
+            <p className="text-center text-slate-400 italic py-12 m-0">Đang đọc dữ liệu giải…</p>
+          ) : (
+            <DataTable
+              columns={this.buildColumns(isShowFiveReferee)}
+              rows={martialArray}
+              rowKey={(row, i) => `${row[0]}-${i}`}
+              emptyTitle="Chưa có dữ liệu thi quyền"
+              emptyHint="Giải này chưa nhập danh sách thi quyền."
+            />
+          )}
         </main>
 
         <AppFooter />

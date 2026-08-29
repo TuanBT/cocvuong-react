@@ -8,6 +8,14 @@ interface PageHeaderProps {
   icon: string;
   /** Ten giai dau, hien ben phai; xuong dong theo ky tu \n */
   badge?: string;
+  /**
+   * Goc phai cua CHINH dong tieu de — cho anh tai khoan.
+   *
+   * Co cho rieng thay vi de nguoi goi nhet vao `children`: nhet vao `children`
+   * la de ra han mot hang moi chi de khoe ai dang dang nhap, tren mot thanh
+   * sticky von phai gon.
+   */
+  action?: React.ReactNode;
   /** Noi dung phu chen vao hang duoi (bo loc, nut...) */
   children?: React.ReactNode;
 }
@@ -19,7 +27,7 @@ interface PageHeaderProps {
  * Bo cuc: 3 cot tren man hinh rong, xep chong tren dien thoai doc.
  * Khong dung `absolute left-1/2` nhu ban cu vi ten giai dai se de len tieu de.
  */
-const PageHeader: React.FC<PageHeaderProps> = ({ title, icon, badge, children }) => (
+const PageHeader: React.FC<PageHeaderProps> = ({ title, icon, badge, action, children }) => (
   <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30">
     <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2.5">
       <div className="flex items-center gap-3">
@@ -49,6 +57,8 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, icon, badge, children })
             </p>
           </div>
         )}
+
+        {action && <div className="flex-shrink-0">{action}</div>}
       </div>
 
       {/* Tren dien thoai ten giai xuong hang rieng thay vi bi cat mat */}

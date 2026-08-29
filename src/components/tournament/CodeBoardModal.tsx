@@ -10,7 +10,6 @@ interface CodeBoardModalProps {
   tournamentName: string;
   /** Chi san minh dang truc — giam sat khong xem duoc ma san khac */
   arenaKeys: ArenaAssignmentKey[];
-  ownerUid: string;
 }
 
 /**
@@ -25,7 +24,6 @@ const CodeBoardModal: React.FC<CodeBoardModalProps> = ({
   tournamentIndex,
   tournamentName,
   arenaKeys,
-  ownerUid,
 }) => (
   <Modal
     isOpen={isOpen}
@@ -43,7 +41,6 @@ const CodeBoardModal: React.FC<CodeBoardModalProps> = ({
       tournamentName={tournamentName}
       arenaKeys={arenaKeys}
       canManage
-      ownerUid={ownerUid}
       compact
     />
   </Modal>

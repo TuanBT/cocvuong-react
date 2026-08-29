@@ -121,8 +121,11 @@ class HomeContainer extends Component<HomeContainerProps, HomeContainerState> {
   }
 
   /**
-   * "Dung thu ngay": ky an danh (khong Google, khong nhap gi) roi vao thang
-   * man giam sat cua giai thu. Khong nhap Excel, khong boc tham, khong cho duyet.
+   * "Cham ngay": ky an danh (khong Google, khong nhap gi) roi vao thang man
+   * giam sat cua ban cham nhanh. Khong nhap Excel, khong boc tham, khong cho duyet.
+   *
+   * Day KHONG phai duong demo cho nguoi xem thu app — day la duong cho buoi
+   * tap / giao luu chua kip dung giai, can cham that ngay lap tuc.
    */
   handleDemo = async () => {
     this.setState({ demoBusy: true });
@@ -131,7 +134,7 @@ class HomeContainer extends Component<HomeContainerProps, HomeContainerState> {
       await ensureDemoTournament();
       this.go('/giam-sat-doi-khang?demo=1');
     } catch {
-      toast.error('Chưa dựng được giải thử — kiểm tra kết nối mạng rồi thử lại.');
+      toast.error('Chưa mở được bàn chấm — kiểm tra kết nối mạng rồi thử lại.');
       this.setState({ demoBusy: false });
     }
   };
@@ -172,7 +175,7 @@ class HomeContainer extends Component<HomeContainerProps, HomeContainerState> {
                 <span className="min-w-0 flex-1">
                   <span className="block text-lg sm:text-xl font-bold">Tôi là giám định — vào bằng mã</span>
                   <span className="block text-sm text-white/80 mt-0.5">
-                    Gõ 2 chữ số giám sát đọc cho. Không cần tài khoản, không cần mật khẩu.
+                    Gõ số giám sát đọc cho. Không cần tài khoản, không cần mật khẩu.
                   </span>
                 </span>
                 <i className="fa-solid fa-arrow-right text-xl opacity-70
@@ -227,16 +230,17 @@ class HomeContainer extends Component<HomeContainerProps, HomeContainerState> {
               flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="min-w-0 flex-1">
                 <h2 className="text-base font-bold text-slate-800 m-0 mb-1">
-                  Chưa có giải nào — muốn xem thử app chạy thế nào?
+                  Cần chấm ngay, chưa kịp chuẩn bị giải?
                 </h2>
                 <p className="text-sm text-slate-500 m-0">
-                  Vào thẳng một giải thử có sẵn 1 trận đối kháng và 1 lượt thi quyền.
-                  Không cần đăng nhập, không nhập Excel, chấm sai thì bấm “Chấm lại”.
+                  Vào thẳng bàn chấm dựng sẵn 1 trận đối kháng và 1 lượt thi quyền.
+                  Không đăng nhập, không nhập Excel. Chấm xong bấm “Chấm cặp mới”
+                  là sạch bảng, chấm tiếp cặp sau.
                 </p>
               </div>
               <Button variant="success" size="lg" icon="fa-solid fa-play"
                 disabled={demoBusy} onClick={this.handleDemo}>
-                {demoBusy ? 'Đang dựng giải thử…' : 'Dùng thử ngay'}
+                {demoBusy ? 'Đang mở bàn chấm…' : 'Chấm ngay'}
               </Button>
             </section>
 

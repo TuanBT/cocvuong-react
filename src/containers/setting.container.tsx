@@ -16,9 +16,12 @@ import { DEFAULT_SETTING } from '../constants/settings';
 import { AppUser } from '../services/authService';
 import {
   TournamentSummary, closeTournament, isLegacy, listTournaments,
-  openTournament, reopenTournament, setOpenAccess, claimTournament,
+  openTournament, reopenTournament, setOpenAccess, claimTournament, syncTournamentIndex,
 } from '../services/tournamentService';
-import { ensureTournamentCodes } from '../services/accessCodeService';
+import {
+  CodeMeta, PREFIX_LENGTH, TournamentCodePlan,
+  ensureTournamentCodes, isPrefixFree, reissueTournamentCodes, resolveCodeMeta, spacedCode,
+} from '../services/accessCodeService';
 
 interface SettingContainerProps {
   user: AppUser;
@@ -42,6 +45,12 @@ interface SettingContainerState {
   /** Hop thoai xac nhan cho cac hanh dong khong hoan tac duoc */
   confirm: { title: string; message: string; label?: string; action: () => void } | null;
   regenerating: boolean;
+  /** 2 so cua giai dang chon (rong = giai cu, chua cap ma 4 so) */
+  codeMeta: CodeMeta | null;
+  /** O "Đổi số" dang mo hay khong, va 2 so dang go do */
+  prefixOpen: boolean;
+  prefixDraft: string;
+  prefixState: 'idle' | 'checking' | 'free' | 'taken';
 }
 
 /**
@@ -82,6 +91,10 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
       quantityRefereeMartial: false,
       confirm: null,
       regenerating: false,
+      codeMeta: null,
+      prefixOpen: false,
+      prefixDraft: '',
+      prefixState: 'idle',
     };
 
     this.db = database;
@@ -122,9 +135,19 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
   }
 
   selectTournament = (t: TournamentSummary) => {
-    this.setState({ selected: t });
+    this.setState({ selected: t, codeMeta: null, prefixOpen: false, prefixDraft: '', prefixState: 'idle' });
     this.loadSetting(t.index);
+    void this.loadCodeMeta(t.index);
   };
+
+  async loadCodeMeta(index: number) {
+    try {
+      const meta = await resolveCodeMeta(index);
+      if (this.index === index) this.setState({ codeMeta: meta });
+    } catch {
+      /* doc khong duoc thi bang ma van hien, chi la khong doi kieu duoc */
+    }
+  }
 
   loadSetting(index: number) {
     get(ref(this.db, 'tournament/' + index + '/setting')).then((snapshot) => {
@@ -235,6 +258,16 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
 
   // ==================== Ma giam dinh ====================
 
+  /** Bo ma cua giai nay gom nhung o nao — dung chung cho ca cap them lan cap lai */
+  get codePlan(): TournamentCodePlan {
+    return {
+      combatReferees: this.state.quantityRefereeCombat ? 5 : 3,
+      martialReferees: this.state.quantityRefereeMartial ? 5 : 3,
+      useArenaB: this.settingObj?.combat?.isShowArenaB !== false,
+      tournamentName: this.state.selected?.name || '',
+    };
+  }
+
   handleRegenerateAll = async () => {
     const { selected } = this.state;
     const { user } = this.props;
@@ -242,18 +275,16 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
 
     this.setState({ regenerating: true });
     try {
-      const result = await ensureTournamentCodes(
-        selected.index,
-        {
-          combatReferees: this.state.quantityRefereeCombat ? 5 : 3,
-          martialReferees: this.state.quantityRefereeMartial ? 5 : 3,
-          useArenaB: this.settingObj?.combat?.isShowArenaB !== false,
-          tournamentName: selected.name,
-        },
-        user.uid
-      );
+      const result = await ensureTournamentCodes(selected.index, this.codePlan, user.uid);
+      this.setState({ codeMeta: { prefix: result.prefix } });
 
-      if (result.created === 0) {
+      if (result.migrated) {
+        toast.success(
+          `Giải này dùng mã kiểu cũ nên đã cấp lại toàn bộ — số của giải là ` +
+          `${spacedCode(result.prefix || '')}. Đọc lại mã mới cho giám định.`,
+          { autoClose: 8000 }
+        );
+      } else if (result.created === 0) {
         toast.info('Mọi ô chấm điểm đều đã có mã.');
       } else {
         toast.success(`Đã cấp thêm ${result.created} mã.`);
@@ -269,6 +300,73 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     } finally {
       this.setState({ regenerating: false });
     }
+  };
+
+  /**
+   * Cap lai TOAN BO ma cua giai theo 2 so moi.
+   *
+   * Ma cu chet ngay lap tuc nen luon phai hoi truoc, ke ca khi bang ma trong:
+   * bam nham o day giua giai la ca giai phai doc lai so.
+   */
+  reissue = async (prefix: string) => {
+    const { selected } = this.state;
+    const { user } = this.props;
+    if (!selected) return;
+
+    this.setState({ regenerating: true });
+    try {
+      const result = await reissueTournamentCodes(selected.index, this.codePlan, user.uid, prefix);
+      this.setState({
+        codeMeta: { prefix: result.prefix },
+        prefixOpen: false,
+        prefixDraft: '',
+        prefixState: 'idle',
+      });
+      toast.success(
+        `Xong — số của giải là ${spacedCode(result.prefix || '')}. Đọc lại mã mới cho giám định.`
+      );
+      if (result.poolPressure) {
+        toast.warn('Kho mã sắp hết — kiểm tra xem còn giải cũ chưa đóng không.', { autoClose: 8000 });
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Không đổi được số của giải.');
+    } finally {
+      this.setState({ regenerating: false });
+    }
+  };
+
+  /** Go tay 2 so cho de nho. Kiem ngay xem con trong khong, khong bat cho toi luc bam. */
+  handlePrefixDraft = async (raw: string) => {
+    const draft = raw.replace(/\D/g, '').slice(0, PREFIX_LENGTH);
+    this.setState({ prefixDraft: draft, prefixState: 'idle' });
+    if (draft.length < PREFIX_LENGTH) return;
+    if (draft === this.state.codeMeta?.prefix) {
+      this.setState({ prefixState: 'free' });
+      return;
+    }
+
+    this.setState({ prefixState: 'checking' });
+    try {
+      const free = await isPrefixFree(draft);
+      // Go tiep trong luc dang hoi thi bo qua ket qua cu
+      if (this.state.prefixDraft === draft) {
+        this.setState({ prefixState: free ? 'free' : 'taken' });
+      }
+    } catch {
+      if (this.state.prefixDraft === draft) this.setState({ prefixState: 'idle' });
+    }
+  };
+
+  confirmPrefix = () => {
+    const { prefixDraft, prefixState } = this.state;
+    if (prefixDraft.length < PREFIX_LENGTH || prefixState === 'taken') return;
+    this.askConfirm(
+      `Đổi số của giải thành ${spacedCode(prefixDraft)}`,
+      'Mọi mã giám định sẽ đổi theo. Giám định đang chấm sẽ bị đẩy ra và phải gõ lại ' +
+      'số mới.\n\nChỉ nên làm trước giờ thi.',
+      () => void this.reissue(prefixDraft),
+      'Đổi số'
+    );
   };
 
   // ==================== Thiet dat ====================
@@ -323,8 +421,12 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
 
   resetSetting = () => {
     const fresh = JSON.parse(JSON.stringify(this.settingConst)).setting;
-    update(ref(this.db, 'tournament/' + this.index + '/setting'), fresh).then(() => {
+    update(ref(this.db, 'tournament/' + this.index + '/setting'), fresh).then(async () => {
+      // Ten giai nam trong `fresh` nen chi muc phai chay theo, khong thi trang
+      // cong khai con hien ten cu
+      await syncTournamentIndex(this.index);
       this.loadSetting(this.index);
+      void this.refreshSummary();
       toast.success("Cài lại thiết đặt thành công!");
     });
   }
@@ -347,7 +449,8 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
       "martial/isShowCountryFlag": flexSwitchCountryFlagMartial,
       "martial/isShowFiveReferee": quantityRefereeMartial,
     };
-    update(ref(this.db, 'tournament/' + this.index + '/setting'), payload).then(() => {
+    update(ref(this.db, 'tournament/' + this.index + '/setting'), payload).then(async () => {
+      await syncTournamentIndex(this.index);
       void this.refreshSummary();
       toast.success("Cập nhập thông tin giải đấu thành công!");
     });
@@ -450,6 +553,107 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     );
   }
 
+  /**
+   * "So cua giai" — 2 so dau ma nao cua giai cung bat dau bang.
+   *
+   * Nam ngay tren bang ma chu khong giau trong mot trang khac: doi so la viec
+   * lam mot lan truoc gio thi, ngay canh cho chu giai dang nhin so.
+   */
+  renderPrefix() {
+    const { codeMeta, prefixOpen, prefixDraft, prefixState, regenerating } = this.state;
+    if (!codeMeta) return null;
+
+    return (
+      <div className="mb-4 border border-slate-200 rounded-control p-3">
+        {!prefixOpen ? (
+          <div className="flex items-center gap-3 flex-wrap">
+            {codeMeta.prefix ? (
+              <>
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Số của giải
+                </span>
+                <span className="text-xl font-black tabular-nums tracking-[0.25em] text-slate-800">
+                  {spacedCode(codeMeta.prefix)}
+                </span>
+                <span className="text-xs text-slate-500 leading-snug">
+                  Mã giám định = hai số này + <strong>số sân</strong> + <strong>số giám định</strong>.
+                </span>
+                <Button size="sm" variant="ghost" icon="fa-solid fa-pen"
+                  disabled={regenerating}
+                  onClick={() => this.setState({
+                    prefixOpen: true, prefixDraft: codeMeta.prefix || '', prefixState: 'free',
+                  })}>
+                  Đổi số
+                </Button>
+              </>
+            ) : (
+              /* Giai cu: ma con la kieu "moi o mot so 2 chu so". Khong tu doi
+                 giup — doi la moi ma dang cam chet ngay, phai chu giai bam. */
+              <>
+                <span className="text-sm text-slate-600 leading-snug">
+                  Giải này còn dùng mã kiểu cũ, mỗi ô một số riêng. Đặt một số cho cả giải
+                  để chỉ phải nhớ đúng một số.
+                </span>
+                <Button size="sm" variant="primary" icon="fa-solid fa-pen"
+                  disabled={regenerating}
+                  onClick={() => this.setState({
+                    prefixOpen: true, prefixDraft: '', prefixState: 'idle',
+                  })}>
+                  Đặt số cho giải
+                </Button>
+              </>
+            )}
+          </div>
+        ) : (
+          <>
+            <p className="m-0 mb-2 text-sm text-slate-600">
+              Gõ 2 số bạn dễ nhớ cho giải này:
+            </p>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <input
+                type="text"
+                inputMode="numeric"
+                autoFocus
+                value={prefixDraft}
+                disabled={regenerating}
+                onChange={(e) => void this.handlePrefixDraft(e.target.value)}
+                className="w-24 text-center text-2xl font-black tabular-nums tracking-[0.2em]
+                  border-2 border-slate-300 rounded-control py-1.5 focus:border-accent-500
+                  focus:outline-none"
+              />
+              <Button size="sm" variant="primary" icon="fa-solid fa-check"
+                disabled={regenerating || prefixState !== 'free'}
+                onClick={this.confirmPrefix}>
+                Đổi
+              </Button>
+              <Button size="sm" variant="secondary"
+                disabled={regenerating}
+                onClick={() => this.setState({ prefixOpen: false, prefixState: 'idle' })}>
+                Huỷ
+              </Button>
+
+              {prefixState === 'checking' && (
+                <span className="text-xs text-slate-400">đang kiểm…</span>
+              )}
+              {prefixState === 'free' && prefixDraft.length === PREFIX_LENGTH && (
+                <span className="text-xs text-emerald-700 font-medium">
+                  <i className="fa-solid fa-check mr-1" aria-hidden="true" />
+                  Số {prefixDraft} còn trống
+                </span>
+              )}
+              {prefixState === 'taken' && (
+                <span className="text-xs text-red-600 font-medium">
+                  <i className="fa-solid fa-xmark mr-1" aria-hidden="true" />
+                  Số {prefixDraft} đang có giải khác dùng
+                </span>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
   render() {
     const {
       tournaments, selected, loading, tournamentName,
@@ -462,11 +666,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
 
     return (
       <PageShell accent="tool">
-        <PageHeader title="Thiết đặt" icon="fa-solid fa-gear" badge={tournamentName}>
-          <div className="flex justify-end">
-            <AccountChip user={user} />
-          </div>
-        </PageHeader>
+        <PageHeader title="Thiết đặt" icon="fa-solid fa-gear" badge={tournamentName} action={<AccountChip user={user} />} />
 
         <main className="flex-1 w-full max-w-4xl mx-auto px-3 sm:px-4 py-5 space-y-5">
           <SectionCard title="Giải đang cấu hình" icon="fa-solid fa-trophy">
@@ -519,15 +719,16 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
           {selected && (
             <SectionCard title="Bảng mã giám định" icon="fa-solid fa-key" tone="neutral">
               <p className="text-sm text-slate-500 mt-0 mb-4">
-                Mỗi mã vào thẳng đúng một ô chấm điểm — giám định không phải chọn giải, chọn sân,
+                Mỗi mã vào thẳng đúng một bàn chấm — giám định không phải chọn giải, chọn sân,
                 chọn vị trí nữa. Đọc số cho họ gõ vào máy, hoặc in ra dán ở bàn.
               </p>
+
+              {this.renderPrefix()}
 
               <CodeBoard
                 tournamentIndex={selected.index}
                 tournamentName={selected.name}
                 canManage
-                ownerUid={user.uid}
               />
 
               <div className="pt-4 mt-4 border-t border-slate-100">

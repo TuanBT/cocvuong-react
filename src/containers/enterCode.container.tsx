@@ -4,9 +4,9 @@ import logo from '../assets/img/logo.png';
 import { Button, NumericKeypad, Toast } from '../components/ui';
 import { ensureAnonymous } from '../services/authService';
 import {
-  AccessCode, CODE_LENGTH, CodeError, CodeSlot,
-  cacheSession, claimCode, getCachedSession, getCode, parseSlot,
-  resolveRefereeSession, slotLabel, spacedCode,
+  AccessCode, CodeError, CodeSlot, PREFIX_LENGTH, SHARED_CODE_LENGTH,
+  availableSlots, cacheSession, claimCode, getCachedSession, getCode, kindName,
+  positionLabel, resolveRefereeSession, slotLabel, slotString, spacedCode,
 } from '../services/accessCodeService';
 import { getData } from '../services/firebaseService';
 
@@ -18,13 +18,23 @@ interface EnterCodeContainerProps {
 
 type Phase = 'signing-in' | 'auth-failed' | 'keypad' | 'confirm' | 'entering';
 
+interface Found {
+  code: string;
+  data: AccessCode;
+  /** Nhung o ma nay mo duoc. Hai o = giam dinh phai chon mon. */
+  options: CodeSlot[];
+  tournamentName: string;
+}
+
 interface EnterCodeContainerState {
   phase: Phase;
   uid: string;
   value: string;
   error: string;
+  /** Go trung 2 so dau cua mot giai — hien ten giai va nhac go tiep */
+  hint: string;
   /** Ma da tra cuu xong, dang cho xac nhan */
-  found: { code: string; data: AccessCode; slot: CodeSlot; tournamentName: string } | null;
+  found: Found | null;
   /** Trinh duyet o che do rieng tu: uid an danh sinh lai moi lan mo */
   privateModeWarning: boolean;
   busy: boolean;
@@ -33,18 +43,27 @@ interface EnterCodeContainerState {
 /**
  * Trang `/vao` — man hinh duy nhat cua giam dinh.
  *
- * Ban phim so, go 2 chu so, het. App tu biet day la "giam dinh thi quyen GD2
- * San B cua giai X" va nhay thang vao dung man hinh do. Bo han ba vong radio
- * chon giai -> chon san -> chon vi tri: **day chinh la cho xoa loi "chon toi
- * lui gay sai sot"**.
+ * Ban phim so, go ma, het. App tu biet day la o cham diem nao cua giai nao va
+ * nhay thang vao dung man hinh do. Bo han ba vong radio chon giai -> chon san
+ * -> chon vi tri: **day chinh la cho xoa loi "chon toi lui gay sai sot"**.
+ *
+ * Hai do dai ma cung song:
+ *   - **4 so** (mac dinh) — `[2 so cua giai][san][vi tri]`. Ca giai chung 2 so
+ *     dau nen chu giai chi phai nho mot so. Ma khong mang so mon, nen day la
+ *     kieu duy nhat con hoi giam dinh **mot cau**: hom nay cham gi?
+ *   - **2 so** (giai cu) — moi o mot ma rieng, vao thang khong hoi gi.
+ *
+ * Go du 2 so la tra cuu ngay: trung ma cu thi vao luon, trung 2 so dau cua mot
+ * giai thi hien ten giai va cho go tiep. Khong bat chon truoc "ma cua toi may
+ * so" — do la mot cau hoi giam dinh khong the biet cau tra loi.
  *
  * Giam dinh KHONG dang nhap gi ca. Chu ky an danh chay ngam — khong mot chu
  * "dang nhap" nao xuat hien tren duong di cua ho.
  *
- * Man xac nhan mot dong la **bat buoc**, khong phai trang tri: voi 99 ma ma
- * ~25 ma dang song, go dai mot so co xac suat ~1/4 trung mot ma that — va ma do
- * co the thuoc **giai khac**. Ten giai to va ro la thu duy nhat phan biet duoc
- * "GD2 San B giai minh" voi "GD2 San B giai nguoi ta".
+ * Man xac nhan la **bat buoc**, khong phai trang tri: kho ma nho nen go dai
+ * mot chu so van co the roi vao mot ma that cua **giai khac**. Ten giai to va
+ * ro la thu duy nhat phan biet duoc "GD2 San B giai minh" voi "GD2 San B giai
+ * nguoi ta".
  */
 class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeContainerState> {
   state: EnterCodeContainerState = {
@@ -52,6 +71,7 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
     uid: '',
     value: '',
     error: '',
+    hint: '',
     found: null,
     privateModeWarning: false,
     busy: false,
@@ -112,53 +132,88 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
   handleChange = (value: string) => {
     // Go sai thi bao ngay tai cho, KHONG xoa het so da go
     this.setState({ value, error: '' });
-    if (value.length === CODE_LENGTH) void this.lookup(value);
+
+    // Go du 2 so la da tra loi duoc "so nay cua giai nao" — va ma 2 so cua
+    // giai cu thi day la ca ma. Con thieu san / vi tri thi chi goi y, khong bao sai.
+    if (value.length === PREFIX_LENGTH) void this.lookup(value, true);
+    else if (value.length === SHARED_CODE_LENGTH) void this.lookup(value, false);
+    else if (value.length < PREFIX_LENGTH) this.setState({ hint: '' });
   };
 
-  async lookup(code: string) {
+  async tournamentName(t: number | undefined): Promise<string> {
+    if (t === undefined) return '';
+    return (await getData<string>(`tournament/${t}/setting/tournamentName`)) || `Giải ${t + 1}`;
+  }
+
+  /**
+   * `partial` = do dai nay co the moi la nua chung mot ma dai hon, nen khong
+   * duoc bao "sai ma" — chi goi y.
+   */
+  async lookup(code: string, partial: boolean) {
     this.setState({ busy: true });
     try {
       const data = await getCode(code);
-      if (!data) {
-        this.setState({ error: 'Không có mã này. Kiểm tra lại số giám sát đọc cho.', busy: false });
+
+      // Trung 2 so dau cua mot giai: dung ma, con thieu san va vi tri
+      if (data?.reserved) {
+        this.setState({
+          busy: false,
+          error: '',
+          hint: await this.tournamentName(data.t),
+        });
         return;
       }
-      const slot = parseSlot(data.slot);
-      if (!slot) {
-        this.setState({ error: 'Mã hỏng — nhờ giám sát cấp lại mã mới.', busy: false });
+
+      if (!data) {
+        this.setState({
+          busy: false,
+          hint: '',
+          error: partial
+            ? ''
+            : 'Không có mã này. Kiểm tra lại số giám sát đọc cho.',
+        });
+        return;
+      }
+
+      const options = availableSlots(data);
+      if (!options.length) {
+        this.setState({ error: 'Mã hỏng — nhờ giám sát cấp lại mã mới.', hint: '', busy: false });
         return;
       }
       if (data.claimedUid && data.claimedUid !== this.state.uid) {
         this.setState({
           error: 'Mã này đã có người dùng. Nhờ giám sát bấm “Mở khoá” rồi gõ lại đúng mã này.',
+          hint: '',
           busy: false,
         });
         return;
       }
 
-      const tournamentName =
-        (await getData<string>(`tournament/${slot.t}/setting/tournamentName`)) || `Giải ${slot.t + 1}`;
-
-      this.setState({ phase: 'confirm', found: { code, data, slot, tournamentName }, busy: false });
+      this.setState({
+        phase: 'confirm',
+        found: { code, data, options, tournamentName: await this.tournamentName(data.t) },
+        hint: '',
+        busy: false,
+      });
     } catch {
       this.setState({ error: 'Không đọc được mã — kiểm tra kết nối mạng rồi thử lại.', busy: false });
     }
   }
 
-  confirm = async () => {
+  confirm = async (slot: CodeSlot) => {
     const { found, uid } = this.state;
     if (!found) return;
 
     this.setState({ phase: 'entering', busy: true });
     try {
-      await claimCode(found.code, uid);
+      await claimCode(found.code, uid, slot);
       cacheSession({
         code: found.code,
-        slot: found.data.slot,
-        label: slotLabel(found.slot),
+        slot: slotString(slot),
+        label: slotLabel(slot),
         tournamentName: found.tournamentName,
       });
-      this.go(found.slot.kind === 'combat' ? '/giam-dinh-doi-khang' : '/giam-dinh-thi-quyen');
+      this.go(slot.kind === 'combat' ? '/giam-dinh-doi-khang' : '/giam-dinh-thi-quyen');
     } catch (err: any) {
       const message =
         err instanceof CodeError
@@ -168,7 +223,7 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
     }
   };
 
-  retype = () => this.setState({ phase: 'keypad', found: null, value: '', error: '' });
+  retype = () => this.setState({ phase: 'keypad', found: null, value: '', error: '', hint: '' });
 
   shell(children: React.ReactNode) {
     return (
@@ -182,8 +237,78 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
     );
   }
 
+  /** Nut chon mon — chi hien khi mot ma mo duoc ca hai o */
+  kindButton(slot: CodeSlot) {
+    const combat = slot.kind === 'combat';
+    return (
+      <button
+        key={slot.kind}
+        type="button"
+        disabled={this.state.busy}
+        onClick={() => this.confirm(slot)}
+        className={`flex-1 rounded-card px-4 py-5 text-white shadow-card transition-transform
+          active:scale-95 disabled:opacity-40
+          ${combat ? 'bg-rose-600 hover:bg-rose-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+      >
+        <i className={`fa-solid ${combat ? 'fa-hand-back-fist' : 'fa-hand-fist'} text-2xl block mb-2`}
+          aria-hidden="true" />
+        <span className="block text-lg font-bold uppercase tracking-wide">{kindName(slot.kind)}</span>
+      </button>
+    );
+  }
+
+  renderConfirm(found: Found) {
+    const { busy } = this.state;
+    const many = found.options.length > 1;
+    const one = found.options[0];
+
+    return this.shell(
+      <div className="bg-white rounded-card shadow-card border border-slate-100 overflow-hidden">
+        <div className="bg-emerald-600 px-5 py-3">
+          <p className="m-0 text-white/80 text-xs uppercase tracking-wide font-semibold">
+            Mã {spacedCode(found.code)} — đúng chưa?
+          </p>
+        </div>
+
+        <div className="p-5 text-center">
+          {/* Ten giai to nhat: day la thu DUY NHAT phan biet duoc GD2 San B
+              cua giai minh voi GD2 San B cua giai nguoi khac */}
+          <p className="m-0 mb-1 text-xs text-slate-400 uppercase tracking-wide">Giải</p>
+          <p className="m-0 mb-5 text-xl font-bold text-slate-800 whitespace-pre-line leading-snug">
+            {found.tournamentName}
+          </p>
+
+          <p className="m-0 mb-5 text-lg font-semibold text-accent-700">
+            {many ? positionLabel(one.a, one.r) : slotLabel(one)}
+          </p>
+
+          {many ? (
+            <>
+              {/* Cai duy nhat ma cai ma khong noi ho duoc. Hoi ngay tai day,
+                  truoc khi vao, chu khong de ho phat hien khi da cham nham */}
+              <p className="m-0 mb-3 text-sm font-semibold text-slate-600">
+                Hôm nay bạn chấm gì?
+              </p>
+              <div className="flex gap-3">{found.options.map((s) => this.kindButton(s))}</div>
+            </>
+          ) : (
+            <Button variant="success" size="lg" block icon="fa-solid fa-check"
+              disabled={busy} onClick={() => this.confirm(one)}>
+              Đúng rồi — vào chấm
+            </Button>
+          )}
+
+          <Button variant="secondary" size="lg" block className="mt-2.5"
+            icon="fa-solid fa-arrow-left" onClick={this.retype}>
+            Không đúng — gõ lại
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   render() {
-    const { phase, value, error, found, privateModeWarning, busy } = this.state;
+    const { phase, value, error, hint, found, privateModeWarning, busy } = this.state;
 
     if (phase === 'signing-in' || phase === 'entering') {
       return this.shell(
@@ -213,39 +338,7 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
       );
     }
 
-    if (phase === 'confirm' && found) {
-      return this.shell(
-        <div className="bg-white rounded-card shadow-card border border-slate-100 overflow-hidden">
-          <div className="bg-emerald-600 px-5 py-3">
-            <p className="m-0 text-white/80 text-xs uppercase tracking-wide font-semibold">
-              Mã {spacedCode(found.code)} — đúng chưa?
-            </p>
-          </div>
-
-          <div className="p-5 text-center">
-            {/* Ten giai to nhat: day la thu DUY NHAT phan biet duoc GD2 San B
-                cua giai minh voi GD2 San B cua giai nguoi khac */}
-            <p className="m-0 mb-1 text-xs text-slate-400 uppercase tracking-wide">Giải</p>
-            <p className="m-0 mb-5 text-xl font-bold text-slate-800 whitespace-pre-line leading-snug">
-              {found.tournamentName}
-            </p>
-
-            <p className="m-0 mb-5 text-lg font-semibold text-accent-700">
-              {slotLabel(found.slot)}
-            </p>
-
-            <Button variant="success" size="lg" block icon="fa-solid fa-check"
-              disabled={busy} onClick={this.confirm}>
-              Đúng rồi — vào chấm
-            </Button>
-            <Button variant="secondary" size="lg" block className="mt-2.5"
-              icon="fa-solid fa-arrow-left" onClick={this.retype}>
-              Không đúng — gõ lại
-            </Button>
-          </div>
-        </div>
-      );
-    }
+    if (phase === 'confirm' && found) return this.renderConfirm(found);
 
     return this.shell(
       <>
@@ -255,18 +348,33 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
           </div>
           <h1 className="text-2xl font-bold text-slate-800 mb-1">Gõ mã vào bàn chấm</h1>
           <p className="text-sm text-slate-500 m-0">
-            {CODE_LENGTH} chữ số do giám sát đọc cho bạn
+            Số do giám sát đọc cho bạn
           </p>
         </div>
 
         <div className="bg-white rounded-card shadow-card border border-slate-100 p-5">
           <NumericKeypad
             value={value}
-            length={CODE_LENGTH}
+            length={SHARED_CODE_LENGTH}
+            minLength={PREFIX_LENGTH}
             onChange={this.handleChange}
-            onSubmit={() => value.length === CODE_LENGTH && this.lookup(value)}
+            /* Tu bam nut xac nhan la doi mot cau tra loi — khong im lang
+               cho ho go tiep nhu luc go du 2 so mot cach tinh co */
+            onSubmit={() => value.length >= PREFIX_LENGTH && this.lookup(value, false)}
             disabled={busy}
           />
+
+          {/* Go dung 2 so cua giai roi — con thieu san va vi tri. Hien ten giai
+              ngay de ho biet minh dang go dung giai, khoi go tiep trong nghi ngo */}
+          {hint && !error && (
+            <div className="mt-5 text-sm text-emerald-800 bg-emerald-50 border border-emerald-200
+              rounded-control px-3 py-2.5">
+              <p className="m-0 font-semibold whitespace-pre-line leading-snug">{hint}</p>
+              <p className="m-0 mt-1 text-emerald-700">
+                Gõ tiếp <strong>số sân</strong> rồi <strong>số giám định</strong> của bạn.
+              </p>
+            </div>
+          )}
 
           {error && (
             <p role="alert" className="mt-5 mb-0 text-sm text-red-700 bg-red-50 border

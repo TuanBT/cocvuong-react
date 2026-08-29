@@ -2,8 +2,10 @@ import React, { Component, createRef, RefObject } from 'react';
 import { database } from '../firebase';
 import { ref, get, child, Database } from "firebase/database";
 import '../assets/css/bracket.css';
-import { PageShell, PageHeader, ChipGroup, DataTable, AppFooter } from '../components/ui';
+import { PageShell, PageHeader, ChipGroup, DataTable, AppFooter, Button } from '../components/ui';
 import type { Column } from '../components/ui';
+import PublicTournamentPicker from '../components/tournament/PublicTournamentPicker';
+import { TournamentSummary, listPublicTournaments } from '../services/tournamentService';
 import { 
   BRACKET_TEMPLATES, 
   updateBracketMatchInfo, 
@@ -15,13 +17,16 @@ import {
 interface InformationDkContainerProps {}
 
 interface InformationDkContainerState {
-  tournaments: [number, string][];
+  tournaments: TournamentSummary[];
   categoryArray: string[];
   combatArray: any[][];
   tournamentName: string;
   bracketHtml: string;
-  selectedTournament: number;
+  /** `null` = dang o man chon giai, chua doc du lieu giai nao */
+  selectedTournament: number | null;
   selectedCategory: string;
+  loadingList: boolean;
+  loadingDetail: boolean;
 }
 
 interface Combat {
@@ -48,9 +53,6 @@ interface Combat {
 class InformationDkContainer extends Component<InformationDkContainerProps, InformationDkContainerState> {
   db: Database;
   combatObj: Combat[] | null = null;
-  tournamentObj: any[] | null = null;
-  settingObj: any = null;
-  tournamentNoIndex: number = 0;
   bracketRef: RefObject<HTMLDivElement>;
 
   constructor(props: InformationDkContainerProps) {
@@ -63,8 +65,10 @@ class InformationDkContainer extends Component<InformationDkContainerProps, Info
       combatArray: [],
       tournamentName: '',
       bracketHtml: '',
-      selectedTournament: 0,
+      selectedTournament: null,
       selectedCategory: 'ALL',
+      loadingList: true,
+      loadingDetail: false,
     };
     
     this.db = database;
@@ -72,7 +76,7 @@ class InformationDkContainer extends Component<InformationDkContainerProps, Info
   }
 
   componentDidMount() {
-    this.main();
+    void this.loadTournaments();
   }
 
   componentDidUpdate(_prevProps: InformationDkContainerProps, prevState: InformationDkContainerState) {
@@ -94,39 +98,61 @@ class InformationDkContainer extends Component<InformationDkContainerProps, Info
     }
   }
 
-  main() {
-    get(child(ref(this.db), 'tournament')).then((snapshot) => {
-      this.tournamentObj = snapshot.val();
-      const tournaments: [number, string][] = [];
-
-      if (this.tournamentObj) {
-        for (let i = 0; i < this.tournamentObj.length; i++) {
-          // Giai thu khong hien o trang cong khai — tuyet doi khong de ai
-          // nham no voi giai that khi tra cuu ket qua
-          if (this.tournamentObj[i]?.setting?.demo === true) continue;
-          tournaments.push([i, this.tournamentObj[i].setting.tournamentName]);
-        }
-      }
-      this.setState({ tournaments });
-    });
-
-    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/setting')).then((snapshot) => {
-      this.settingObj = snapshot.val();
-      if (this.settingObj) {
-        this.setState({ tournamentName: this.settingObj.tournamentName });
-      }
-    });
-
-    get(child(ref(this.db), 'tournament/' + this.tournamentNoIndex + '/combat/')).then((snapshot) => {
-      this.combatObj = snapshot.val();
-      this.showListInfo();
-    });
+  /**
+   * Chi doc **chi muc** giai — vai tram byte mot dong.
+   *
+   * Ban cu doc thang `tournament`, tuc keo ca lich thi dau, danh sach VDV va
+   * tung diem thanh phan cua MOI giai ve may, chi de lay ra may cai ten. Nhan
+   * len so nguoi vao xem la thanh mot hoa don bang thong that.
+   */
+  async loadTournaments() {
+    try {
+      const tournaments = await listPublicTournaments();
+      // Phai doi state ve cho thi `chooseTournament` moi tra ra duoc ten giai
+      this.setState({ tournaments, loadingList: false }, () => {
+        // Chi co dung mot giai thi bat nguoi ta bam them mot cai la vo ly
+        if (tournaments.length === 1) this.chooseTournament(tournaments[0].index);
+      });
+    } catch {
+      this.setState({ loadingList: false });
+    }
   }
 
+  /** Du lieu that cua mot giai chi tai o day — luc nguoi ta thuc su muon xem no */
   chooseTournament = (tournamentNoIndex: number) => {
-    this.tournamentNoIndex = tournamentNoIndex;
-    this.setState({ selectedTournament: tournamentNoIndex });
-    this.main();
+    const picked = this.state.tournaments.find((t) => t.index === tournamentNoIndex);
+    this.combatObj = null;
+    this.setState({
+      selectedTournament: tournamentNoIndex,
+      tournamentName: picked?.name || '',
+      loadingDetail: true,
+      categoryArray: [],
+      combatArray: [],
+      bracketHtml: '',
+      selectedCategory: 'ALL',
+    });
+
+    // Ten giai da co san trong chi muc nen khong phai doc `setting` nua
+    get(child(ref(this.db), 'tournament/' + tournamentNoIndex + '/combat/'))
+      .then((snapshot) => {
+        // Bam sang giai khac giua chung thi bo ket qua ve muon
+        if (this.state.selectedTournament !== tournamentNoIndex) return;
+        this.combatObj = snapshot.val();
+        this.setState({ loadingDetail: false }, () => this.showListInfo());
+      })
+      .catch(() => this.setState({ loadingDetail: false }));
+  }
+
+  backToList = () => {
+    this.combatObj = null;
+    this.setState({
+      selectedTournament: null,
+      tournamentName: '',
+      categoryArray: [],
+      combatArray: [],
+      bracketHtml: '',
+      selectedCategory: 'ALL',
+    });
   }
 
   chooseCategory = (categoryNoIndex: string) => {
@@ -307,51 +333,67 @@ class InformationDkContainer extends Component<InformationDkContainerProps, Info
   ];
 
   render() {
-    const { tournaments, categoryArray, combatArray, tournamentName, selectedTournament, selectedCategory } = this.state;
+    const { tournaments, categoryArray, combatArray, tournamentName,
+      selectedTournament, selectedCategory, loadingList, loadingDetail } = this.state;
+    const picked = selectedTournament !== null;
 
     return (
       <PageShell accent="combat">
-        <PageHeader title="Thông tin đối kháng" icon="fa-solid fa-sitemap" badge={tournamentName}>
-          <ChipGroup
-            label="Giải đấu:"
-            icon="fa-solid fa-trophy"
-            options={tournaments.map((tournament, i) => ({ value: i, label: tournament[1] }))}
-            selected={selectedTournament}
-            onSelect={this.chooseTournament}
-            emphasis
-          />
-          <ChipGroup
-            label="Hạng cân:"
-            icon="fa-solid fa-filter"
-            options={categoryArray.map((category) => ({
-              value: category,
-              label: category === 'ALL' ? 'Tất cả' : category,
-            }))}
-            selected={selectedCategory}
-            onSelect={this.chooseCategory}
-          />
+        <PageHeader title="Thông tin đối kháng" icon="fa-solid fa-sitemap"
+          badge={picked ? tournamentName : undefined}>
+          {picked && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button size="sm" variant="secondary" icon="fa-solid fa-arrow-left"
+                onClick={this.backToList}>
+                Chọn giải khác
+              </Button>
+              <ChipGroup
+                label="Hạng cân:"
+                icon="fa-solid fa-filter"
+                options={categoryArray.map((category) => ({
+                  value: category,
+                  label: category === 'ALL' ? 'Tất cả' : category,
+                }))}
+                selected={selectedCategory}
+                onSelect={this.chooseCategory}
+              />
+            </div>
+          )}
         </PageHeader>
 
         <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 py-4 space-y-4">
-          <DataTable
-            columns={this.columns}
-            rows={combatArray}
-            rowKey={(row, i) => `${row[0]}-${i}`}
-            emptyTitle="Chưa có dữ liệu trận đấu"
-            emptyHint="Hãy tạo giải và nhập danh sách vận động viên ở trang Tạo giải."
-          />
+          {!picked ? (
+            <PublicTournamentPicker
+              tournaments={tournaments}
+              loading={loadingList}
+              onSelect={this.chooseTournament}
+              what="lịch thi đấu và sơ đồ"
+            />
+          ) : loadingDetail ? (
+            <p className="text-center text-slate-400 italic py-12 m-0">Đang đọc dữ liệu giải…</p>
+          ) : (
+            <>
+              <DataTable
+                columns={this.columns}
+                rows={combatArray}
+                rowKey={(row, i) => `${row[0]}-${i}`}
+                emptyTitle="Chưa có dữ liệu trận đấu"
+                emptyHint="Giải này chưa nhập danh sách vận động viên đối kháng."
+              />
 
-          {/* So do chi ve duoc khi da chon mot hang can cu the */}
-          {selectedCategory !== 'ALL' && selectedCategory !== '' && (
-            <section>
-              <h2 className="text-base font-bold text-slate-700 mb-2 flex items-center gap-2">
-                <i className="fa-solid fa-sitemap text-accent-600" aria-hidden="true" />
-                Sơ đồ thi đấu - {selectedCategory}
-              </h2>
-              <div className="bg-white rounded-card shadow-card border border-slate-100 p-2 sm:p-3">
-                <div ref={this.bracketRef} id="schema-bracket" className="scroll-x" />
-              </div>
-            </section>
+              {/* So do chi ve duoc khi da chon mot hang can cu the */}
+              {selectedCategory !== 'ALL' && selectedCategory !== '' && (
+                <section>
+                  <h2 className="text-base font-bold text-slate-700 mb-2 flex items-center gap-2">
+                    <i className="fa-solid fa-sitemap text-accent-600" aria-hidden="true" />
+                    Sơ đồ thi đấu - {selectedCategory}
+                  </h2>
+                  <div className="bg-white rounded-card shadow-card border border-slate-100 p-2 sm:p-3">
+                    <div ref={this.bracketRef} id="schema-bracket" className="scroll-x" />
+                  </div>
+                </section>
+              )}
+            </>
           )}
         </main>
 
