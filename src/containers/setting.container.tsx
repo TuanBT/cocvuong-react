@@ -15,12 +15,12 @@ import StaffApprovalPanel from '../components/tournament/StaffApprovalPanel';
 import { DEFAULT_SETTING } from '../constants/settings';
 import { AppUser } from '../services/authService';
 import {
-  TournamentSummary, closeTournament, isLegacy, listTournaments,
+  TournamentSummary, closeTournament, demoFirst, isLegacy, listTournaments,
   openTournament, reopenTournament, setOpenAccess, claimTournament, syncTournamentIndex,
 } from '../services/tournamentService';
 import {
   CodeMeta, PREFIX_LENGTH, TournamentCodePlan,
-  ensureTournamentCodes, isPrefixFree, reissueTournamentCodes, resolveCodeMeta, spacedCode,
+  isPrefixFree, reissueTournamentCodes, resolveCodeMeta, spacedCode, syncTournamentCodes,
 } from '../services/accessCodeService';
 
 interface SettingContainerProps {
@@ -125,9 +125,12 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     this.setState({ loading: true });
     try {
       const all = await listTournaments();
-      const mine = all.filter((t) => t.ownerUid === user.uid || isLegacy(t));
+      const mine = all.filter((t) => t.ownerUid === user.uid || isLegacy(t)).sort(demoFirst);
       this.setState({ tournaments: mine, loading: false });
-      if (mine.length) this.selectTournament(mine[0]);
+      // Ban cham nhanh dung dau bang, nhung con tro dat vao giai that cua minh:
+      // vao trang nay phan lon la de chinh giai sap to chuc
+      const first = mine.find((t) => !t.demo) || mine[0];
+      if (first) this.selectTournament(first);
     } catch {
       this.setState({ loading: false });
       toast.error('Không đọc được danh sách giải.');
@@ -172,7 +175,9 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
   /** Doc lai dong tom tat sau khi doi trang thai / cong tac */
   async refreshSummary() {
     const all = await listTournaments();
-    const mine = all.filter((t) => t.ownerUid === this.props.user.uid || isLegacy(t));
+    const mine = all
+      .filter((t) => t.ownerUid === this.props.user.uid || isLegacy(t))
+      .sort(demoFirst);
     const fresh = mine.find((t) => t.index === this.index) || null;
     this.setState({ tournaments: mine, selected: fresh });
   }
@@ -268,26 +273,30 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     };
   }
 
-  handleRegenerateAll = async () => {
+  /**
+   * Bo ma chay theo thiet dat vua luu — khong hoi, khong nut.
+   *
+   * Ma la `so cua giai + so san + so giam dinh`, nen bat 5 giam dinh la GD4 va
+   * GD5 phai co ma ngay; ha ve 3 la hai ma do phai bien. Chu giai chi can nho
+   * DUNG MOT so cua giai, khong phai nho them thao tac nao.
+   *
+   * Giai cu (chua co so cua giai) thi `syncTournamentCodes` bo qua — don sang
+   * kieu moi la moi ma dang cam chet ngay, phai bam "Đặt số cho giải" moi lam.
+   */
+  syncCodes = async (plan: TournamentCodePlan = this.codePlan) => {
     const { selected } = this.state;
     const { user } = this.props;
     if (!selected) return;
 
-    this.setState({ regenerating: true });
     try {
-      const result = await ensureTournamentCodes(selected.index, this.codePlan, user.uid);
+      const result = await syncTournamentCodes(selected.index, plan, user.uid);
+      if (result.skipped) return;
+
       this.setState({ codeMeta: { prefix: result.prefix } });
 
-      if (result.migrated) {
-        toast.success(
-          `Giải này dùng mã kiểu cũ nên đã cấp lại toàn bộ — số của giải là ` +
-          `${spacedCode(result.prefix || '')}. Đọc lại mã mới cho giám định.`,
-          { autoClose: 8000 }
-        );
-      } else if (result.created === 0) {
-        toast.info('Mọi ô chấm điểm đều đã có mã.');
-      } else {
-        toast.success(`Đã cấp thêm ${result.created} mã.`);
+      // Chi len tieng khi bo ma that su doi — luu thiet dat khac thi im lang
+      if (result.created || result.removed) {
+        toast.info('Bảng mã đã chạy theo thiết đặt mới — số của giải giữ nguyên.');
       }
 
       // Khong doc nguoc duoc kho ma nen khong dem truc tiep duoc do day —
@@ -296,9 +305,9 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
         toast.warn('Kho mã sắp hết — kiểm tra xem còn giải cũ chưa đóng không.', { autoClose: 8000 });
       }
     } catch (err: any) {
-      toast.error(err?.message || 'Không cấp được mã.');
-    } finally {
-      this.setState({ regenerating: false });
+      toast.error(
+        err?.message || 'Chưa cập nhật được bảng mã theo thiết đặt mới. Mở lại trang này để thử lại.'
+      );
     }
   };
 
@@ -362,8 +371,8 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     if (prefixDraft.length < PREFIX_LENGTH || prefixState === 'taken') return;
     this.askConfirm(
       `Đổi số của giải thành ${spacedCode(prefixDraft)}`,
-      'Mọi mã giám định sẽ đổi theo. Giám định đang chấm sẽ bị đẩy ra và phải gõ lại ' +
-      'số mới.\n\nChỉ nên làm trước giờ thi.',
+      'Giám định đang chấm sẽ bị đẩy ra hết và phải gõ lại số mới, chọn lại chỗ ' +
+      'ngồi.\n\nChỉ nên làm trước giờ thi.',
       () => void this.reissue(prefixDraft),
       'Đổi số'
     );
@@ -427,6 +436,14 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
       await syncTournamentIndex(this.index);
       this.loadSetting(this.index);
       void this.refreshSummary();
+      // Doc plan tu chinh ban mac dinh vua ghi: `loadSetting` chay ngam nen
+      // state luc nay con la so giam dinh cu
+      await this.syncCodes({
+        combatReferees: fresh.combat.isShowFiveReferee ? 5 : 3,
+        martialReferees: fresh.martial.isShowFiveReferee ? 5 : 3,
+        useArenaB: fresh.combat.isShowArenaB !== false,
+        tournamentName: fresh.tournamentName,
+      });
       toast.success("Cài lại thiết đặt thành công!");
     });
   }
@@ -452,6 +469,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     update(ref(this.db, 'tournament/' + this.index + '/setting'), payload).then(async () => {
       await syncTournamentIndex(this.index);
       void this.refreshSummary();
+      await this.syncCodes();
       toast.success("Cập nhập thông tin giải đấu thành công!");
     });
   }
@@ -504,7 +522,9 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     const { selected } = this.state;
     if (!selected) return null;
 
-    const legacy = isLegacy(selected);
+    // Ban cham nhanh cung la giai chua co chu, nhung KHONG duoc nhan ve: nhan
+    // ve la dat `ownerUid`, va tu luc do khong ai khac vao cham nhanh duoc nua
+    const legacy = isLegacy(selected) && !selected.demo;
     const badge = {
       draft: { text: 'Chưa mở', className: 'bg-slate-100 text-slate-600 border-slate-200' },
       open: { text: 'Đang mở', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
@@ -516,6 +536,10 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${badge.className}`}>
           {badge.text}
         </span>
+
+        {selected.demo && (
+          <span className="text-xs text-slate-500">bàn riêng của bạn — không xoá được</span>
+        )}
 
         {legacy && (
           <>
@@ -568,15 +592,12 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
         {!prefixOpen ? (
           <div className="flex items-center gap-3 flex-wrap">
             {codeMeta.prefix ? (
+              /* So cua giai da nam to giua bang ma ngay ben duoi — o day chi
+                 con dung mot viec la doi no */
               <>
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Số của giải
-                </span>
-                <span className="text-xl font-black tabular-nums tracking-[0.25em] text-slate-800">
-                  {spacedCode(codeMeta.prefix)}
-                </span>
                 <span className="text-xs text-slate-500 leading-snug">
-                  Mã giám định = hai số này + <strong>số sân</strong> + <strong>số giám định</strong>.
+                  Số của giải đang là <strong className="tabular-nums">{spacedCode(codeMeta.prefix)}</strong>.
+                  Đổi số thì mọi máy đang chấm phải vào lại từ đầu.
                 </span>
                 <Button size="sm" variant="ghost" icon="fa-solid fa-pen"
                   disabled={regenerating}
@@ -660,7 +681,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
       timeRound, timeBreak, timeExtra, timeExtraBreak,
       flexSwitchCountryFlagCombat, showCautionBoxCombat, quantityRefereeCombat, prioritizeUnitNameCombat,
       flexSwitchCountryFlagMartial, quantityRefereeMartial,
-      confirm, regenerating,
+      confirm,
     } = this.state;
     const { user } = this.props;
 
@@ -684,9 +705,14 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
                   <label
                     key={t.index}
                     className={`flex items-center gap-3 p-3.5 border-2 rounded-control cursor-pointer transition-colors
+                      ${t.demo ? 'md:col-span-2' : ''}
                       ${selected?.index === t.index
-                        ? 'border-accent-500 bg-accent-50'
-                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
+                        ? t.demo
+                          ? 'border-emerald-500 bg-emerald-50'
+                          : 'border-accent-500 bg-accent-50'
+                        : t.demo
+                          ? 'border-emerald-200 bg-emerald-50/40 hover:border-emerald-400 hover:bg-emerald-50'
+                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
                   >
                     <input
                       type="radio"
@@ -719,8 +745,8 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
           {selected && (
             <SectionCard title="Bảng mã giám định" icon="fa-solid fa-key" tone="neutral">
               <p className="text-sm text-slate-500 mt-0 mb-4">
-                Mỗi mã vào thẳng đúng một bàn chấm — giám định không phải chọn giải, chọn sân,
-                chọn vị trí nữa. Đọc số cho họ gõ vào máy, hoặc in ra dán ở bàn.
+                Chỉ cần đọc <strong>số của giải</strong> cho cả đoàn — giám định gõ 2 số đó rồi
+                tự chọn sân và số của mình. In tờ số ra dán ở bàn là xong.
               </p>
 
               {this.renderPrefix()}
@@ -730,17 +756,6 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
                 tournamentName={selected.name}
                 canManage
               />
-
-              <div className="pt-4 mt-4 border-t border-slate-100">
-                <Button variant="secondary" icon="fa-solid fa-wand-magic-sparkles"
-                  disabled={regenerating} onClick={this.handleRegenerateAll}>
-                  {regenerating ? 'Đang cấp mã…' : 'Cấp mã cho ô còn thiếu'}
-                </Button>
-                <p className="text-xs text-slate-400 m-0 mt-2">
-                  Mã được sinh sẵn lúc tạo giải. Nút này chỉ cần dùng cho giải cũ, hoặc sau khi
-                  đổi số giám định / bật thêm Sân B.
-                </p>
-              </div>
             </SectionCard>
           )}
 
@@ -858,7 +873,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
               { to: '/', label: 'Trang chủ' },
               { to: '/giam-sat-doi-khang', label: 'Giám sát đối kháng' },
               { to: '/giam-sat-thi-quyen', label: 'Giám sát thi quyền' },
-              { to: '/vao', label: 'Vào bằng mã (giám định)' },
+              { to: '/gd', label: 'Vào chấm điểm (giám định)' },
               { to: '/tao-giai', label: 'Tạo giải' },
             ].map((link) => (
               <NavLink key={link.to} to={link.to}

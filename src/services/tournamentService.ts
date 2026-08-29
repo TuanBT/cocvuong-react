@@ -218,7 +218,12 @@ export async function listTournaments(): Promise<TournamentSummary[]> {
 }
 
 /**
- * Danh sach giai cho **trang cong khai** — moi nhat truoc, bo giai thu.
+ * Danh sach giai cho **trang cong khai** — moi nhat truoc, bo ban cham nhanh.
+ *
+ * Moi tai khoan mot ban cham nhanh, ma ban nao cung mang dung mot cai ten:
+ * de vao day thi khan gia thay mot day "CHẤM NHANH" giong het nhau, khong biet
+ * bam cai nao. Man cham nhanh von de chieu thang len man hinh, khong di qua
+ * trang tra cuu nay.
  *
  * Nguoi xem khong dang nhap nen khong va duoc chi muc; chi muc chua dung thi
  * ho van xem duoc, chi la cham nhu truoc.
@@ -255,9 +260,14 @@ export function isLegacy(t: TournamentSummary): boolean {
   return !t.ownerUid;
 }
 
-/** Giai hien trong bang chon: bo giai da dong va giai thu. */
-export function isSelectable(t: TournamentSummary): boolean {
-  return t.status !== 'closed' && !t.demo;
+/**
+ * Thu tu hien danh sach: ban cham nhanh luon dung dau.
+ *
+ * No la giai mac dinh — ai chua kip dung giai thi vao thang do — nen phai o
+ * cho de thay nhat, chu khong nam cuoi mang theo so thu tu nhu luc no duoc dung.
+ */
+export function demoFirst(a: TournamentSummary, b: TournamentSummary): number {
+  return Number(b.demo) - Number(a.demo);
 }
 
 // ==================== Tao giai ====================

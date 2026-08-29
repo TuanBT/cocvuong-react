@@ -13,7 +13,7 @@ import { ref, get, child, onValue, off } from 'firebase/database';
 import { database } from '../firebase';
 import { UserProfile, getAllUsers } from './userService';
 import { StaffMember } from './staffService';
-import { TournamentSummary, listTournaments } from './tournamentService';
+import { TournamentSummary, demoFirst, listTournaments } from './tournamentService';
 
 export async function isAdmin(uid: string): Promise<boolean> {
   try {
@@ -46,12 +46,15 @@ export async function loadAllTournaments(): Promise<AdminTournamentRow[]> {
     getAllUsers().catch(() => ({} as Record<string, UserProfile>)),
   ]);
 
-  return tournaments.map((t) => ({
-    ...t,
-    staffCount: Object.keys(staffRaw[t.index] || {}).length,
-    requestCount: Object.keys(requestRaw[t.index] || {}).length,
-    ownerName: users[t.ownerUid]?.name || t.ownerEmail || '',
-  }));
+  return tournaments
+    .slice()
+    .sort(demoFirst)
+    .map((t) => ({
+      ...t,
+      staffCount: Object.keys(staffRaw[t.index] || {}).length,
+      requestCount: Object.keys(requestRaw[t.index] || {}).length,
+      ownerName: users[t.ownerUid]?.name || t.ownerEmail || '',
+    }));
 }
 
 export interface AdminUserRow extends UserProfile {

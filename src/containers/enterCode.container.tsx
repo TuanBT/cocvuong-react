@@ -4,9 +4,10 @@ import logo from '../assets/img/logo.png';
 import { Button, NumericKeypad, Toast } from '../components/ui';
 import { ensureAnonymous } from '../services/authService';
 import {
-  AccessCode, CodeError, CodeSlot, PREFIX_LENGTH, SHARED_CODE_LENGTH,
-  availableSlots, cacheSession, claimCode, getCachedSession, getCode, kindName,
-  positionLabel, resolveRefereeSession, slotLabel, slotString, spacedCode,
+  AccessCode, CodeError, CodeSlot, OpenPosition, PREFIX_LENGTH,
+  arenaName, availableSlots, cacheSession, claimCode, getCachedSession, getCode, kindName,
+  positionLabel, refreshPosition, resolveRefereeSession, slotLabel, slotString, spacedCode,
+  positionsForPrefix,
 } from '../services/accessCodeService';
 import { getData } from '../services/firebaseService';
 
@@ -16,12 +17,26 @@ interface EnterCodeContainerProps {
   history?: { push: (path: string) => void };
 }
 
-type Phase = 'signing-in' | 'auth-failed' | 'keypad' | 'confirm' | 'entering';
+type Phase = 'signing-in' | 'auth-failed' | 'keypad' | 'pick' | 'confirm' | 'entering';
 
+/** Giai tim thay tu 2 so — dang cho giam dinh chon cho ngoi cua minh */
+interface Picking {
+  prefix: string;
+  t: number;
+  tournamentName: string;
+  positions: OpenPosition[];
+  /** Giai mot san thi dat san luon, khong hoi thua mot cau */
+  arena: number | null;
+  /** Da chon vi tri — chi con cau "hom nay cham gi" neu o do co ca hai mon */
+  chosen: OpenPosition | null;
+  /** Cham vao o dang co may khac cam: bao ngay tai cho, khong day ra man khac */
+  blocked: string;
+}
+
+/** Ma kieu cu: mot ma la mot o cham diem, go xong vao thang */
 interface Found {
   code: string;
   data: AccessCode;
-  /** Nhung o ma nay mo duoc. Hai o = giam dinh phai chon mon. */
   options: CodeSlot[];
   tournamentName: string;
 }
@@ -31,9 +46,7 @@ interface EnterCodeContainerState {
   uid: string;
   value: string;
   error: string;
-  /** Go trung 2 so dau cua mot giai — hien ten giai va nhac go tiep */
-  hint: string;
-  /** Ma da tra cuu xong, dang cho xac nhan */
+  picking: Picking | null;
   found: Found | null;
   /** Trinh duyet o che do rieng tu: uid an danh sinh lai moi lan mo */
   privateModeWarning: boolean;
@@ -41,29 +54,26 @@ interface EnterCodeContainerState {
 }
 
 /**
- * Trang `/vao` — man hinh duy nhat cua giam dinh.
+ * Trang `/gd` — man hinh duy nhat cua giam dinh.
  *
- * Ban phim so, go ma, het. App tu biet day la o cham diem nao cua giai nao va
- * nhay thang vao dung man hinh do. Bo han ba vong radio chon giai -> chon san
- * -> chon vi tri: **day chinh la cho xoa loi "chon toi lui gay sai sot"**.
+ * **Giam dinh chi go DUNG 2 SO**: so cua giai. San va vi tri thi ho cham vao
+ * man hinh — mot cai bam thi khong go nham duoc, con mot chu so go nham thi
+ * roi thang sang ban ben canh ma khong ai biet.
  *
- * Hai do dai ma cung song:
- *   - **4 so** (mac dinh) — `[2 so cua giai][san][vi tri]`. Ca giai chung 2 so
- *     dau nen chu giai chi phai nho mot so. Ma khong mang so mon, nen day la
- *     kieu duy nhat con hoi giam dinh **mot cau**: hom nay cham gi?
- *   - **2 so** (giai cu) — moi o mot ma rieng, vao thang khong hoi gi.
+ * Ma 4 so `[2 so cua giai][san][vi tri]` van la thu that su mo cua o duoi:
+ * bam xong, app ghep du 4 so roi claim y het nhu cu. Cai bo di la viec bat
+ * NGUOI phai ghep — mot phep tinh nham cho khong ai kiem lai duoc.
  *
- * Go du 2 so la tra cuu ngay: trung ma cu thi vao luon, trung 2 so dau cua mot
- * giai thi hien ten giai va cho go tiep. Khong bat chon truoc "ma cua toi may
- * so" — do la mot cau hoi giam dinh khong the biet cau tra loi.
+ * Giai cu (moi o mot ma 2 so ngau nhien) van vao duoc bang chinh 2 so ay: go
+ * 2 so ra ma that thi vao thang, ra so cua giai thi hien bang chon. Hai the he
+ * ma cung mot thao tac — **go 2 so**.
  *
  * Giam dinh KHONG dang nhap gi ca. Chu ky an danh chay ngam — khong mot chu
  * "dang nhap" nao xuat hien tren duong di cua ho.
  *
- * Man xac nhan la **bat buoc**, khong phai trang tri: kho ma nho nen go dai
- * mot chu so van co the roi vao mot ma that cua **giai khac**. Ten giai to va
- * ro la thu duy nhat phan biet duoc "GD2 San B giai minh" voi "GD2 San B giai
- * nguoi ta".
+ * Ten giai luon nam to o dau man chon: kho ma nho nen go nham mot chu so van
+ * co the roi vao mot giai that KHAC. Ten giai la thu duy nhat phan biet duoc
+ * "GD2 San B giai minh" voi "GD2 San B giai nguoi ta".
  */
 class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeContainerState> {
   state: EnterCodeContainerState = {
@@ -71,7 +81,7 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
     uid: '',
     value: '',
     error: '',
-    hint: '',
+    picking: null,
     found: null,
     privateModeWarning: false,
     busy: false,
@@ -98,7 +108,7 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
     try {
       const user = await ensureAnonymous();
       uid = user.uid;
-    } catch (err: any) {
+    } catch {
       this.setState({
         phase: 'auth-failed',
         error:
@@ -132,12 +142,7 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
   handleChange = (value: string) => {
     // Go sai thi bao ngay tai cho, KHONG xoa het so da go
     this.setState({ value, error: '' });
-
-    // Go du 2 so la da tra loi duoc "so nay cua giai nao" — va ma 2 so cua
-    // giai cu thi day la ca ma. Con thieu san / vi tri thi chi goi y, khong bao sai.
-    if (value.length === PREFIX_LENGTH) void this.lookup(value, true);
-    else if (value.length === SHARED_CODE_LENGTH) void this.lookup(value, false);
-    else if (value.length < PREFIX_LENGTH) this.setState({ hint: '' });
+    if (value.length === PREFIX_LENGTH) void this.lookup(value);
   };
 
   async tournamentName(t: number | undefined): Promise<string> {
@@ -145,45 +150,58 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
     return (await getData<string>(`tournament/${t}/setting/tournamentName`)) || `Giải ${t + 1}`;
   }
 
-  /**
-   * `partial` = do dai nay co the moi la nua chung mot ma dai hon, nen khong
-   * duoc bao "sai ma" — chi goi y.
-   */
-  async lookup(code: string, partial: boolean) {
+  /** 2 so vua go: so cua giai (ra bang chon) hay ca mot ma kieu cu (vao thang) */
+  async lookup(code: string) {
     this.setState({ busy: true });
     try {
       const data = await getCode(code);
-
-      // Trung 2 so dau cua mot giai: dung ma, con thieu san va vi tri
-      if (data?.reserved) {
-        this.setState({
-          busy: false,
-          error: '',
-          hint: await this.tournamentName(data.t),
-        });
-        return;
-      }
-
       if (!data) {
         this.setState({
           busy: false,
-          hint: '',
-          error: partial
-            ? ''
-            : 'Không có mã này. Kiểm tra lại số giám sát đọc cho.',
+          error: 'Không có số này. Kiểm tra lại số giám sát đọc cho.',
         });
         return;
       }
 
+      const tournamentName = await this.tournamentName(data.t);
+
+      // So cua giai: bay ra dung nhung ban cham co that de ho cham vao
+      if (data.reserved) {
+        const positions = await positionsForPrefix(code, data.t);
+        if (!positions.length) {
+          this.setState({
+            busy: false,
+            error: 'Giải này chưa mở bàn chấm nào. Nhờ giám sát kiểm tra lại giúp.',
+          });
+          return;
+        }
+        const arenas = [...new Set(positions.map((p) => p.a))];
+        this.setState({
+          phase: 'pick',
+          busy: false,
+          error: '',
+          picking: {
+            prefix: code,
+            t: data.t,
+            tournamentName,
+            positions,
+            arena: arenas.length === 1 ? arenas[0] : null,
+            chosen: null,
+            blocked: '',
+          },
+        });
+        return;
+      }
+
+      // Giai cu: chinh 2 so nay la ca mot ma
       const options = availableSlots(data);
       if (!options.length) {
-        this.setState({ error: 'Mã hỏng — nhờ giám sát cấp lại mã mới.', hint: '', busy: false });
+        this.setState({ error: 'Mã hỏng — nhờ giám sát cấp lại mã mới.', busy: false });
         return;
       }
       if (data.claimedUid && data.claimedUid !== this.state.uid) {
         this.setState({
-          error: 'Mã này đã có người dùng. Nhờ giám sát bấm “Mở khoá” rồi gõ lại đúng mã này.',
-          hint: '',
+          error: 'Mã này đã có người dùng. Nhờ giám sát bấm “Mở khoá” rồi gõ lại đúng số này.',
           busy: false,
         });
         return;
@@ -191,27 +209,86 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
 
       this.setState({
         phase: 'confirm',
-        found: { code, data, options, tournamentName: await this.tournamentName(data.t) },
-        hint: '',
+        found: { code, data, options, tournamentName },
         busy: false,
       });
     } catch {
-      this.setState({ error: 'Không đọc được mã — kiểm tra kết nối mạng rồi thử lại.', busy: false });
+      this.setState({ error: 'Không đọc được — kiểm tra kết nối mạng rồi thử lại.', busy: false });
     }
   }
 
-  confirm = async (slot: CodeSlot) => {
-    const { found, uid } = this.state;
-    if (!found) return;
+  // ==================== Chon cho ngoi ====================
+
+  patch(next: Partial<Picking>) {
+    this.setState((prev) => (prev.picking ? { picking: { ...prev.picking, ...next } } : null));
+  }
+
+  chooseArena = (a: number) => this.patch({ arena: a, blocked: '' });
+
+  /**
+   * Cham vao mot vi tri.
+   *
+   * O dang co nguoi thi doc lai chinh node do truoc khi bao loi: giam sat vua
+   * bam "Mo khoa" o may ben canh xong thi cham phat nua la vao duoc, khong
+   * phai thoat ra go lai so.
+   */
+  choosePosition = async (pos: OpenPosition) => {
+    const { uid, picking } = this.state;
+    if (!picking) return;
+
+    if (pos.claimedUid && pos.claimedUid !== uid) {
+      this.setState({ busy: true });
+      const fresh = await refreshPosition(pos).catch(() => pos);
+      this.setState({ busy: false });
+
+      if (!fresh) {
+        this.patch({ blocked: 'Ô này vừa bị thu hồi. Nhờ giám sát kiểm tra lại giúp.' });
+        return;
+      }
+      this.patch({
+        positions: picking.positions.map((p) => (p.code === fresh.code ? fresh : p)),
+        blocked:
+          fresh.claimedUid && fresh.claimedUid !== uid
+            ? `${positionLabel(pos.a, pos.r)} đang có máy khác dùng. Nhờ giám sát bấm “Mở khoá” rồi chạm lại.`
+            : '',
+      });
+      if (fresh.claimedUid && fresh.claimedUid !== uid) return;
+      this.take(fresh);
+      return;
+    }
+
+    this.take(pos);
+  };
+
+  /** Mot mon thi vao thang; hai mon thi con dung mot cau hoi nua */
+  take(pos: OpenPosition) {
+    if (pos.slots.length > 1) {
+      this.patch({ chosen: pos, blocked: '' });
+      return;
+    }
+    void this.enter(pos.code, pos.slots[0], this.state.picking?.tournamentName || '');
+  }
+
+  chooseKind = (slot: CodeSlot) => {
+    const { picking } = this.state;
+    if (picking?.chosen) void this.enter(picking.chosen.code, slot, picking.tournamentName);
+  };
+
+  /**
+   * Ghep du 4 so roi nhan ma — y het luong cu, chi khac la NGUOI khong phai
+   * ghep. Ma kieu cu di chung duong nay: ma cua no von da la ca 4 so kia.
+   */
+  async enter(code: string, slot: CodeSlot, tournamentName: string) {
+    const { uid } = this.state;
 
     this.setState({ phase: 'entering', busy: true });
     try {
-      await claimCode(found.code, uid, slot);
+      await claimCode(code, uid, slot);
       cacheSession({
-        code: found.code,
+        code,
         slot: slotString(slot),
         label: slotLabel(slot),
-        tournamentName: found.tournamentName,
+        tournamentName,
       });
       this.go(slot.kind === 'combat' ? '/giam-dinh-doi-khang' : '/giam-dinh-thi-quyen');
     } catch (err: any) {
@@ -219,11 +296,49 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
         err instanceof CodeError
           ? err.message
           : 'Không vào được. Kiểm tra mạng rồi thử lại — hoặc nhờ giám sát bấm “Mở khoá”.';
+
+      // Hai may cung cham mot o mot luc: nguoi cham sau quay ve dung bang chon
+      // de cham o khac, khong bat go lai so tu dau
+      const { picking } = this.state;
+      if (picking) {
+        const target = picking.positions.find((p) => p.code === code);
+        const fresh = target ? await refreshPosition(target).catch(() => null) : null;
+        this.setState({
+          phase: 'pick',
+          busy: false,
+          picking: {
+            ...picking,
+            chosen: null,
+            positions: fresh
+              ? picking.positions.map((p) => (p.code === code ? { ...p, claimedUid: fresh.claimedUid } : p))
+              : picking.positions,
+            blocked: message,
+          },
+        });
+        return;
+      }
+
       this.setState({ phase: 'keypad', found: null, value: '', error: message, busy: false });
     }
+  }
+
+  /** Lui mot buoc — khong bao gio bat go lai so chi vi bam nham san */
+  back = () => {
+    const { picking } = this.state;
+    if (!picking) return this.retype();
+
+    if (picking.chosen) return this.patch({ chosen: null, blocked: '' });
+
+    const arenas = [...new Set(picking.positions.map((p) => p.a))];
+    if (picking.arena !== null && arenas.length > 1) return this.patch({ arena: null, blocked: '' });
+
+    return this.retype();
   };
 
-  retype = () => this.setState({ phase: 'keypad', found: null, value: '', error: '', hint: '' });
+  retype = () =>
+    this.setState({ phase: 'keypad', picking: null, found: null, value: '', error: '' });
+
+  // ==================== Ve ====================
 
   shell(children: React.ReactNode) {
     return (
@@ -237,26 +352,133 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
     );
   }
 
-  /** Nut chon mon — chi hien khi mot ma mo duoc ca hai o */
-  kindButton(slot: CodeSlot) {
-    const combat = slot.kind === 'combat';
-    return (
-      <button
-        key={slot.kind}
-        type="button"
-        disabled={this.state.busy}
-        onClick={() => this.confirm(slot)}
-        className={`flex-1 rounded-card px-4 py-5 text-white shadow-card transition-transform
-          active:scale-95 disabled:opacity-40
-          ${combat ? 'bg-rose-600 hover:bg-rose-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}
-      >
-        <i className={`fa-solid ${combat ? 'fa-hand-back-fist' : 'fa-hand-fist'} text-2xl block mb-2`}
-          aria-hidden="true" />
-        <span className="block text-lg font-bold uppercase tracking-wide">{kindName(slot.kind)}</span>
-      </button>
+  /** Khung chung cua man chon: ten giai luon nam tren dau, to va ro */
+  pickShell(step: string, children: React.ReactNode) {
+    const { picking } = this.state;
+    return this.shell(
+      <div className="bg-white rounded-card shadow-card border border-slate-100 overflow-hidden">
+        <div className="bg-emerald-600 px-5 py-3">
+          <p className="m-0 text-white/80 text-[11px] uppercase tracking-wide font-semibold">
+            Giải số {spacedCode(picking?.prefix || '')}
+          </p>
+          <p className="m-0 text-white font-bold leading-snug whitespace-pre-line">
+            {picking?.tournamentName}
+          </p>
+        </div>
+
+        <div className="p-5">
+          <p className="m-0 mb-4 text-center text-base font-semibold text-slate-700">{step}</p>
+          {children}
+
+          {picking?.blocked && (
+            <p role="alert" className="mt-4 mb-0 text-sm text-amber-800 bg-amber-50 border
+              border-amber-200 rounded-control px-3 py-2.5">
+              <i className="fa-solid fa-lock mr-1.5" aria-hidden="true" />
+              {picking.blocked}
+            </p>
+          )}
+
+          <Button variant="secondary" size="lg" block className="mt-4"
+            icon="fa-solid fa-arrow-left" onClick={this.back}>
+            Quay lại
+          </Button>
+        </div>
+      </div>
     );
   }
 
+  renderPick(picking: Picking) {
+    const { busy, uid } = this.state;
+    const arenas = [...new Set(picking.positions.map((p) => p.a))].sort();
+
+    // Buoc 1 — san. Giai mot san khong bao gio thay man nay.
+    if (picking.arena === null) {
+      return this.pickShell(
+        'Bạn ngồi sân nào?',
+        <div className="grid grid-cols-2 gap-3">
+          {arenas.map((a) => (
+            <button
+              key={a}
+              type="button"
+              disabled={busy}
+              onClick={() => this.chooseArena(a)}
+              className="rounded-card py-7 bg-white border-2 border-slate-200 text-slate-800
+                text-xl font-bold shadow-sm hover:border-accent-400 hover:bg-accent-50
+                active:scale-95 disabled:opacity-40 transition tap-target"
+            >
+              {arenaName(a)}
+            </button>
+          ))}
+        </div>
+      );
+    }
+
+    // Buoc 3 — mon. Cai duy nhat o cham diem khong noi ho duoc.
+    if (picking.chosen) {
+      return this.pickShell(
+        `${positionLabel(picking.chosen.a, picking.chosen.r)} — hôm nay bạn chấm gì?`,
+        <div className="flex gap-3">
+          {picking.chosen.slots.map((slot) => {
+            const combat = slot.kind === 'combat';
+            return (
+              <button
+                key={slot.kind}
+                type="button"
+                disabled={busy}
+                onClick={() => this.chooseKind(slot)}
+                className={`flex-1 rounded-card px-4 py-5 text-white shadow-card transition-transform
+                  active:scale-95 disabled:opacity-40
+                  ${combat ? 'bg-rose-600 hover:bg-rose-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+              >
+                <i className={`fa-solid ${combat ? 'fa-hand-back-fist' : 'fa-hand-fist'} text-2xl block mb-2`}
+                  aria-hidden="true" />
+                <span className="block text-lg font-bold uppercase tracking-wide">
+                  {kindName(slot.kind)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+
+    // Buoc 2 — vi tri. O nao dang co nguoi thi noi ra ngay tai o do, de ho biet
+    // phai goi giam sat truoc khi cham chu khong cham roi moi an loi.
+    const here = picking.positions.filter((p) => p.a === picking.arena);
+    return this.pickShell(
+      `${arenaName(picking.arena)} — bạn là giám định số mấy?`,
+      <div className="grid grid-cols-3 gap-3">
+        {here.map((pos) => {
+          const mine = !!pos.claimedUid && pos.claimedUid === uid;
+          const taken = !!pos.claimedUid && !mine;
+          return (
+            <button
+              key={pos.code}
+              type="button"
+              disabled={busy}
+              onClick={() => void this.choosePosition(pos)}
+              className={`rounded-card py-5 border-2 shadow-sm active:scale-95 disabled:opacity-40
+                transition tap-target
+                ${taken
+                  ? 'bg-amber-50 border-amber-300 text-amber-800'
+                  : mine
+                    ? 'bg-emerald-50 border-emerald-400 text-emerald-800'
+                    : 'bg-white border-slate-200 text-slate-800 hover:border-accent-400 hover:bg-accent-50'}`}
+            >
+              <span className="block text-2xl font-black">GĐ{pos.r + 1}</span>
+              {(taken || mine) && (
+                <span className="block mt-1 text-[10px] uppercase tracking-wide">
+                  {mine ? 'máy này' : 'đang có người'}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
+  /** Ma kieu cu: mot ma la mot o, chi con hoi lai cho chac */
   renderConfirm(found: Found) {
     const { busy } = this.state;
     const many = found.options.length > 1;
@@ -284,16 +506,35 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
 
           {many ? (
             <>
-              {/* Cai duy nhat ma cai ma khong noi ho duoc. Hoi ngay tai day,
-                  truoc khi vao, chu khong de ho phat hien khi da cham nham */}
               <p className="m-0 mb-3 text-sm font-semibold text-slate-600">
                 Hôm nay bạn chấm gì?
               </p>
-              <div className="flex gap-3">{found.options.map((s) => this.kindButton(s))}</div>
+              <div className="flex gap-3">
+                {found.options.map((slot) => {
+                  const combat = slot.kind === 'combat';
+                  return (
+                    <button
+                      key={slot.kind}
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void this.enter(found.code, slot, found.tournamentName)}
+                      className={`flex-1 rounded-card px-4 py-5 text-white shadow-card transition-transform
+                        active:scale-95 disabled:opacity-40
+                        ${combat ? 'bg-rose-600 hover:bg-rose-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+                    >
+                      <i className={`fa-solid ${combat ? 'fa-hand-back-fist' : 'fa-hand-fist'} text-2xl block mb-2`}
+                        aria-hidden="true" />
+                      <span className="block text-lg font-bold uppercase tracking-wide">
+                        {kindName(slot.kind)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </>
           ) : (
             <Button variant="success" size="lg" block icon="fa-solid fa-check"
-              disabled={busy} onClick={() => this.confirm(one)}>
+              disabled={busy} onClick={() => void this.enter(found.code, one, found.tournamentName)}>
               Đúng rồi — vào chấm
             </Button>
           )}
@@ -308,7 +549,7 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
   }
 
   render() {
-    const { phase, value, error, hint, found, privateModeWarning, busy } = this.state;
+    const { phase, value, error, picking, found, privateModeWarning, busy } = this.state;
 
     if (phase === 'signing-in' || phase === 'entering') {
       return this.shell(
@@ -338,6 +579,7 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
       );
     }
 
+    if (phase === 'pick' && picking) return this.renderPick(picking);
     if (phase === 'confirm' && found) return this.renderConfirm(found);
 
     return this.shell(
@@ -346,35 +588,20 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
           <div className="inline-flex bg-white p-3 rounded-card shadow-card mb-4">
             <img src={logo} alt="Cóc Vương" className="h-11 w-auto" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-800 mb-1">Gõ mã vào bàn chấm</h1>
+          <h1 className="text-2xl font-bold text-slate-800 mb-1">Gõ số của giải</h1>
           <p className="text-sm text-slate-500 m-0">
-            Số do giám sát đọc cho bạn
+            Hai số giám sát đọc cho cả đoàn — xong rồi chọn sân và số của bạn
           </p>
         </div>
 
         <div className="bg-white rounded-card shadow-card border border-slate-100 p-5">
           <NumericKeypad
             value={value}
-            length={SHARED_CODE_LENGTH}
-            minLength={PREFIX_LENGTH}
+            length={PREFIX_LENGTH}
             onChange={this.handleChange}
-            /* Tu bam nut xac nhan la doi mot cau tra loi — khong im lang
-               cho ho go tiep nhu luc go du 2 so mot cach tinh co */
-            onSubmit={() => value.length >= PREFIX_LENGTH && this.lookup(value, false)}
+            onSubmit={() => value.length === PREFIX_LENGTH && this.lookup(value)}
             disabled={busy}
           />
-
-          {/* Go dung 2 so cua giai roi — con thieu san va vi tri. Hien ten giai
-              ngay de ho biet minh dang go dung giai, khoi go tiep trong nghi ngo */}
-          {hint && !error && (
-            <div className="mt-5 text-sm text-emerald-800 bg-emerald-50 border border-emerald-200
-              rounded-control px-3 py-2.5">
-              <p className="m-0 font-semibold whitespace-pre-line leading-snug">{hint}</p>
-              <p className="m-0 mt-1 text-emerald-700">
-                Gõ tiếp <strong>số sân</strong> rồi <strong>số giám định</strong> của bạn.
-              </p>
-            </div>
-          )}
 
           {error && (
             <p role="alert" className="mt-5 mb-0 text-sm text-red-700 bg-red-50 border
@@ -389,8 +616,8 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
               rounded-control px-3 py-2.5 leading-relaxed">
               <i className="fa-solid fa-user-secret mr-1.5" aria-hidden="true" />
               Trình duyệt đang ở chế độ riêng tư nên máy này bị coi là máy mới mỗi lần mở.
-              Mã sẽ báo “đã có người dùng” — nhờ giám sát bấm <strong>Mở khoá</strong>, hoặc
-              mở app ở cửa sổ thường.
+              Chỗ ngồi của bạn sẽ báo “đang có người” — nhờ giám sát bấm <strong>Mở khoá</strong>,
+              hoặc mở app ở cửa sổ thường.
             </p>
           )}
         </div>

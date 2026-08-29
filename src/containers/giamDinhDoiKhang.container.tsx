@@ -119,8 +119,8 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
   }
 
   /**
-   * Vao thang tu ma da go o `/vao` — khong hoi mat khau, khong chon giai/san/
-   * vi tri lan nao nua. Chua co phien thi day ve `/vao`.
+   * Vao thang tu so da go o `/gd` — khong hoi mat khau, khong chon giai/san/
+   * vi tri lan nao nua. Chua co phien thi day ve `/gd`.
    */
   async startSession() {
     let uid = '';
@@ -158,8 +158,8 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
   }
 
   goToEnterCode() {
-    if (this.props.history) this.props.history.push('/vao');
-    else window.location.href = '/vao';
+    if (this.props.history) this.props.history.push('/gd');
+    else window.location.href = '/gd';
   }
 
   /**
@@ -364,7 +364,7 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
       'unlocked': {
         icon: 'fa-solid fa-unlock',
         title: 'Mã đã được mở khoá',
-        body: 'Giám sát vừa mở khoá mã này cho máy khác. Gõ lại đúng số mã cũ để vào lại bàn chấm.',
+        body: 'Giám sát vừa mở khoá chỗ này cho máy khác. Gõ lại số của giải rồi chọn đúng chỗ cũ để vào lại.',
         cta: 'Gõ lại mã',
       },
       'closed': {

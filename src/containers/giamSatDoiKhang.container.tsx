@@ -1402,9 +1402,14 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
      */
     resetDemo = async (): Promise<void> => {
         try {
-            await resetDemoTournament(this.props.access.tournament.index);
+            const { tournament, arenaIndex } = this.props.access;
+            await resetDemoTournament(tournament.index, arenaIndex);
+            // Diem, canh cao, co thang deu chay ve qua `onValue` cua `combat`.
+            // Chi con dong ho / hiep / bo dem giam dinh la nam trong may nay —
+            // dung dung `restoreMatch` cua nut chuyen tran, khong tai lai trang
+            this.matchNoCurrent = 1;
+            this.restoreMatch();
             toast.success('Đã xoá điểm — chấm cặp mới được rồi.');
-            window.location.reload();
         } catch {
             toast.error('Không xoá được điểm cũ.');
         }
@@ -1646,6 +1651,15 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                                             Đổi sân
                                         </button>
                                     )}
+                                    {/* Loi ra bang chon giai: cung la loi duy nhat sang ban
+                                        cham nhanh va tu ban cham nhanh ve giai that */}
+                                    <button
+                                        onClick={() => { this.setState({ showQuickMenu: false }); access.onChangeTournament(); }}
+                                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                                    >
+                                        <i className="fa fa-trophy text-slate-400"></i>
+                                        Đổi giải
+                                    </button>
                                     <div className="border-t border-slate-200 my-1"></div>
                                     <button 
                                         onClick={() => { this.setState({ showQuickMenu: false, showModalChooseMatch: true }); }}

@@ -85,15 +85,15 @@ const GoogleSignInCard: React.FC<GoogleSignInCardProps> = ({
             Bạn là giám định?
           </p>
           <p className="text-xs text-amber-700 m-0 mb-3">
-            Giám định không cần đăng nhập. Chỉ cần gõ mã do giám sát đọc cho.
+            Giám định không cần đăng nhập. Chỉ cần gõ 2 số của giải do giám sát đọc cho.
           </p>
           <Link
-            to="/vao"
+            to="/gd"
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-control bg-amber-500
               text-white font-medium text-sm hover:bg-amber-600 transition-colors"
           >
             <i className="fa-solid fa-keyboard" aria-hidden="true" />
-            Vào bằng mã
+            Vào bằng số của giải
           </Link>
         </div>
 

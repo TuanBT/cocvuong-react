@@ -8,7 +8,6 @@ import {
   LoadingOverlay, Toast, AppFooter,
 } from '../components/ui';
 import { AccountChip } from '../components/auth';
-import StaffApprovalPanel from '../components/tournament/StaffApprovalPanel';
 import { read, write, utils } from 'xlsx';
 import FileSaver from "file-saver";
 import { NavLink } from "react-router-dom";
@@ -252,6 +251,11 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
    * bi bo roi). Danh sach giu dang `[index that, ten]` — sau khi loc thi vi tri
    * trong mang KHONG con trung voi index trong DB nua, nen moi cho chon phai
    * dung `tournament[0]`.
+   *
+   * Ban CHAM NHANH bi loai khoi day: cap doi cua no do chinh nut "Cham cap moi"
+   * sinh ra, khong nhap Excel, khong sap nhanh, khong xoa duoc — moi buoc cua
+   * trang nay deu khong ap dung cho no. De trong bang chon thi chi to them mot
+   * lua chon ma chon vao la khong lam duoc gi.
    */
   main() {
     const { user } = this.props;
@@ -259,7 +263,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
     listTournaments()
       .then((all) => {
-        const mine = all.filter((t) => t.ownerUid === user.uid || isLegacy(t));
+        const mine = all.filter((t) => (t.ownerUid === user.uid || isLegacy(t)) && !t.demo);
         this.tournaments = mine.map((t) => [t.index, t.name] as [number, string]);
 
         // Giai dang chon khong con trong danh sach thi ve giai dau tien
@@ -2648,23 +2652,14 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
                   rounded-control px-3 py-2.5 mt-3 mb-0">
                   <i className="fa-solid fa-circle-info mr-1.5" aria-hidden="true" />
                   Giải chưa mở nên chưa nhận được đơn xin quyền giám sát. Nhập xong danh sách
-                  thì bấm <strong>Mở giải</strong>.
+                  thì bấm <strong>Mở giải</strong>, rồi duyệt giám sát ở trang{' '}
+                  <NavLink to="/thiet-dat" className="text-amber-900 font-medium underline">
+                    Thiết đặt
+                  </NavLink>.
                 </p>
               )}
             </SectionCard>
           </div>
-
-          {summary && summary.ownerUid && (
-            <div className="w-full max-w-5xl mx-auto px-3 sm:px-4 pt-5">
-              <SectionCard title="Giám sát của giải" icon="fa-solid fa-user-shield">
-                <StaffApprovalPanel
-                  tournamentIndex={summary.index}
-                  ownerUid={user.uid}
-                  tournamentStatus={summary.status}
-                />
-              </SectionCard>
-            </div>
-          )}
 
           {this.renderWizardMode()}
         </main>

@@ -1,9 +1,13 @@
 /**
  * Access Code Service — ma vao cho giam dinh.
  *
- * Y tuong: mot ma la mot **o cham diem da duoc troi san**. Go ma xong la vao
- * thang dung giai / dung san / dung vi tri, bo hoan toan ba vong chon
- * giai -> san -> vi tri von la cho de sai nhat.
+ * Y tuong: mot ma la mot **o cham diem da duoc troi san**. Cam ma la vao thang
+ * dung giai / dung san / dung vi tri, khong con vong chon giai nao nua.
+ *
+ * Nguoi thi chi go **2 SO CUA GIAI**; san va vi tri thi ho cham vao man hinh
+ * (`positionsForPrefix` bay ra dung nhung o co that), roi app moi ghep du ma.
+ * Go it di mot nua thi cung it di mot nua cho de go nham — ma go nham mot chu
+ * so thi vao dung mot ban cham that cua nguoi khac, khong ai bao loi.
  *
  * Luong khoa chat:
  *   biet ma -> claim ma (ghi `claimedUid`) -> tao `codeSession/{uid}`
@@ -16,11 +20,16 @@ import {
 import { database } from '../firebase';
 
 /**
- * Ma vao la **4 so**: `[2 so cua giai][san][vi tri giam dinh]`.
+ * Ma la **4 so**: `[2 so cua giai][san][vi tri giam dinh]`.
  *
  * Vi du giai so 83: San A GD1 = 8311, San A GD2 = 8312, San B GD2 = 8322.
  * So MON khong nam trong ma — giam dinh chon "cham gi" ngay luc vao. Doi lai
  * chu giai chi phai nho **dung mot so** thay vi 12-24 so roi rac.
+ *
+ * Hai so cuoi la thu **may ghep**, khong phai thu nguoi go: giam dinh go 2 so
+ * dau roi cham chon san va vi tri. Ma van du 4 so vi day la khoa ma security
+ * rules soi (`claimedUid` + `slot`) — doi no thanh 2 so la ca giai chung mot
+ * cua, ai cam so cua giai cung ghi duoc vao moi o.
  *
  * Tran: 2 so dau = 99 giai mo cung luc. Kho ma phang, khong tach theo giai —
  * tach thi giam dinh lai phai chon giai truoc khi go, dung cai buoc muon bo.
@@ -30,7 +39,7 @@ import { database } from '../firebase';
  */
 export const PREFIX_LENGTH = 2;
 
-/** Do dai ma vao: 2 so cua giai + 1 so san + 1 so vi tri giam dinh */
+/** Do dai ma day du: 2 so cua giai + 1 so san + 1 so vi tri giam dinh */
 export const SHARED_CODE_LENGTH = PREFIX_LENGTH + 2;
 
 /** Bo cuoc sau ngan nay lan random trung ma da co */
@@ -351,6 +360,8 @@ function prefixFromCodes(codes: string[]): string | undefined {
 export interface EnsureCodesResult {
   created: number;
   kept: number;
+  /** So ma bi go vi o do khong con trong thiet dat nua */
+  removed: number;
   maxRetries: number;
   /** True khi kho ma sap het — hien canh bao cho nguoi dung */
   poolPressure: boolean;
@@ -379,6 +390,37 @@ export async function ensureTournamentCodes(
   if (migrated) await revokeTournamentCodes(t);
   const res = await ensureSharedCodes(t, plan, ownerUid, meta.prefix);
   return { ...res, migrated };
+}
+
+export interface SyncCodesResult extends EnsureCodesResult {
+  /** True khi day la giai cu chua co so cua giai — khong tu y dong bo */
+  skipped: boolean;
+}
+
+/**
+ * Dong bo bo ma theo dung thiet dat hien tai — goi NGAY SAU khi luu thiet dat.
+ *
+ * So giam dinh la thu chu giai doi duoc bat cu luc nao; bo ma phai chay theo
+ * mot cach im lang. Khong co ham nay thi bat 5 giam dinh xong, GD4 va GD5 go
+ * dung cong thuc van bi bao "khong co ma nay" — va chu giai phai biet den mot
+ * nut "cap ma" de vao vet, thu ma le ra ho khong bao gio phai nghi den.
+ *
+ * Giai cu (con ma kieu moi o mot so, chua co so cua giai) thi **bo qua**: don
+ * sang kieu moi la moi ma dang cam chet ngay, viec do phai chu giai bam.
+ */
+export async function syncTournamentCodes(
+  t: number,
+  plan: TournamentCodePlan,
+  ownerUid: string
+): Promise<SyncCodesResult> {
+  const meta = await resolveCodeMeta(t);
+  if (!meta.prefix && (await codesOfTournament(t)).length > 0) {
+    return {
+      created: 0, kept: 0, removed: 0, maxRetries: 0,
+      poolPressure: false, migrated: false, skipped: true,
+    };
+  }
+  return { ...(await ensureSharedCodes(t, plan, ownerUid, meta.prefix)), skipped: false };
 }
 
 /**
@@ -425,6 +467,44 @@ async function createSharedCode(
   return code;
 }
 
+/** Node ma nay co dung nhung mon ma vi tri do dang co hay khong */
+function matchesKinds(data: AccessCode, kinds: ArenaKind[]): boolean {
+  return kinds.includes('combat') === !!data.slotCombat
+    && kinds.includes('martial') === !!data.slotMartial;
+}
+
+/**
+ * Go nhung ma khong con nam trong thiet dat.
+ *
+ * Ha 5 giam dinh xuong 3 ma de nguyen thi ma cua GD4, GD5 van mo duoc mot o
+ * cham diem khong con ai nhin — mot cua vao thua nam mo giua giai. Bo ma phai
+ * la ban sao dung cua thiet dat, khong phai cai chi biet dai them ra.
+ *
+ * `keep`: `{sanKey}/{vi tri}` -> ma dung cho o do.
+ */
+async function pruneStaleCodes(t: number, keep: Map<string, string>): Promise<number> {
+  const snap = await get(child(ref(database), `tournamentCodeIndex/${t}`));
+  const index = snap.val() as Record<string, Record<string, string>> | null;
+  if (!index) return 0;
+
+  // Mot ma nam o ca hai nhanh mon: chi xoa node ma khi khong nhanh nao con giu
+  const live = new Set(keep.values());
+  let removed = 0;
+
+  for (const [sanKey, byReferee] of Object.entries(index)) {
+    if (sanKey === META_KEY) continue;
+    for (const [r, code] of Object.entries(byReferee || {})) {
+      if (keep.get(`${sanKey}/${r}`) === code) continue;
+      await remove(ref(database, `tournamentCodeIndex/${t}/${sanKey}/${r}`));
+      if (!live.has(code)) {
+        await remove(ref(database, `accessCode/${code}`));
+        removed++;
+      }
+    }
+  }
+  return removed;
+}
+
 async function ensureSharedCodes(
   t: number,
   plan: TournamentCodePlan,
@@ -446,13 +526,31 @@ async function ensureSharedCodes(
     if (!prefix) throw new CodePoolFullError();
   }
 
+  // Node giu cho 2 so dau GIO LA CUA VAO: giam dinh go dung no roi moi chon
+  // cho ngoi. Mat no thi ca doan dung ngoai cua trong khi bang ma van hien
+  // binh thuong — nen kiem lai moi lan dong bo, khong chi luc cap so moi.
+  const holder = await get(child(ref(database), `accessCode/${prefix}`));
+  const owned = holder.val() as AccessCode | null;
+  if (!owned) {
+    await writePrefixHolder(prefix, t, ownerUid, plan.tournamentName);
+  } else if (owned.tKey !== String(t)) {
+    // Giai khac dang giu 2 so nay — de nguyen, ghi de la cuop cua ho
+    throw new PrefixTakenError(prefix);
+  }
+
   let created = 0;
   let kept = 0;
+  const keep = new Map<string, string>();
 
   for (const pos of sharedPositions(t, plan)) {
     const code = sharedCodeFor(prefix, pos.a, pos.r);
-    const snap = await get(child(ref(database), `accessCode/${code}/tKey`));
-    if (snap.val() === String(t)) {
+    for (const kind of pos.kinds) keep.set(`${arenaKey(kind, pos.a)}/${pos.r}`, code);
+
+    // Doc ca node chu khong moi `tKey`: doi thi quyen 5 -> 3 thi ma o GD3 van
+    // dung giai nhung khong con la ma hai mon nua, phai ghi lai chu khong giu
+    const snap = await get(child(ref(database), `accessCode/${code}`));
+    const data = snap.val() as AccessCode | null;
+    if (data?.tKey === String(t) && matchesKinds(data, pos.kinds)) {
       kept++;
       continue;
     }
@@ -460,9 +558,11 @@ async function ensureSharedCodes(
     created++;
   }
 
+  const removed = await pruneStaleCodes(t, keep);
+
   await setCodeMeta(t, { prefix });
   return {
-    created, kept, maxRetries: retries,
+    created, kept, removed, maxRetries: retries,
     poolPressure: retries >= CODE_PRESSURE_WARN,
     prefix, migrated: false,
   };
@@ -587,6 +687,79 @@ export function subscribeCode(code: string, cb: (data: AccessCode | null) => voi
   return () => off(r);
 }
 
+// ==================== Tu so cua giai ra o cham diem ====================
+
+/**
+ * Tran cua ma dung chung: `sharedCodeFor` danh cho san va vi tri moi ben DUNG
+ * MOT chu so, nen khong bao gio co san thu 3 hay giam dinh thu 6.
+ */
+export const MAX_ARENAS = 2;
+export const MAX_REFEREES = 5;
+
+/** Mot o cham diem chon duoc tu man hinh, sau khi go 2 so cua giai */
+export interface OpenPosition {
+  a: number;
+  r: number;
+  code: string;
+  /** Nhung mon o nay cham duoc — 2 thi con phai hoi giam dinh mot cau */
+  slots: CodeSlot[];
+  /** Da co may khac cam o nay */
+  claimedUid?: string;
+}
+
+/**
+ * Giai co nhung o cham diem nao — do thang tu kho ma.
+ *
+ * Giam dinh chi go 2 SO CUA GIAI; san va vi tri thi ho **cham vao man hinh**
+ * chu khong go. De bay ra dung nhung o co that, man hinh phai biet giai nay co
+ * may san, may giam dinh — ma `tournamentCodeIndex` thi chi chu giai doc duoc,
+ * con `tournament/{t}/setting` la mot cay nang.
+ *
+ * Nen doc nguoc tu chinh cac node ma: ma la `so giai + san + vi tri` nen thu
+ * het 2 x 5 to hop la ra dung bo o cua giai — kem luon "o nay co ai cam chua"
+ * va "o nay cham duoc mon gi". Khong them mot ban sao thiet dat nao de lech.
+ *
+ * `t` de chan mot truong hop hiem ma dat: giai cu dong chua sach ma, giai moi
+ * nhan trung 2 so — o do se tro ve giai da chet.
+ */
+export async function positionsForPrefix(prefix: string, t: number): Promise<OpenPosition[]> {
+  const wanted: { a: number; r: number; code: string }[] = [];
+  for (let a = 0; a < MAX_ARENAS; a++) {
+    for (let r = 0; r < MAX_REFEREES; r++) {
+      wanted.push({ a, r, code: sharedCodeFor(prefix, a, r) });
+    }
+  }
+
+  const found = await Promise.all(wanted.map(async (w): Promise<OpenPosition | null> => {
+    let data: AccessCode | null = null;
+    try {
+      data = await getCode(w.code);
+    } catch {
+      return null;
+    }
+    if (!data || data.reserved || data.tKey !== String(t)) return null;
+    const slots = availableSlots(data);
+    if (!slots.length) return null;
+    return { ...w, slots, claimedUid: data.claimedUid };
+  }));
+
+  return found.filter((p): p is OpenPosition => p !== null);
+}
+
+/**
+ * Doc lai dung mot o — dung ngay luc giam dinh cham vao o dang co nguoi.
+ *
+ * Giam sat vua bam "Mo khoa" xong thi cham lai phat nua la vao duoc, khong
+ * phai thoat ra go lai so.
+ */
+export async function refreshPosition(pos: OpenPosition): Promise<OpenPosition | null> {
+  const data = await getCode(pos.code);
+  if (!data || data.reserved) return null;
+  const slots = availableSlots(data);
+  if (!slots.length) return null;
+  return { ...pos, slots, claimedUid: data.claimedUid };
+}
+
 // ==================== Claim / mo khoa ====================
 
 export class CodeError extends Error {
@@ -613,7 +786,7 @@ export async function claimCode(
 ): Promise<AccessCode> {
   const data = await getCode(code);
   if (!data || data.reserved) {
-    throw new CodeError('not-found', 'Mã không đúng. Kiểm tra lại giúp — mã do giám sát đọc cho.');
+    throw new CodeError('not-found', 'Số không đúng. Kiểm tra lại giúp — số do giám sát đọc cho.');
   }
 
   // Ma dung chung mo duoc 2 o (doi khang / thi quyen). Khong tu chon ho: vao
@@ -627,7 +800,7 @@ export async function claimCode(
   if (data.claimedUid && data.claimedUid !== uid) {
     throw new CodeError(
       'taken',
-      'Mã này đã có người dùng. Nhờ giám sát bấm "Mở khoá" rồi gõ lại đúng mã cũ.'
+      'Chỗ này đã có máy khác dùng. Nhờ giám sát bấm "Mở khoá" rồi chọn lại.'
     );
   }
 

@@ -3,7 +3,7 @@ import { toast } from 'react-toastify';
 import Button from '../ui/Button';
 import EmptyState from '../ui/EmptyState';
 import {
-  AccessCode, CodeIndex, CodeSlot, PREFIX_LENGTH, SHARED_CODE_LENGTH,
+  AccessCode, CodeIndex, CodeSlot, SHARED_CODE_LENGTH,
   arenaName, kindName, positionLabel, prefixOf, slotLabel, slotString, spacedCode,
   subscribeArenaCodeIndex, subscribeCode, subscribeCodeIndex, unlockCode,
 } from '../../services/accessCodeService';
@@ -42,9 +42,15 @@ interface Cell {
  * vi tri mot o. Chi muc co ma nay o ca hai nhanh mon nen phai bo trung, khong
  * thi moi ma hien hai lan.
  *
- * Giai cu cap tu thoi "moi o mot ma 2 so" van hien duoc: ma ngan hon thi bang
- * quay ve xep theo mon x san. Bam "Cap ma cho o con thieu" o Thiet dat la giai
- * do doi han sang ma 4 so.
+ * **Thu duy nhat phai doc to la 2 SO CUA GIAI.** San va vi tri thi giam dinh
+ * CHAM VAO MAN HINH sau khi go 2 so — khong ai doc, chep hay go 12-24 ma roi
+ * rac nua. Ma 4 so day du van con (no la thu that su mo cua o duoi) nhung tu
+ * gio la chuyen noi bo cua may: bang nay khong hien no ra, vi hien ra la lai
+ * co nguoi doc no cho nhau. Danh sach vi tri ben duoi chi de xem AI DA VAO va
+ * de bam Mo khoa.
+ *
+ * Giai cu cap tu thoi "moi o mot ma 2 so" van hien duoc: khong co 2 so chung
+ * thi tung ma van phai doc rieng, nen bang do ma to len va in ra day du.
  */
 const CodeBoard: React.FC<CodeBoardProps> = ({
   tournamentIndex,
@@ -155,11 +161,13 @@ const CodeBoard: React.FC<CodeBoardProps> = ({
     return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0], 'vi'));
   }, [visible, codes, tournamentIndex, shared]);
 
-  const handleUnlock = useCallback(async (code: string) => {
-    setBusy(code);
+  const handleUnlock = useCallback(async (cell: Cell) => {
+    setBusy(cell.code);
     try {
-      await unlockCode(code);
-      toast.success(`Đã mở khoá mã ${spacedCode(code)} — đọc lại đúng số này cho giám định.`);
+      await unlockCode(cell.code);
+      toast.success(
+        `Đã mở khoá ${positionLabel(cell.a, cell.r)} — bảo giám định chọn lại đúng chỗ này.`
+      );
     } catch {
       toast.error('Không mở khoá được. Kiểm tra lại quyền trên giải này.');
     } finally {
@@ -182,7 +190,21 @@ const CodeBoard: React.FC<CodeBoardProps> = ({
     []
   );
 
-  const handleCopy = useCallback(async (cell: Cell) => {
+  /** Chep cai gui qua Zalo cho ca doan giam dinh: mot so, kem cach vao */
+  const handleCopyPrefix = useCallback(async () => {
+    const text =
+      `${tournamentName.replace(/\n/g, ' ')}\n` +
+      `Số của giải: ${prefix}\n` +
+      `Vào app Cóc Vương, bấm "Vào chấm điểm", gõ ${prefix} rồi chọn sân và số giám định của bạn.`;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('Đã chép — dán vào Zalo được rồi.');
+    } catch {
+      toast.info(text);
+    }
+  }, [tournamentName, prefix]);
+
+  const handleCopyCell = useCallback(async (cell: Cell) => {
     const what = bothKinds(cell)
       ? positionLabel(cell.a, cell.r)
       : slotLabel(cell.slots[0]);
@@ -195,21 +217,31 @@ const CodeBoard: React.FC<CodeBoardProps> = ({
     }
   }, [tournamentName, bothKinds]);
 
-  /** In ra giay de dan o ban giam dinh truoc gio thi */
+  /**
+   * In ra giay de dan o ban giam dinh truoc gio thi.
+   *
+   * To in cua bo ma dung chung chi co DUNG MOT SO to bang nam ban tay, kem
+   * cach ghep. In ca bang 12-24 ma ra la moi nguoi lai di do so cua minh
+   * trong bang — dung cai viec ma so cua giai sinh ra de bo.
+   */
   const handlePrint = useCallback(() => {
-    const rows = groups
-      .map(([label, cells]) => `
-        <h2>${label}</h2>
-        <table>
-          <tr>${cells.map((c) => `<th>GĐ${c.r + 1}</th>`).join('')}</tr>
-          <tr>${cells.map((c) => `<td>${spacedCode(c.code)}</td>`).join('')}</tr>
-        </table>`)
-      .join('');
-
-    const note = shared
-      ? `Số của giải là <b>${prefix}</b>. Mỗi mã dùng cho CẢ đối kháng lẫn thi quyền — ` +
-        `giám định chọn môn ngay khi vào. Không đưa nhầm mã sang bàn khác.`
-      : 'Mỗi mã vào thẳng đúng một ô chấm điểm. Không đưa nhầm mã sang bàn khác.';
+    const body = shared
+      ? `
+        <div class="hero">
+          <p class="cap">Số của giải</p>
+          <p class="num">${spacedCode(prefix)}</p>
+        </div>
+        <p class="how">Mở app → <b>Vào chấm điểm</b> → gõ <b>${prefix}</b></p>
+        <p class="eg">Rồi chọn <b>sân</b> và <b>số giám định</b> của bạn ngay trên màn hình.</p>
+        <p class="note">Một chỗ ngồi chấm được CẢ đối kháng lẫn thi quyền — chọn môn khi vào.</p>`
+      : `
+        ${groups.map(([label, cells]) => `
+          <h2>${label}</h2>
+          <table class="old">
+            <tr>${cells.map((c) => `<th>GĐ${c.r + 1}</th>`).join('')}</tr>
+            <tr>${cells.map((c) => `<td class="d">${spacedCode(c.code)}</td>`).join('')}</tr>
+          </table>`).join('')}
+        <p class="note">Mỗi mã vào thẳng đúng một ô chấm điểm. Không đưa nhầm mã sang bàn khác.</p>`;
 
     const win = window.open('', '_blank', 'width=900,height=700');
     if (!win) {
@@ -219,16 +251,24 @@ const CodeBoard: React.FC<CodeBoardProps> = ({
     win.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8">
       <title>Bảng mã giám định</title><style>
         body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;padding:28px;color:#0f172a}
-        h1{font-size:20px;margin:0 0 4px;white-space:pre-line}
-        p.sub{color:#64748b;margin:0 0 20px;font-size:13px}
+        h1{font-size:22px;margin:0 0 4px;white-space:pre-line}
+        p.sub{color:#64748b;margin:0 0 24px;font-size:13px}
+        .hero{border:3px solid #0f172a;border-radius:14px;padding:18px 12px;text-align:center}
+        .cap{margin:0;font-size:13px;text-transform:uppercase;letter-spacing:.18em;color:#475569}
+        .num{margin:6px 0 0;font-size:104px;line-height:1;font-weight:900;letter-spacing:.14em}
+        p.how{margin:20px 0 12px;font-size:19px;text-align:center}
         h2{font-size:14px;text-transform:uppercase;letter-spacing:.05em;color:#475569;margin:22px 0 6px}
         table{border-collapse:collapse;width:100%}
-        th{border:1px solid #cbd5e1;padding:6px;font-size:12px;background:#f1f5f9}
-        td{border:1px solid #cbd5e1;padding:14px 6px;font-size:34px;font-weight:800;text-align:center;letter-spacing:.15em;white-space:nowrap}
+        th{border:1px solid #cbd5e1;padding:8px;font-size:13px;background:#f1f5f9}
+        td{border:1px solid #cbd5e1;padding:12px 8px;text-align:center}
+        td.k{font-size:20px;font-weight:600}
+        td.d{font-size:34px;font-weight:800;letter-spacing:.15em;white-space:nowrap}
+        p.eg{margin:16px 0 0;font-size:19px;text-align:center}
+        p.note{margin:18px 0 0;font-size:13px;color:#64748b;text-align:center}
       </style></head><body>
       <h1>${tournamentName}</h1>
-      <p class="sub">Bảng mã giám định — ${note}</p>
-      ${rows}
+      <p class="sub">Bảng mã giám định</p>
+      ${body}
       </body></html>`);
     win.document.close();
     win.focus();
@@ -250,110 +290,125 @@ const CodeBoard: React.FC<CodeBoardProps> = ({
       <EmptyState
         icon="fa-solid fa-key"
         title="Chưa có mã giám định cho giải này"
-        hint="Mã được sinh tự động lúc tạo giải. Bấm “Cấp mã cho ô còn thiếu” ở trang Thiết đặt nếu giải cũ chưa có."
+        hint="Mã sinh tự động lúc tạo giải và tự chạy theo số giám định. Giải cũ chưa có số của giải thì bấm “Đặt số cho giải” ở trang Thiết đặt."
       />
     );
   }
 
   return (
     <div className="space-y-5">
+      {/* Ca man hinh chi de doc to MOT so nay. Con lai la viec cua giam dinh. */}
       {shared && (
-        <div className="flex items-center gap-3 bg-accent-50 border border-accent-200
-          rounded-control px-4 py-3">
-          <span className="text-xs font-semibold uppercase tracking-wide text-accent-700">
+        <div className="border-2 border-accent-300 bg-accent-50 rounded-card p-4 sm:p-5 text-center">
+          <p className="m-0 text-xs font-semibold uppercase tracking-[0.18em] text-accent-700">
             Số của giải
-          </span>
-          <span className="text-2xl font-black tabular-nums tracking-[0.25em] text-accent-800">
+          </p>
+          <p className="m-0 mt-1 text-6xl sm:text-7xl font-black tabular-nums
+            tracking-[0.14em] leading-none text-accent-800">
             {spacedCode(prefix)}
-          </span>
-          <span className="text-xs text-slate-500 leading-snug">
-            Mọi mã đều bắt đầu bằng hai số này, rồi tới <strong>số sân</strong> và
-            {' '}<strong>số giám định</strong>.
-          </span>
+          </p>
+
+          <p className="m-0 mt-4 text-sm sm:text-base text-slate-700 leading-snug">
+            Đọc số này cho cả đoàn. Giám định gõ <strong>đúng 2 số</strong>, rồi chọn
+            sân và số của mình ngay trên màn hình.
+          </p>
+
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <Button variant="secondary" size="sm" icon="fa-solid fa-copy"
+              onClick={handleCopyPrefix}>
+              Chép số giải
+            </Button>
+            {/* Giua tran thi khong ai di in — nut in chi co o trang Thiet dat */}
+            {!compact && (
+              <Button variant="secondary" size="sm" icon="fa-solid fa-print" onClick={handlePrint}>
+                In / Lưu ảnh
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
-      {groups.map(([label, cells]) => (
-        <div key={label}>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2 m-0">
-            {label}
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
-            {cells.map((cell) => {
-              // Vi tri co nguoi khi BAT KY o nao cua no dang online — ma dung
-              // chung mo hai o nhung nguoi cam ma thi chi co mot
-              const isOnline = cell.slots.some((s) => online.has(slotString(s)));
-              const claimed = !!cell.data?.claimedUid;
-              const working = busy === cell.code;
+      <div>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2 m-0">
+          {shared ? 'Ai đã vào bàn chấm' : 'Mã của từng bàn'}
+        </h3>
 
-              return (
-                <div
-                  key={cell.code}
-                  className="border border-slate-200 rounded-control bg-white p-3 text-center"
-                >
-                  <p className="m-0 text-xs font-semibold text-slate-500">GĐ{cell.r + 1}</p>
+        <div className="space-y-4">
+          {groups.map(([label, cells]) => (
+            <div key={label}>
+              <p className="m-0 mb-1.5 text-xs font-medium text-slate-400">{label}</p>
+              <div className="border border-slate-200 rounded-control divide-y divide-slate-100
+                overflow-hidden bg-white">
+                {cells.map((cell) => {
+                  // Vi tri co nguoi khi BAT KY o nao cua no dang online — ma dung
+                  // chung mo hai o nhung nguoi cam ma thi chi co mot
+                  const isOnline = cell.slots.some((s) => online.has(slotString(s)));
+                  const claimed = !!cell.data?.claimedUid;
+                  const working = busy === cell.code;
 
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(cell)}
-                    title="Bấm để chép mã"
-                    className="block w-full my-2 text-3xl font-black tabular-nums tracking-[0.2em]
-                      leading-none text-slate-800 hover:text-accent-700 transition-colors"
-                  >
-                    {/* O the hep, ma 4 so tu xuong dong thanh 3 + 1 — doc ra la
-                        sai so. Cat tay cho dung: 2 so cua giai o tren, san va
-                        vi tri o duoi, dung nhip nguoi ta doc cho nhau nghe */}
-                    <span className="block whitespace-nowrap">
-                      {spacedCode(cell.code.slice(0, PREFIX_LENGTH))}
-                    </span>
-                    {cell.code.length > PREFIX_LENGTH && (
-                      <span className="block whitespace-nowrap mt-1.5">
-                        {spacedCode(cell.code.slice(PREFIX_LENGTH))}
+                  return (
+                    <div key={cell.code} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5">
+                      <span className="w-14 flex-shrink-0 text-sm font-semibold text-slate-700">
+                        GĐ{cell.r + 1}
                       </span>
-                    )}
-                  </button>
 
-                  {bothKinds(cell) && (
-                    <p className="m-0 mb-1.5 text-[10px] text-slate-400 uppercase tracking-wide">
-                      cả 2 môn
-                    </p>
-                  )}
+                      <span className="flex items-center gap-1.5 text-[11px] min-w-[7.5rem]">
+                        <span
+                          className={`w-2 h-2 rounded-full flex-shrink-0
+                            ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                          aria-hidden="true"
+                        />
+                        <span className={isOnline ? 'text-emerald-700' : 'text-slate-400'}>
+                          {isOnline ? 'đang online' : claimed ? 'đã nhận, chưa online' : 'chưa vào'}
+                        </span>
+                      </span>
 
-                  <p className="m-0 text-[11px] flex items-center justify-center gap-1.5">
-                    <span
-                      className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`}
-                      aria-hidden="true"
-                    />
-                    <span className={isOnline ? 'text-emerald-700' : 'text-slate-400'}>
-                      {isOnline ? 'đang online' : claimed ? 'đã nhận, chưa online' : 'chưa vào'}
-                    </span>
-                  </p>
+                      {bothKinds(cell) && (
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wide">
+                          cả 2 môn
+                        </span>
+                      )}
 
-                  {canManage && (
-                    <div className="mt-2.5 flex flex-col gap-1.5">
-                      {/* Chi co "Mo khoa". Ma sinh ra tu 2 so cua giai nen
-                          khong doi le tung o duoc — doi thi doi ca giai, o
-                          trang Thiet dat */}
-                      <Button
-                        size="sm"
-                        variant={claimed ? 'warning' : 'secondary'}
-                        block
-                        disabled={working || !claimed}
-                        onClick={() => handleUnlock(cell.code)}
-                        icon="fa-solid fa-unlock"
-                      >
-                        Mở khoá
-                      </Button>
+                      {/* Giai cu thi ma NAY la cai giam dinh go, phai hien.
+                          Giai dung so cua giai thi 4 so la chuyen noi bo cua
+                          may — hien ra chi to sinh them mot so de doc nham */}
+                      {!shared && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopyCell(cell)}
+                          title="Bấm để chép mã"
+                          className="text-base font-bold tabular-nums tracking-[0.2em]
+                            text-slate-700 hover:text-accent-700 transition-colors whitespace-nowrap"
+                        >
+                          {spacedCode(cell.code)}
+                        </button>
+                      )}
+
+                      {canManage && (
+                        /* Chi co "Mo khoa". Ma sinh ra tu 2 so cua giai nen
+                           khong doi le tung o duoc — doi thi doi ca giai, o
+                           trang Thiet dat */
+                        <Button
+                          size="sm"
+                          className="ml-auto"
+                          variant={claimed ? 'warning' : 'secondary'}
+                          disabled={working || !claimed}
+                          onClick={() => handleUnlock(cell)}
+                          icon="fa-solid fa-unlock"
+                        >
+                          Mở khoá
+                        </Button>
+                      )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
 
-      {!compact && (
+      {!compact && !shared && (
         <div className="pt-3 border-t border-slate-100 flex flex-wrap gap-2.5">
           <Button variant="secondary" icon="fa-solid fa-print" onClick={handlePrint}>
             In / Lưu ảnh bảng mã

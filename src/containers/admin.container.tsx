@@ -17,7 +17,6 @@ import { StaffMember, arenaKeyLabel, assignedKeys, revokeStaff } from '../servic
 import {
   closeTournament, openTournament, reopenTournament, transferOwnership,
 } from '../services/tournamentService';
-import { findDemoTournament } from '../services/demoService';
 
 interface AdminContainerProps {
   user: AppUser;
@@ -31,7 +30,6 @@ interface AdminContainerState {
   /** Giai dang mo bang chi tiet */
   expanded: number | null;
   staff: StaffMember[];
-  demoIndex: number | null;
   confirm: { title: string; message: string; label?: string; action: () => void } | null;
   busy: boolean;
 }
@@ -55,7 +53,6 @@ class AdminContainer extends Component<AdminContainerProps, AdminContainerState>
     users: [],
     expanded: null,
     staff: [],
-    demoIndex: null,
     confirm: null,
     busy: false,
   };
@@ -78,12 +75,11 @@ class AdminContainer extends Component<AdminContainerProps, AdminContainerState>
   async reload() {
     this.setState({ busy: true });
     try {
-      const [tournaments, users, demoIndex] = await Promise.all([
+      const [tournaments, users] = await Promise.all([
         loadAllTournaments(),
         loadAllUsers().catch(() => [] as AdminUserRow[]),
-        findDemoTournament().catch(() => null),
       ]);
-      this.setState({ tournaments, users, demoIndex });
+      this.setState({ tournaments, users });
     } catch {
       toast.error('Không đọc được dữ liệu quản trị.');
     } finally {
@@ -182,7 +178,7 @@ class AdminContainer extends Component<AdminContainerProps, AdminContainerState>
   };
 
   renderTournamentRow(row: AdminTournamentRow) {
-    const { expanded, staff, demoIndex } = this.state;
+    const { expanded, staff } = this.state;
     const open = expanded === row.index;
 
     const badge = {
@@ -253,7 +249,12 @@ class AdminContainer extends Component<AdminContainerProps, AdminContainerState>
               </Button>
             )}
 
-            {row.ownerUid ? (
+            {/* Ban cham nhanh la ban rieng cua mot tai khoan — khong sang tay */}
+            {row.demo ? (
+              <span className="text-[11px] text-slate-400 self-center">
+                bàn chấm nhanh riêng — không đổi chủ, không xoá
+              </span>
+            ) : row.ownerUid ? (
               <Button size="sm" variant="ghost" onClick={() => this.handleTransfer(row)}>
                 Đổi chủ giải
               </Button>
@@ -261,12 +262,6 @@ class AdminContainer extends Component<AdminContainerProps, AdminContainerState>
               <Button size="sm" variant="ghost" onClick={() => this.handleClaimLegacy(row)}>
                 Nhận về tài khoản tôi
               </Button>
-            )}
-
-            {row.index === demoIndex && (
-              <span className="text-[11px] text-slate-400 self-center">
-                bàn chấm nhanh dùng chung — không xoá
-              </span>
             )}
           </div>
         </div>

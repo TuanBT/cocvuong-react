@@ -1,10 +1,8 @@
 import React, { Component } from 'react';
 import { NavLink } from 'react-router-dom';
-import { toast } from 'react-toastify';
 import logo from '../assets/img/logo.png';
-import { AppFooter, Button, Toast } from '../components/ui';
-import { AppUser, ensureAnonymous, onAuthChanged, signOut } from '../services/authService';
-import { ensureDemoTournament } from '../services/demoService';
+import { AppFooter, Toast } from '../components/ui';
+import { AppUser, onAuthChanged, signOut } from '../services/authService';
 
 interface HomeContainerProps {
   history?: { push: (path: string) => void };
@@ -12,7 +10,6 @@ interface HomeContainerProps {
 
 interface HomeContainerState {
   user: AppUser | null;
-  demoBusy: boolean;
 }
 
 interface MenuItem {
@@ -98,7 +95,7 @@ const MENU_GROUPS: MenuGroup[] = [
  */
 class HomeContainer extends Component<HomeContainerProps, HomeContainerState> {
   unsubscribe: (() => void) | null = null;
-  state: HomeContainerState = { user: null, demoBusy: false };
+  state: HomeContainerState = { user: null };
 
   constructor(props: HomeContainerProps) {
     super(props);
@@ -120,27 +117,8 @@ class HomeContainer extends Component<HomeContainerProps, HomeContainerState> {
     else window.location.href = path;
   }
 
-  /**
-   * "Cham ngay": ky an danh (khong Google, khong nhap gi) roi vao thang man
-   * giam sat cua ban cham nhanh. Khong nhap Excel, khong boc tham, khong cho duyet.
-   *
-   * Day KHONG phai duong demo cho nguoi xem thu app — day la duong cho buoi
-   * tap / giao luu chua kip dung giai, can cham that ngay lap tuc.
-   */
-  handleDemo = async () => {
-    this.setState({ demoBusy: true });
-    try {
-      await ensureAnonymous();
-      await ensureDemoTournament();
-      this.go('/giam-sat-doi-khang?demo=1');
-    } catch {
-      toast.error('Chưa mở được bàn chấm — kiểm tra kết nối mạng rồi thử lại.');
-      this.setState({ demoBusy: false });
-    }
-  };
-
   render() {
-    const { user, demoBusy } = this.state;
+    const { user } = this.state;
     let cardIndex = 0;
 
     return (
@@ -163,7 +141,7 @@ class HomeContainer extends Component<HomeContainerProps, HomeContainerState> {
                 ho mot o rieng that to thay vi nam lan trong luoi menu */}
             <section>
               <NavLink
-                to="/vao"
+                to="/gd"
                 className="group flex items-center gap-4 sm:gap-5 bg-accent-600 text-white
                   rounded-card p-5 sm:p-6 shadow-card hover:shadow-card-hover
                   hover:-translate-y-0.5 transition-[transform,box-shadow] duration-200"
@@ -173,9 +151,9 @@ class HomeContainer extends Component<HomeContainerProps, HomeContainerState> {
                   <i className="fa-solid fa-keyboard text-2xl sm:text-3xl" aria-hidden="true" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-lg sm:text-xl font-bold">Tôi là giám định — vào bằng mã</span>
+                  <span className="block text-lg sm:text-xl font-bold">Tôi là giám định — vào bằng số của giải</span>
                   <span className="block text-sm text-white/80 mt-0.5">
-                    Gõ số giám sát đọc cho. Không cần tài khoản, không cần mật khẩu.
+                    Gõ 2 số giám sát đọc cho, rồi chọn sân và số của bạn. Không cần tài khoản.
                   </span>
                 </span>
                 <i className="fa-solid fa-arrow-right text-xl opacity-70
@@ -193,7 +171,7 @@ class HomeContainer extends Component<HomeContainerProps, HomeContainerState> {
                   {group.label}
                 </h2>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   {group.items.map((item) => {
                     cardIndex += 1;
                     return (
@@ -225,24 +203,6 @@ class HomeContainer extends Component<HomeContainerProps, HomeContainerState> {
                 </div>
               </section>
             ))}
-
-            <section className="bg-white border border-slate-200 rounded-card p-5 sm:p-6
-              flex flex-col sm:flex-row sm:items-center gap-4">
-              <div className="min-w-0 flex-1">
-                <h2 className="text-base font-bold text-slate-800 m-0 mb-1">
-                  Cần chấm ngay, chưa kịp chuẩn bị giải?
-                </h2>
-                <p className="text-sm text-slate-500 m-0">
-                  Vào thẳng bàn chấm dựng sẵn 1 trận đối kháng và 1 lượt thi quyền.
-                  Không đăng nhập, không nhập Excel. Chấm xong bấm “Chấm cặp mới”
-                  là sạch bảng, chấm tiếp cặp sau.
-                </p>
-              </div>
-              <Button variant="success" size="lg" icon="fa-solid fa-play"
-                disabled={demoBusy} onClick={this.handleDemo}>
-                {demoBusy ? 'Đang mở bàn chấm…' : 'Chấm ngay'}
-              </Button>
-            </section>
 
             <section className="text-center text-sm">
               {user ? (

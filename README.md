@@ -24,7 +24,7 @@ Một giải gồm hai loại nội dung, cả hai đều chấm được cùng 
 | **Chấm đối kháng** | 3/5 giám định, quá bán ghi điểm, cho phép cùng lúc cả đỏ lẫn xanh, chấm lại trận khi kết quả chưa dùng ở trận sau |
 | **Chấm thi quyền** | Điểm từng giám định, tính tổng theo luật 3/5, Giám Sát ghi đè được điểm tổng |
 | **Hai sân song song** | Sân A và sân B chấm đồng thời, kết quả đồng bộ về cùng một giải |
-| **Phân quyền** | Đăng nhập Google, chủ giải duyệt người trực sân; giám định vào bằng mã 4 số |
+| **Phân quyền** | Đăng nhập Google, chủ giải duyệt người trực sân; giám định vào bằng 2 số của giải |
 | **Hiển thị** | Cờ quốc gia (11 nước Đông Nam Á), chữ in đậm để nhìn từ xa, màn hình thông tin công khai cho khán giả |
 | **Ngoại tuyến** | Hàng đợi ghi khi mất mạng, tự gửi lại khi có lại kết nối |
 | **Xuất dữ liệu** | Excel (`xlsx`) cho lịch thi đấu và kết quả |
@@ -41,24 +41,28 @@ RequestAccessPanel  → phải được chủ giải duyệt, và đã biết tr
 Container           → vào thẳng trận, không hỏi gì thêm
 ```
 
-**Giám định không đi qua tầng nào cả.** Họ gõ **mã 4 số** ở `/vao` và màn chấm
-điểm tự đọc phiên từ `codeSession`:
+**Giám định không đi qua tầng nào cả.** Ở `/gd` họ gõ **đúng 2 số của giải**,
+chạm chọn sân và số giám định của mình, rồi màn chấm điểm tự đọc phiên từ
+`codeSession`:
 
 ```
 mã = [2 số của giải][sân][vị trí giám định]
      ví dụ giải 83:  8311 = Sân A GĐ1   ·   8322 = Sân B GĐ2
+              người gõ ─┘└─ máy ghép từ hai cái chạm
 ```
 
-Một mã là **một ô chấm điểm đã được trói sẵn** — gõ mã xong là vào đúng giải,
-đúng sân, đúng vị trí, bỏ hẳn ba vòng chọn vốn là chỗ dễ sai nhất giữa giải.
-Mã được "claim" bằng `claimedUid`, và security rules đọc `slot` từ `codeSession`
-để quyết định cho ghi ở đâu — không tự bịa `slot` được.
+Một mã là **một ô chấm điểm đã được trói sẵn** — vào là đúng giải, đúng sân,
+đúng vị trí, bỏ hẳn ba vòng chọn vốn là chỗ dễ sai nhất giữa giải. Hai số cuối
+để **máy ghép** chứ không bắt người gõ: cả đoàn chỉ phải nhớ một số, và gõ nhầm
+một chữ số thì không còn rơi vào bàn chấm thật của người khác được nữa. Mã được
+"claim" bằng `claimedUid`, và security rules đọc `slot` từ `codeSession` để
+quyết định cho ghi ở đâu — không tự bịa `slot` được.
 
 | Vai | Vào bằng | Đường dẫn |
 |---|---|---|
 | Chủ giải | Google + là chủ giải | `/tao-giai`, `/thiet-dat` |
 | Giám sát | Google + được duyệt | `/giam-sat-doi-khang`, `/giam-sat-thi-quyen` |
-| Giám định | Mã 4 số | `/vao` → `/giam-dinh-doi-khang`, `/giam-dinh-thi-quyen` |
+| Giám định | 2 số của giải | `/gd` → `/giam-dinh-doi-khang`, `/giam-dinh-thi-quyen` |
 | Khán giả | Không cần gì | `/thong-tin-doi-khang`, `/thong-tin-thi-quyen` |
 | Quản trị | Google + trong `appAdmin` | `/quan-tri` |
 
@@ -119,7 +123,7 @@ src/
   services/          mọi thao tác ghi Firebase đi qua đây
     combatWriteService.ts    ghi trận, điền VĐV, chốt điểm đối kháng
     martialWriteService.ts   chấm điểm, tính tổng, xếp hạng thi quyền
-    accessCodeService.ts     mã 4 số của giám định
+    accessCodeService.ts     số của giải, mã 4 số, phiên chấm của giám định
     offlineService.ts        hàng đợi ghi khi mất mạng
     authService.ts · staffService.ts · adminService.ts
   utils/

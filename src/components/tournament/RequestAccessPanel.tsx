@@ -13,7 +13,7 @@ import {
 import {
   TournamentSummary, getTournamentSummary, listTournaments, subscribeTournamentSummary,
 } from '../../services/tournamentService';
-import { ensureDemoTournament } from '../../services/demoService';
+import { ensureMyDemoTournament, topUpDemo } from '../../services/demoService';
 
 export interface SupervisorAccess {
   tournament: TournamentSummary;
@@ -23,15 +23,15 @@ export interface SupervisorAccess {
   /** San duoc phan cong cho mon nay — >1 thi hien nut "Doi san" */
   availableArenas: number[];
   isOwner: boolean;
-  /** Doi san / doi giai */
+  /** Doi san */
   onChangeArena: () => void;
+  /** Ve bang chon giai — loi duy nhat de sang ban cham nhanh va nguoc lai */
+  onChangeTournament: () => void;
 }
 
 interface RequestAccessPanelProps {
   user: AppUser;
   kind: ArenaKind;
-  /** Che do dung thu — vao thang giai thu, bo qua ca danh sach giai that */
-  demo?: boolean;
   children: (access: SupervisorAccess) => React.ReactNode;
 }
 
@@ -98,44 +98,66 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
     this.unsubStaff = this.unsubRequest = this.unsubSummary = null;
   }
 
-  async loadTournaments() {
-    const { user, demo } = this.props;
+  /** Ban cham nhanh cua chinh tai khoan nay — ban cua nguoi khac khong tinh. */
+  myDemo(): TournamentSummary | null {
+    return this.state.tournaments.find((t) => t.demo && t.ownerUid === this.props.user.uid) || null;
+  }
 
-    // Giai thu di duong rieng: no bi loc khoi danh sach giai that (khong de
-    // ai nham), nen phai tim thang bang co `setting.demo`
-    if (demo) {
-      try {
-        const index = await ensureDemoTournament();
-        const summary = await getTournamentSummary(index);
-        if (summary) {
-          // Giai thu chi co San A
-          this.setState({ arenaIndex: 0 });
-          await this.pick(summary);
-          return;
-        }
-      } catch {
-        this.setState({
-          phase: 'pick-tournament',
-          error: 'Chưa mở được bàn chấm nhanh. Kiểm tra kết nối mạng rồi thử lại.',
-        });
-        return;
-      }
+  /**
+   * Vao ban cham nhanh. Lan dau vao thang San A.
+   *
+   * Danh sach giai da doc xong tu truoc khi bang chon hien ra, nen duong
+   * thuong khong doc them gi ca: vao thang bang dong tom tat dang cam tren tay,
+   * con viec vat (ten cu, ma giam dinh thieu) tra ve chay nen. Chi khi CHUA co
+   * ban nao moi phai dung — luc do mo cho la dung, vi khong the vao truoc.
+   */
+  enterDemo = async () => {
+    const { user } = this.props;
+    const owner = { uid: user.uid, email: user.email };
+
+    const known = this.myDemo();
+    if (known) {
+      topUpDemo(known.index, owner, known.name);
+      this.setState({ arenaIndex: 0, error: '' });
+      await this.pick(known);
+      return;
     }
+
+    this.setState({ busy: true, error: '' });
+    try {
+      const index = await ensureMyDemoTournament(owner);
+      const summary = await getTournamentSummary(index);
+      if (!summary) throw new Error('no summary');
+      this.setState({ arenaIndex: 0, busy: false });
+      await this.pick(summary);
+    } catch {
+      this.setState({
+        busy: false,
+        phase: 'pick-tournament',
+        error: 'Chưa mở được bàn chấm nhanh. Kiểm tra kết nối mạng rồi thử lại.',
+      });
+    }
+  };
+
+  async loadTournaments() {
+    const { user } = this.props;
 
     try {
       const all = await listTournaments();
-      // Giai da dong khong hien trong bang chon nua; giai thu di duong rieng
-      const usable = all.filter((t) => t.status !== 'closed' && !t.demo);
+      // Giai da dong khong hien trong bang chon nua
+      const usable = all.filter((t) => t.status !== 'closed');
 
-      const mine = new Set<number>();
-      for (const t of usable) {
-        if (t.ownerUid === user.uid) {
-          mine.add(t.index);
-          continue;
-        }
-        const staff = await getStaff(t.index, user.uid).catch(() => null);
-        if (staff) mine.add(t.index);
-      }
+      // Doc quyen truc cua tat ca giai MOT LUOT: xep hang tung giai mot thi
+      // bang chon hien ra cham dan theo so giai trong he thong
+      const checked = await Promise.all(
+        usable.map(async (t) => {
+          if (t.demo) return null; // co khoi rieng, khong xep vao nhom nao
+          if (t.ownerUid === user.uid) return t.index;
+          const staff = await getStaff(t.index, user.uid).catch(() => null);
+          return staff ? t.index : null;
+        })
+      );
+      const mine = new Set<number>(checked.filter((i): i is number => i !== null));
 
       // Dung mot giai dung duoc thi vao thang, khong bat chon
       const candidates = usable.filter((t) => mine.has(t.index));
@@ -203,9 +225,10 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
   resolveArena(t: TournamentSummary, staff: StaffMember | null, freePass: boolean) {
     const { kind } = this.props;
 
-    // Ban cham nhanh dung 1 san — dung hoi ho mot cau nao ca
+    // Ban cham nhanh: khong hoi san lan dau — vao thang San A cho nhanh. Nhung
+    // da tu bam "Doi san" sang B thi phai giu, dung keo nguoc ve A.
     if (t.demo) {
-      this.setState({ arenaIndex: 0, phase: 'ready' });
+      this.setState({ arenaIndex: this.state.arenaIndex ?? 0, phase: 'ready' });
       return;
     }
 
@@ -317,7 +340,7 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
           <div className="flex items-center justify-between mt-4 text-xs text-slate-500">
             <span className="truncate">
               <i className="fa-solid fa-user mr-1.5" aria-hidden="true" />
-              {user.email}
+              {user.email || 'Phiên ẩn danh'}
             </span>
             <button type="button" onClick={() => signOut().then(() => window.location.reload())}
               className="text-red-600 hover:underline font-medium flex-shrink-0 ml-3">
@@ -372,6 +395,7 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
             availableArenas: available.length ? available : ARENA_INDEXES,
             isOwner: selected.ownerUid === user.uid,
             onChangeArena: this.changeArena,
+            onChangeTournament: this.backToList,
           })}
         </>
       );
@@ -455,6 +479,10 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
             <i className="fa-solid fa-triangle-exclamation mr-1.5" aria-hidden="true" />
             Hai giám sát cùng một sân dễ ghi đè điểm của nhau — hỏi lại người bên cạnh trước khi chọn.
           </p>
+          <Button variant="ghost" block onClick={this.backToList} icon="fa-solid fa-arrow-left"
+            className="mt-3">
+            Chọn giải khác
+          </Button>
         </>
       );
     }
@@ -507,16 +535,22 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
     }
 
     // pick-tournament
-    const mine = tournaments.filter((t) => myTournaments.has(t.index));
-    const others = tournaments.filter((t) => !myTournaments.has(t.index));
+    // Ban cham nhanh dung mot khoi rieng: ve DB no la giai binh thuong, nhung
+    // no khong gan voi danh sach VDV nao ca — xep chung vao "vao thang duoc"
+    // thi nguoi ta tuong day la mot giai da duoc duyet
+    const real = tournaments.filter((t) => !t.demo);
+    const mine = real.filter((t) => myTournaments.has(t.index));
+    const others = real.filter((t) => !myTournaments.has(t.index));
 
     const row = (t: TournamentSummary, ready: boolean) => (
       <button
         key={t.index}
         type="button"
+        disabled={busy}
         onClick={() => this.pick(t)}
         className="w-full text-left p-3.5 border border-slate-200 rounded-control bg-white
-          hover:border-accent-400 hover:bg-accent-50/40 transition-colors flex items-center gap-3"
+          hover:border-accent-400 hover:bg-accent-50/40 transition-colors flex items-center gap-3
+          disabled:opacity-60"
       >
         <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0
           ${ready ? 'bg-emerald-500' : t.status === 'open' ? 'bg-amber-400' : 'bg-slate-300'}`} />
@@ -534,11 +568,48 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
       </button>
     );
 
+    // Hien ca khi tai khoan chua co ban nao — bam vao moi dung. Di qua
+    // `enterDemo` chu khong qua `pick` de con lo ma giam dinh va san B.
+    const hasDemo = this.myDemo() !== null;
+    const demoRow = (
+      <button
+        type="button"
+        disabled={busy}
+        onClick={this.enterDemo}
+        className="w-full text-left p-3.5 border-2 border-emerald-200 rounded-control
+          bg-emerald-50/50 hover:border-emerald-400 hover:bg-emerald-50 transition-colors
+          flex items-center gap-3 disabled:opacity-60"
+      >
+        <span className="w-9 h-9 rounded-full bg-emerald-500 text-white flex items-center
+          justify-center flex-shrink-0">
+          <i className="fa-solid fa-play text-sm" aria-hidden="true" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-bold text-slate-800">
+            {busy ? 'Đang mở bàn chấm…' : 'Chấm ngay'}
+          </span>
+          <span className="block text-xs text-slate-500 mt-0.5">
+            {hasDemo
+              ? 'Bàn riêng của bạn · mã giám định riêng · không có danh sách VĐV'
+              : 'Dựng bàn riêng của bạn — chỉ XANH và ĐỎ, không có danh sách VĐV'}
+          </span>
+        </span>
+        <i className="fa-solid fa-chevron-right text-emerald-400" aria-hidden="true" />
+      </button>
+    );
+
     return this.shell(
       `Giám sát ${kindName(kind).toLowerCase()}`,
       'Chọn giải bạn đang trực',
       <>
         {this.renderError()}
+
+        <div className="mb-5">
+          <p className="m-0 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+            Chưa kịp chuẩn bị giải
+          </p>
+          {demoRow}
+        </div>
 
         {mine.length > 0 && (
           <div className="mb-5">
@@ -558,9 +629,10 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
           </div>
         )}
 
-        {tournaments.length === 0 && (
-          <p className="m-0 text-sm text-slate-500 text-center py-6">
-            Chưa có giải nào đang mở. Nhờ ban tổ chức tạo giải và bấm “Mở giải”.
+        {real.length === 0 && (
+          <p className="m-0 text-sm text-slate-500 text-center py-4">
+            Chưa có giải nào đang mở — cứ bấm “Chấm ngay” ở trên mà chấm.
+            Có giải thật thì nhờ ban tổ chức tạo rồi bấm “Mở giải”.
           </p>
         )}
       </>

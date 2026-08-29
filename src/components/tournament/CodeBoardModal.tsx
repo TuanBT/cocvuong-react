@@ -33,8 +33,9 @@ const CodeBoardModal: React.FC<CodeBoardModalProps> = ({
     size="lg"
   >
     <p className="text-sm text-slate-500 mt-0 mb-4">
-      Đọc số cho giám định gõ vào máy của họ. Giám định đổi máy hoặc hết pin thì bấm
-      <strong className="text-slate-700"> Mở khoá</strong> — số mã giữ nguyên.
+      Đọc <strong className="text-slate-700">số của giải</strong> cho giám định — sân và số
+      giám định thì họ tự chọn trên màn hình. Đổi máy hoặc hết pin thì bấm
+      <strong className="text-slate-700"> Mở khoá</strong> rồi bảo họ chọn lại chỗ cũ.
     </p>
     <CodeBoard
       tournamentIndex={tournamentIndex}

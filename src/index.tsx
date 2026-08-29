@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 import './assets/css/style.css';
-import { Route, BrowserRouter, RouteComponentProps } from 'react-router-dom';
+import { Route, Redirect, BrowserRouter, RouteComponentProps } from 'react-router-dom';
 import HomeContainer from './containers/home.container';
 import TestContainer from './containers/test.container';
 import InformationDkContainer from './containers/infomationDK.container';
@@ -44,31 +44,24 @@ ReactGA.send({ hitType: "pageview", page: window.location.pathname });
  *   RequestAccessPanel  -> phai duoc chu giai duyet, va da biet truc san nao
  *   Container           -> vao thang tran, khong hoi gi them
  *
- * Giam dinh KHONG di qua tang nao ca: ho vao bang ma o `/vao`, va man cham
+ * Giam dinh KHONG di qua tang nao ca: ho go so cua giai o `/gd`, va man cham
  * diem tu doc phien tu `codeSession`.
  */
 const supervisorRoute = (
   kind: 'combat' | 'martial',
   render: (props: any) => React.ReactNode
-) => {
-  // `?demo=1` la duong cua nut "Dung thu ngay": phien an danh, giai thu,
-  // khong Google, khong duyet. Chi ap dung cho giai thu.
-  const demo = new URLSearchParams(window.location.search).get('demo') === '1';
-
-  return (
-    <AuthGate
-      title={kind === 'combat' ? 'Giám sát đối kháng' : 'Giám sát thi quyền'}
-      reason="Đăng nhập để hệ thống biết bạn trực sân nào."
-      allowAnonymous={demo}
-    >
-      {(user) => (
-        <RequestAccessPanel user={user} kind={kind} demo={demo}>
-          {(access) => render({ user, access })}
-        </RequestAccessPanel>
-      )}
-    </AuthGate>
-  );
-};
+) => (
+  <AuthGate
+    title={kind === 'combat' ? 'Giám sát đối kháng' : 'Giám sát thi quyền'}
+    reason="Đăng nhập để hệ thống biết bạn trực sân nào."
+  >
+    {(user) => (
+      <RequestAccessPanel user={user} kind={kind}>
+        {(access) => render({ user, access })}
+      </RequestAccessPanel>
+    )}
+  </AuthGate>
+);
 
 ReactDOM.render(
   <ErrorBoundary>
@@ -92,9 +85,13 @@ ReactDOM.render(
 
         {/* Duong vao cua giam dinh: mot man hinh, hai chu so */}
         <Route
-          path="/vao"
+          path="/gd"
           render={(props: RouteComponentProps) => <EnterCodeContainer history={props.history} />}
         />
+        {/* Duong cu — giu lai vi da co nguoi luu san va da doc cho nhau nghe.
+            Nam ngoai `Switch` nen phai boc trong `render`, khong duoc dung
+            `<Redirect from>` (cai do da ngay ca khi khong khop duong dan). */}
+        <Route path="/vao" render={() => <Redirect to="/gd" />} />
         <Route
           path="/giam-dinh-thi-quyen"
           render={(props: RouteComponentProps) => <GiamDinhThiQuyenContainer history={props.history} />}
