@@ -23,22 +23,23 @@ export interface ScoreSubscribeConfig {
 }
 
 /**
- * Gửi điểm từ Giám Định lên Firebase
+ * Gửi điểm từ Giám Định lên Firebase.
+ *
+ * Trả về promise để màn giám định BIẾT khi ghi hỏng. Trước đây lỗi bị nuốt
+ * hoàn toàn: rules từ chối (mã bị mở khoá, giải đã đóng) thì giám định vẫn
+ * thấy toast "+1 điểm" và máy vẫn rung, còn giám sát thì không nhận gì —
+ * giữa trận không có cách nào biết mình đang bấm vào hư không.
  */
 export function sendScoreFromGiamDinh(
   config: ScoreSyncConfig,
   color: 'red' | 'blue',
   score: number
-): void {
+): Promise<void> {
   const { db, tournamentNoIndex, combatArenaNoIndex, refereeIndex } = config;
   const path = `tournament/${tournamentNoIndex}/combatArena/${combatArenaNoIndex}/referee/${refereeIndex}`;
 
   const updateData = color === 'red' ? { redScore: score } : { blueScore: score };
-  update(ref(db, path), updateData)
-    .then(() => {
-    })
-    .catch((err) => {
-    });
+  return update(ref(db, path), updateData);
 }
 
 /**

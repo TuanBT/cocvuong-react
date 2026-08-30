@@ -41,6 +41,8 @@ export interface TournamentSummary {
   demo: boolean;
   createdAt?: number;
   closedAt?: number;
+  /** Ngay giai dien ra, `YYYY-MM-DD`. Vang o giai cu — dung tu bia ra. */
+  eventDate?: string;
 }
 
 /** Truong thieu phai hieu la giai cu / dang soan, khong phai da mo */
@@ -60,6 +62,7 @@ export function toSummary(id: TournamentId, setting: any): TournamentSummary {
     demo: setting?.demo === true,
     createdAt: setting?.createdAt,
     closedAt: setting?.closedAt,
+    eventDate: typeof setting?.eventDate === 'string' ? setting.eventDate : undefined,
   };
 }
 
@@ -101,7 +104,7 @@ const INDEX_PATH = 'tournamentIndex';
 /** Nhung truong duoc chep sang chi muc — dung ten cua `setting` de doc lai bang `toSummary` */
 const INDEX_FIELDS = [
   'tournamentName', 'ownerUid', 'ownerEmail', 'status', 'openAccess', 'demo',
-  'createdAt', 'closedAt',
+  'createdAt', 'closedAt', 'eventDate',
 ] as const;
 
 /** Truong vang mat phai VANG HAN chu khong duoc thanh `null` — rules so khop tung o mot */
@@ -229,10 +232,12 @@ export async function rebuildTournamentIndex(): Promise<number> {
  * Nuot loi that: chi muc lech chi lam danh sach thieu mot dong, va co nut dung
  * lai. Khong duoc phep vi the ma lam hong thao tac chinh.
  */
-export async function syncTournamentIndex(id: TournamentId): Promise<void> {
+export async function syncTournamentIndex(id: TournamentId, known?: any): Promise<void> {
   try {
-    const snap = await get(child(ref(database), `tournament/${id}/setting`));
-    const entry = indexEntry(snap.val());
+    // Nguoi goi vua ghi `setting` thi dua thang no vao day — doc lai chinh thu
+    // minh vua dat xuong la mot vong di-ve khong doi lay gi.
+    const setting = known ?? (await get(child(ref(database), `tournament/${id}/setting`))).val();
+    const entry = indexEntry(setting);
     if (entry) await set(ref(database, `${INDEX_PATH}/${id}`), entry);
   } catch {
     /* chi muc lech thi co nut "Dung lai chi muc" o trang quan tri */
@@ -352,24 +357,31 @@ export function demoFirst(a: TournamentSummary, b: TournamentSummary): number {
  */
 export async function addTournament(
   owner: { uid: string; email: string },
-  name?: string
+  name?: string,
+  eventDate?: string
 ): Promise<TournamentId> {
   const id = push(child(ref(database), 'tournament')).key;
   if (!id) throw new Error('Không tạo được giải mới — thử lại sau ít giây.');
 
   const base = JSON.parse(JSON.stringify(DEFAULT_SETTING)).setting;
-  const tournamentName = name?.trim() || base.tournamentName;
-  await update(ref(database, `tournament/${id}/setting`), {
+  const setting: Record<string, unknown> = {
     ...base,
-    tournamentName,
+    tournamentName: name?.trim() || base.tournamentName,
     ownerUid: owner.uid,
     ownerEmail: owner.email,
     status: 'draft' as TournamentStatus,
     openAccess: false,
     createdAt: Date.now(),
-  });
+  };
+  // Bo trong thi KHONG ghi khoa nay: `undefined` bi Firebase tu choi, con
+  // chuoi rong lai la mot "ngay" khong doc duoc, hien ra thanh o trong lo lung.
+  if (eventDate) setting.eventDate = eventDate;
+  await update(ref(database, `tournament/${id}/setting`), setting);
 
-  await syncTournamentIndex(id);
+  // Hai luot NOI TIEP, khong gop duoc: `.validate` cua chi muc so tung o voi
+  // `root.child('tournament/$t/setting/...')`, ma `root` la trang thai TRUOC
+  // luot ghi — gop chung mot `update` la chi muc bi tu choi vi setting chua co.
+  await syncTournamentIndex(id, setting);
   return id;
 }
 

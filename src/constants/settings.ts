@@ -26,6 +26,13 @@ export interface TournamentSetting {
     combat: CombatSettings;
     martial: MartialSettings;
     tournamentName: string;
+    /**
+     * Ngay giai dien ra, dang `YYYY-MM-DD`.
+     *
+     * Vang o moi giai cu — dung de phan biet hai giai trung ten qua cac nam, nen
+     * khong bao gio duoc doan bua mot ngay khi truong nay thieu.
+     */
+    eventDate?: string;
   };
 }
 

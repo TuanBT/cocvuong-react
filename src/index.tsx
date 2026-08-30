@@ -17,7 +17,7 @@ import EnterCodeContainer from './containers/enterCode.container';
 import AdminContainer from './containers/admin.container';
 import LoginContainer from './containers/login.container';
 import ReactGA from 'react-ga4';
-import { ErrorBoundary } from './components/common';
+import { ErrorBoundary, LeaveGuardHost, confirmNavigation } from './components/common';
 import { AuthGate } from './components/auth';
 import RequestAccessPanel from './components/tournament/RequestAccessPanel';
 
@@ -65,8 +65,9 @@ const supervisorRoute = (
 
 ReactDOM.render(
   <ErrorBoundary>
-    <BrowserRouter>
+    <BrowserRouter getUserConfirmation={confirmNavigation}>
       <div>
+        <LeaveGuardHost />
         <Route path="/" exact component={HomeContainer} />
         <Route path="/test" component={TestContainer} />
 

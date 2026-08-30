@@ -167,6 +167,22 @@ export const throttle = <T extends (...args: any[]) => any>(
   };
 };
 
+/**
+ * Ngay giai dien ra, doc theo kieu Viet: `2026-03-15` -> `15/03/2026`.
+ *
+ * KHONG di qua `new Date(...)`: chuoi `YYYY-MM-DD` bi doc la moc UTC, nen o
+ * mui gio cua minh no lui lai mot ngay — giai ngay 15 hien ra thanh 14. Cat
+ * chuoi la xong, va cung khong phu thuoc mui gio cua may nguoi xem.
+ *
+ * Chuoi la sai dinh dang thi tra ve nguyen xi: tha hien mot thu la mat con hon
+ * nuot mat ngay cua giai.
+ */
+export const formatEventDate = (raw?: string): string => {
+  if (!raw) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw.trim());
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : raw;
+};
+
 export default {
   convertWinLoseFormat,
   getModes,
@@ -175,5 +191,6 @@ export default {
   resizeTextToFit,
   playSound,
   debounce,
-  throttle
+  throttle,
+  formatEventDate
 };

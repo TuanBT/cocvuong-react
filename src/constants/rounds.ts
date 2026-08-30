@@ -75,7 +75,13 @@ export const REFEREE_COUNT: RefereeCountConfig = {
   SEVEN: 7
 };
 
-// Time score constant (seconds to display score)
-export const TIME_SCORE = 3;
+/**
+ * Cửa sổ chấm điểm đối kháng, tính bằng GIÂY.
+ *
+ * Từ lúc giám định đầu tiên bấm, các giám định còn lại có ngần này giây để
+ * bấm cùng phiên; hết giờ mà chưa đủ >50% thì bỏ phiên. Trận đối kháng đổi
+ * đòn rất nhanh — để dài thì cú sau đè lên phiên của cú trước.
+ */
+export const TIME_SCORE = 2;
 
 export default ROUNDS;

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import React, { Component, createRef, RefObject } from 'react';
 import { database } from '../firebase';
 import { ref, set, get, update, child, onValue, off, Database, DatabaseReference } from "firebase/database";
@@ -9,6 +10,9 @@ import 'react-toastify/dist/ReactToastify.css';
 // Import constants
 import { COLORS } from '../constants/colors';
 import { ROUNDS, REFEREE_COUNT, TIME_SCORE } from '../constants/rounds';
+
+/** Nhịp kiểm tra cửa sổ chấm điểm (ms) — sai số đóng phiên tối đa ngần này */
+const SCORE_TICK_MS = 200;
 import { DEFAULT_COMBAT_CONST, DEFAULT_MATCH_OBJ } from '../constants/settings';
 import FitText from '../components/common/FitText';
 
@@ -28,9 +32,13 @@ import {
     setLastMatch,
     resetRefereeScores,
     canRescoreMatch,
+    hasAnyRefereeScored,
     hasScoreQuorum,
     type CombatWriteContext,
 } from '../services/combatWriteService';
+
+import { subscribeSlotPresence } from '../services/firebaseService';
+import { slotString } from '../services/accessCodeService';
 
 import { AppUser } from '../services/authService';
 import { SupervisorAccess } from '../components/tournament/RequestAccessPanel';
@@ -118,6 +126,8 @@ interface GiamSatDoiKhangState {
     blueScoreColor: string;
     // Referee scores
     refereeScores: Array<{ redScore: number; blueScore: number; redBg: string; redColor: string; blueBg: string; blueColor: string }>;
+    /** Slot cua nhung may giam dinh dang mo — de ve den xanh tren tung o */
+    onlineSlots: Set<string>;
     // Caution values
     remindRed: number;
     warningRed: number;
@@ -175,6 +185,9 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
     // Offline network listener cleanup
     networkCleanup: (() => void) | null = null;
 
+    // Den online cua tung may giam dinh
+    presenceCleanup: (() => void) | null = null;
+
     // Firebase database reference
     db: Database;
 
@@ -204,7 +217,15 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
     effectTimer: ReturnType<typeof setInterval> | undefined;
     scoreTimer: ReturnType<typeof setInterval> | undefined;
     isTimerRunning: boolean;
-    scoreTimerCount: number;
+    /**
+     * Mốc hết cửa sổ chấm điểm (epoch ms). `0` = không có phiên nào đang mở.
+     *
+     * Là MỐC THỜI GIAN chứ không phải bộ đếm nhịp: nhịp kiểm tra chạy tự do
+     * nên đếm nhịp thì cửa sổ dài ngắn tuỳ lúc bấm rơi vào đâu trong nhịp —
+     * `TIME_SCORE = 2` mà thực tế có khi chỉ được 1 giây. Hai giám định bấm
+     * cách nhau 1,2 giây lúc ăn lúc không là kiểu hỏng không ai tin nổi.
+     */
+    scoreDeadline: number;
     isHumanPauseTimer: boolean;
 
     // Time settings
@@ -237,9 +258,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
     // Display time
     minutes: string = "00";
     seconds: string = "00";
-
-    // Referee display
-    isFirstRefereeScore: boolean;
 
     // Default objects
     combatConst: CombatConstType;
@@ -300,6 +318,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             blueScoreBgColor: 'blue',
             blueScoreColor: 'white',
             refereeScores: Array(5).fill({ redScore: 0, blueScore: 0, redBg: '', redColor: 'red', blueBg: '', blueColor: 'blue' }),
+            onlineSlots: new Set<string>(),
             remindRed: 0,
             warningRed: 0,
             medicalRed: 0,
@@ -358,9 +377,8 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         this.timer = undefined;
         this.effectTimer = undefined;
         this.scoreTimer = undefined;
-        this.isFirstRefereeScore = false;
         this.isTimerRunning = false;
-        this.scoreTimerCount = this.timeScore;
+        this.scoreDeadline = 0;
         this.temporaryWin = null;
         this.countryRed = "red";
         this.countryBlue = "blue";
@@ -407,6 +425,14 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         this.tournamentNoIndex = access.tournament.id;
         this.combatArenaNoIndex = access.arenaIndex;
         this.arenaNo = access.arenaIndex === 0 ? 'A' : 'B';
+
+        // Den xanh tren tung o giam dinh. Nguoi truc phai thay NGAY bàn nào
+        // chua ai cam may, chu khong phai doan qua viec "o do khong len diem"
+        // — im lang thi khong phan biet duoc "chua vao" voi "vao roi ma khong
+        // bam". Bang ma cung co den nay nhung no nam trong modal, ma giua tran
+        // thi khong ai mo modal ra xem.
+        this.presenceCleanup = subscribeSlotPresence((slots) => this.setState({ onlineSlots: slots }));
+
         this.main();
     }
 
@@ -439,6 +465,11 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         // Cleanup network listener
         if (this.networkCleanup) {
             this.networkCleanup();
+        }
+
+        // Cleanup presence listener
+        if (this.presenceCleanup) {
+            this.presenceCleanup();
         }
     }
 
@@ -577,7 +608,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                         this.refereeObj[refereeIndex].redScore = redScore;
                         this.refereeObj[refereeIndex].blueScore = blueScore;
                         // Kiểm tra ngay lập tức khi nhận điểm từ giám định (không chờ poll 1s)
-                        this.makeScoreTimer();
+                        this.onRefereeScored();
                         this.showValue();
                     }
                 }
@@ -1196,38 +1227,75 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         replaceFighterWrite(this.writeCtx, this.combatObj, this.matchNoCurrent, this.match, winColor);
     }
 
-    makeScoreTimer(): void {
+    /**
+     * Chốt phiên chấm: cộng mode điểm của các giám định vào trận, xoá bảng
+     * giám định và mở lại cửa sổ cho phiên sau.
+     */
+    closeScoreSession(): void {
         if (!this.refereeObj || !this.match || this.matchNoCurrentIndex === undefined) return;
 
-        for (let i = 0; i < this.numReferee; i++) {
-            const referee = this.refereeObj[i];
-            if (!referee) continue;
+        //Tổng kết và tính điểm + reset Giám định
+        commitRefereeScores(
+            this.writeCtx,
+            this.matchNoCurrentIndex,
+            this.match,
+            this.refereeObj,
+            this.numReferee,
+            this.combatConst.referee
+        );
+        // QUAN TRỌNG: Deep copy để tránh reference mutation
+        this.refereeObj = JSON.parse(JSON.stringify(this.combatConst.referee));
+        this.scoreDeadline = 0;
+        // Force UI update
+        this.showValue();
+    }
 
-            if (referee.redScore !== 0 || referee.blueScore !== 0) {
-                if (!this.isFirstRefereeScore) {
-                    this.isFirstRefereeScore = true;
-                }
-                this.scoreTimerCount--;
-                //Kết thúc nếu có >50% trọng tài chấm điểm
-                if (this.scoreTimerCount === 0 || hasScoreQuorum(this.refereeObj, this.numReferee)) {
-                    //Tổng kết và tính điểm + reset Giám định
-                    commitRefereeScores(
-                        this.writeCtx,
-                        this.matchNoCurrentIndex,
-                        this.match,
-                        this.refereeObj,
-                        this.numReferee,
-                        this.combatConst.referee
-                    );
-                    // QUAN TRỌNG: Deep copy để tránh reference mutation
-                    this.refereeObj = JSON.parse(JSON.stringify(this.combatConst.referee));
-                    this.scoreTimerCount = this.timeScore;
-                    this.isFirstRefereeScore = false;
-                    // Force UI update
-                    this.showValue();
-                    break;
-                }
-            }
+    /**
+     * Một giám định vừa gửi điểm lên.
+     *
+     * CHỈ chốt khi đã đủ >50% giám định, và mở cửa sổ đếm giờ nếu đây là
+     * người đầu tiên của phiên. Tuyệt đối không rút ngắn cửa sổ ở đây:
+     * `onValue` của node `referee` bắn ra MỘT callback cho MỖI ô giám định
+     * (node có 5 ô), nên một người bấm là hàm này chạy 5 lần liên tiếp trong
+     * cùng một tick mạng. Bản cũ đếm ngược ngay trong callback nên cả cửa sổ
+     * bị đốt sạch trong đúng nhịp mạng đó: phiên chấm đóng lại trước khi giám
+     * định thứ hai kịp bấm, `referee/{i}/redScore` trên Firebase vừa lên 1 đã
+     * bị ghi về 0, và điểm trận không bao giờ nhảy — kể cả khi đủ 3 giám định.
+     */
+    onRefereeScored(): void {
+        if (!this.refereeObj || !this.match || this.matchNoCurrentIndex === undefined) return;
+        if (!hasAnyRefereeScored(this.refereeObj, this.numReferee)) return;
+
+        // Cửa sổ đếm từ cú bấm ĐẦU TIÊN của phiên, không phải từ nhịp kiểm tra
+        if (!this.scoreDeadline) {
+            this.scoreDeadline = Date.now() + this.timeScore * 1000;
+        }
+
+        //Kết thúc ngay nếu có >50% trọng tài chấm điểm — không cần chờ hết giờ
+        if (hasScoreQuorum(this.refereeObj, this.numReferee)) {
+            this.closeScoreSession();
+        }
+    }
+
+    /**
+     * Nhịp kiểm tra cửa sổ chấm điểm.
+     *
+     * Hết giờ mà chưa đủ quorum thì bỏ phiên: mode của bảng lúc đó gần như
+     * luôn là 0 nên thực tế là không cộng điểm nào.
+     */
+    makeScoreTimer(): void {
+        if (!this.scoreDeadline) return;
+        if (!this.refereeObj || !this.match || this.matchNoCurrentIndex === undefined) return;
+
+        // Bảng đã bị xoá bởi đường khác (chuyển trận, xoá điểm) — đóng phiên,
+        // đừng để mốc cũ treo lại rồi chốt oan vào cú bấm của phiên sau
+        if (!hasAnyRefereeScored(this.refereeObj, this.numReferee)) {
+            this.scoreDeadline = 0;
+            return;
+        }
+
+        if (Date.now() >= this.scoreDeadline || hasScoreQuorum(this.refereeObj, this.numReferee)) {
+            this.closeScoreSession();
         }
     }
 
@@ -1357,9 +1425,11 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             }, 500);
         }
         if (!this.scoreTimer) {
+            // Nhịp mịn hơn 1 giây để phiên đóng đúng sát mốc `scoreDeadline`;
+            // không có phiên nào mở thì `makeScoreTimer` thoát ngay ở dòng đầu
             this.scoreTimer = setInterval(() => {
                 this.makeScoreTimer();
-            }, 1000);
+            }, SCORE_TICK_MS);
         }
     }
 
@@ -1422,6 +1492,59 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         }
     }
 
+    /**
+     * Mot o giam dinh trong cot giua: ten, den online, va diem do/xanh.
+     *
+     * `i` la SO HIEN THI (1-based) — index trong `refereeScores` va trong slot
+     * la `i - 1`.
+     *
+     * Den xanh doc tu `presence/giam_dinh`: may giam dinh ghi slot cua no khi
+     * vao va Firebase tu xoa khi may rot mang. Xam = chua ai cam may o cho do,
+     * nen "bam mai khong len diem" phan biet duoc voi "khong co ai bam".
+     */
+    renderRefereeCard(i: number): React.ReactNode {
+        const { refereeScores, onlineSlots } = this.state;
+        const score = refereeScores[i - 1];
+        const isOnline = onlineSlots.has(slotString({
+            t: this.tournamentNoIndex,
+            kind: 'combat',
+            a: this.combatArenaNoIndex,
+            r: i - 1,
+        }));
+
+        return (
+            <div key={i} className="bg-white rounded-xl shadow-lg overflow-hidden flex-1 flex flex-col relative">
+                <div className="bg-slate-600 text-white text-center py-1 text-[1.5vh] font-semibold
+                    flex items-center justify-center gap-1.5">
+                    <span
+                        role="status"
+                        id={`referee-online-${i}`}
+                        data-online={isOnline}
+                        aria-label={isOnline ? `Giám định ${i} đang online` : `Giám định ${i} chưa vào`}
+                        title={isOnline ? 'Đang online' : 'Chưa vào'}
+                        className={`w-[0.9vh] h-[0.9vh] rounded-full flex-shrink-0
+                            ${isOnline ? 'bg-emerald-400' : 'bg-slate-400'}`}
+                    />
+                    Giám định {i}
+                </div>
+                <div className="flex-1 flex">
+                    <div
+                        className="flex-1 flex items-center justify-center text-[4vh] font-bold border-r border-slate-200"
+                        style={{ backgroundColor: score?.redBg || 'white', color: score?.redColor || '#dc2626' }}
+                    >
+                        <span id={`red-score-${i}`}>{score?.redScore || 0}</span>
+                    </div>
+                    <div
+                        className="flex-1 flex items-center justify-center text-[4vh] font-bold"
+                        style={{ backgroundColor: score?.blueBg || 'white', color: score?.blueColor || '#2563eb' }}
+                    >
+                        <span id={`blue-score-${i}`}>{score?.blueScore || 0}</span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     render(): React.ReactNode {
         const { user, access } = this.props;
         const {
@@ -1438,7 +1561,6 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             timerBgColor,
             redScoreBgColor, redScoreColor,
             blueScoreBgColor, blueScoreColor,
-            refereeScores,
             remindRed, warningRed, medicalRed, fallRed, boundRed,
             remindBlue, warningBlue, medicalBlue, fallBlue, boundBlue,
             redLegStrikeSrc, blueLegStrikeSrc,
@@ -1570,12 +1692,13 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                             }`}
                             data-tooltip={!showInternetStatus ? 'Đã kết nối Internet' : 'Mất kết nối'}
                         ></span>
-                        <a 
-                            href="/" 
+                        <Link
+                            to="/"
+                            title="Về trang chủ"
                             className="flex-shrink-0 flex items-center p-1.5 bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-lg shadow-sm hover:shadow hover:border-slate-300 transition-all"
                         >
                             <img src={logo} alt="logo" className="h-6" />
-                        </a>
+                        </Link>
                         <span className="bg-slate-200 px-4 py-1.5 rounded font-bold text-base" id="arena-name">{arenaName}</span>
                     </div>
                     {/* Tournament Name - canh giua man hinh bang absolute */}
@@ -1594,17 +1717,13 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                         <span className={`font-bold text-base px-3 py-1.5 rounded ${matchType?.toLowerCase().includes('chung kết') ? 'bg-yellow-400 text-yellow-900' : matchType?.toLowerCase().includes('bán kết') ? 'bg-orange-400 text-orange-900' : ''}`} id="match-type">{matchType}</span>
                         <span className="font-semibold text-base" id="match-category">{matchCategory}</span>
 
-                        {/* Giai dang mo toang / giai thu phai nhin thay duoc,
-                            khong de ai quen minh dang cham vao dau */}
+                        {/* Ban cham nhanh phai nhin thay duoc: man hinh nay
+                            giong het man giai that, khong bao thi co nguoi cham
+                            ca buoi vao ban thu. Con "MO TU DO" thi nam trong
+                            menu — xem cham do tren nut banh rang ben duoi. */}
                         {access.tournament.demo && (
                             <span className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">
                                 CHẤM NHANH
-                            </span>
-                        )}
-                        {access.tournament.openAccess && !access.tournament.demo && (
-                            <span className="bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded"
-                                title="Ai đăng nhập cũng chấm được trên giải này">
-                                MỞ TỰ DO
                             </span>
                         )}
 
@@ -1612,9 +1731,16 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                         <div className="relative">
                             <button 
                                 onClick={() => this.setState({ showQuickMenu: !showQuickMenu })}
-                                className="w-8 h-8 rounded-full bg-slate-600 hover:bg-slate-700 text-white flex items-center justify-center transition-colors"
+                                className="w-8 h-8 rounded-full bg-slate-600 hover:bg-slate-700 text-white flex items-center justify-center transition-colors relative"
                             >
                                 <i className="fa fa-cog text-sm"></i>
+                                {/* Cham bao "co gi do dang bat" — nguoi truc ngoi
+                                    ngay day thi thay, khan gia duoi hoi truong
+                                    thi khong doc ra chu nao */}
+                                {access.tournament.openAccess && !access.tournament.demo && (
+                                    <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full
+                                        bg-amber-400 border border-white" aria-hidden="true" />
+                                )}
                             </button>
                             {showQuickMenu && (
                                 <>
@@ -1627,6 +1753,21 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                                     {/* Trang nay con dung de trinh chieu: ten nguoi dang truc
                                         nam trong day, khong bay tren man hinh ca giai cung nhin */}
                                     <AccountIdentityRow user={user} subtitle={`${arenaName || 'Sân'} · Đối kháng`} />
+                                    {/* Trang nay dung de trinh chieu nen canh bao
+                                        nam TRONG day: mot nhan "MO TU DO" to tuong
+                                        tren man hinh chi noi cho ca hoi truong biet
+                                        giai dang khong khoa, ma nguoi duy nhat tat
+                                        duoc no thi dang ngoi ngay canh nut nay */}
+                                    {access.tournament.openAccess && !access.tournament.demo && (
+                                        <div className="px-4 py-2.5 flex items-start gap-2 text-xs text-amber-800
+                                            bg-amber-50 border-y border-amber-200">
+                                            <i className="fa fa-lock-open mt-0.5 text-amber-500" aria-hidden="true"></i>
+                                            <span>
+                                                <strong className="block">Giải đang MỞ TỰ DO</strong>
+                                                Ai đăng nhập cũng chấm được. Tắt ở trang Cài đặt bên dưới.
+                                            </span>
+                                        </div>
+                                    )}
                                     {access.tournament.demo && (
                                         <button
                                             onClick={() => { this.setState({ showQuickMenu: false }); this.resetDemo(); }}
@@ -1775,7 +1916,22 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                                         <i className="fa fa-caret-left"></i>
                                     </button>
                                 )}
-                                <div className="text-[2vh] font-semibold text-slate-600 px-1" id="match-no">Trận {matchNo}</div>
+                                {/* So tran la duong ngan nhat den bang chon tran:
+                                    hai mui ten hai ben chi di duoc tung tran mot,
+                                    ma giua giai thi hay phai nhay han sang mot tran
+                                    khac. Truoc day loi duy nhat la menu banh rang —
+                                    khong ai doan ra "Chon tran" nam trong do. */}
+                                <button
+                                    type="button"
+                                    id="match-no"
+                                    onClick={() => this.setState({ showModalChooseMatch: true })}
+                                    title="Bấm để chọn trận khác"
+                                    className="text-[2vh] font-semibold text-slate-600 px-1.5 py-0.5 rounded
+                                        hover:bg-slate-200 hover:text-slate-800 transition-colors
+                                        focus:outline-none focus:ring-2 focus:ring-slate-400"
+                                >
+                                    Trận {matchNo}
+                                </button>
                                 {showMatchNext && (
                                     <button onClick={this.nextMatch} className="w-6 h-6 rounded-full bg-slate-300 hover:bg-slate-400 text-slate-600 flex items-center justify-center text-lg transition-colors">
                                         <i className="fa fa-caret-right"></i>
@@ -1865,50 +2021,8 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
 
                         {/* Referee Scores */}
                         <div className="flex flex-col justify-center gap-2 px-4 py-4" style={{ width: '12%', background: 'linear-gradient(to bottom, #f1f5f9, #e2e8f0)' }}>
-                            {[1, 2, 3].map(i => {
-                                return (
-                                <div key={i} className="bg-white rounded-xl shadow-lg overflow-hidden flex-1 flex flex-col relative">
-                                    <div className="bg-slate-600 text-white text-center py-1 text-[1.5vh] font-semibold">
-                                        Giám định {i}
-                                    </div>
-                                    <div className="flex-1 flex">
-                                        <div 
-                                            className="flex-1 flex items-center justify-center text-[4vh] font-bold border-r border-slate-200"
-                                            style={{ backgroundColor: refereeScores[i-1]?.redBg || 'white', color: refereeScores[i-1]?.redColor || '#dc2626' }}
-                                        >
-                                            <span id={`red-score-${i}`}>{refereeScores[i-1]?.redScore || 0}</span>
-                                        </div>
-                                        <div 
-                                            className="flex-1 flex items-center justify-center text-[4vh] font-bold"
-                                            style={{ backgroundColor: refereeScores[i-1]?.blueBg || 'white', color: refereeScores[i-1]?.blueColor || '#2563eb' }}
-                                        >
-                                            <span id={`blue-score-${i}`}>{refereeScores[i-1]?.blueScore || 0}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )})}
-                            {isShowFiveReferee && [4, 5].map(i => {
-                                return (
-                                <div key={i} className="bg-white rounded-xl shadow-lg overflow-hidden flex-1 flex flex-col relative">
-                                    <div className="bg-slate-600 text-white text-center py-1 text-[1.5vh] font-semibold">
-                                        Giám định {i}
-                                    </div>
-                                    <div className="flex-1 flex">
-                                        <div 
-                                            className="flex-1 flex items-center justify-center text-[4vh] font-bold border-r border-slate-200"
-                                            style={{ backgroundColor: refereeScores[i-1]?.redBg || 'white', color: refereeScores[i-1]?.redColor || '#dc2626' }}
-                                        >
-                                            <span id={`red-score-${i}`}>{refereeScores[i-1]?.redScore || 0}</span>
-                                        </div>
-                                        <div 
-                                            className="flex-1 flex items-center justify-center text-[4vh] font-bold"
-                                            style={{ backgroundColor: refereeScores[i-1]?.blueBg || 'white', color: refereeScores[i-1]?.blueColor || '#2563eb' }}
-                                        >
-                                            <span id={`blue-score-${i}`}>{refereeScores[i-1]?.blueScore || 0}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )})}
+                            {[1, 2, 3].map(i => this.renderRefereeCard(i))}
+                            {isShowFiveReferee && [4, 5].map(i => this.renderRefereeCard(i))}
                         </div>
 
                         {/* Blue Score */}

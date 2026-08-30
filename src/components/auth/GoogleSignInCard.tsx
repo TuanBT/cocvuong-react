@@ -47,9 +47,11 @@ const GoogleSignInCard: React.FC<GoogleSignInCardProps> = ({
       bg-gradient-to-b from-slate-50 via-white to-slate-100">
       <div className="w-full max-w-sm">
         <div className="text-center mb-6">
-          <div className="inline-flex bg-white p-3 rounded-card shadow-card mb-4">
+          <Link to="/" title="Về trang chủ"
+            className="inline-flex bg-white p-3 rounded-card shadow-card mb-4
+              hover:shadow-lg transition-shadow">
             <img src={logo} alt="Cóc Vương" className="h-12 w-auto" />
-          </div>
+          </Link>
           <h1 className="text-2xl font-bold text-slate-800 mb-1">{title}</h1>
           <p className="text-sm text-slate-500 m-0">{reason}</p>
         </div>

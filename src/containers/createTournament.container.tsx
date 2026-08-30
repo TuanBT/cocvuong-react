@@ -37,6 +37,7 @@ import {
 } from '../services/tournamentService';
 import { ensureTournamentCodes } from '../services/accessCodeService';
 import type { TournamentId } from '../types';
+import { formatEventDate } from '../utils/helpers';
 
 interface CreateTournamentContainerProps {
   user: AppUser;
@@ -65,6 +66,8 @@ interface CreateTournamentContainerState {
   wizardImportType: 'raw' | 'standard'; // Kiểu import: file thô hoặc file chuẩn
   /** Tên gõ ở ô "Tạo giải mới" (bước 1) — rỗng thì chưa tạo được */
   newTournamentName: string;
+  /** Ngay giai dien ra, `YYYY-MM-DD`. Rong = chua biet, khong bat nhap. */
+  newTournamentDate: string;
   // Wizard Data
   wizardDkSeeding: {[key: string]: number}; // key = "weight-index", value = seed number (1, 2)
 }
@@ -235,6 +238,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
       wizardStep: 1,
       wizardImportType: 'raw',
       newTournamentName: '',
+      newTournamentDate: '',
       // Wizard Data
       wizardDkSeeding: {},
     };
@@ -336,7 +340,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
     this.setState({ isLoading: true, loadingMessage: 'Đang tạo giải…' });
     try {
-      const newIndex = await createTournamentRecord(user, name);
+      const newIndex = await createTournamentRecord(user, name, this.state.newTournamentDate);
       this.tournamentNoIndex = newIndex;
 
       const setting = JSON.parse(JSON.stringify(DEFAULT_SETTING)).setting;
@@ -362,6 +366,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
       // Tao xong la da tra loi xong cau hoi cua buoc 1 — di thang sang buoc sau
       this.setState({
         newTournamentName: '',
+        newTournamentDate: '',
         selectedTournament: newIndex,
         tournamentCreated: false,
         wizardStep: CreateTournamentContainer.FIRST_CONTENT_STEP,
@@ -1282,7 +1287,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
    * kia van bao dang mo.
    */
   renderPickTournamentStep = () => {
-    const { tournamentsLoading, selectedTournament, newTournamentName } = this.state;
+    const { tournamentsLoading, selectedTournament, newTournamentName, newTournamentDate } = this.state;
     const canCreate = newTournamentName.trim().length > 0;
 
     return (
@@ -1315,6 +1320,11 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
                     <span className="block font-medium text-slate-700 whitespace-pre-line">{name}</span>
                     {row && (
                       <span className="block text-xs text-slate-400 mt-0.5">
+                        {formatEventDate(row.eventDate) && (
+                          <span className="font-medium text-slate-500">
+                            {formatEventDate(row.eventDate)} ·{' '}
+                          </span>
+                        )}
                         {row.status === 'open' ? 'đang mở'
                           : row.status === 'closed' ? 'đã đóng' : 'chưa mở'}
                         {!row.ownerUid && ' · giải cũ chưa có chủ'}
@@ -1354,6 +1364,26 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
           <p className="text-xs text-slate-400 mt-1.5 mb-0">
             Tên này hiển thị trên màn hình trình chiếu — xuống dòng để chữ khỏi bị co nhỏ.
             Đổi lại được bất cứ lúc nào ở trang Thiết đặt.
+          </p>
+
+          {/* Ten giai hay lap lai qua cac nam ("Coc Vuong 2025", "Coc Vuong 2026"
+              deu duoc go thanh "GIAI COC VUONG"), nen ngay la thu phan biet duoc
+              hai giai trung ten trong bang chon. Khong bat buoc: chua chot lich
+              van phai tao giai duoc de con nhap van dong vien. */}
+          <label htmlFor="new-tournament-date"
+            className="block text-sm font-semibold text-slate-600 mb-2 mt-4">
+            Ngày giải diễn ra <span className="font-normal text-slate-400">(không bắt buộc)</span>
+          </label>
+          <input
+            id="new-tournament-date"
+            type="date"
+            value={newTournamentDate}
+            onChange={(e) => this.setState({ newTournamentDate: e.target.value })}
+            className="px-4 py-3 border border-slate-200 rounded-control text-slate-800 bg-white
+              focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-shadow"
+          />
+          <p className="text-xs text-slate-400 mt-1.5 mb-0">
+            Hiện cạnh tên giải ở mọi bảng chọn — để không nhầm giải năm nay với giải năm ngoái.
           </p>
 
           <div className="flex flex-wrap items-center gap-2.5 mt-3">

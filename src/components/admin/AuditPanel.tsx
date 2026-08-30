@@ -15,6 +15,16 @@ interface AuditPanelProps {
   onReloaded: () => void;
 }
 
+/**
+ * Gom theo cai gi.
+ *
+ * Danh sach phang doc duoc khi co ba bon dong. Sang muoi giai thi mot nguoi
+ * truc bon giai rai ra bon cho khac nhau, va mot giai hong ba thu cung nam
+ * xen ke giai khac — khong soat noi. Hai cach gom nay tra loi dung hai cau
+ * admin thuc su hoi: "giai nay con vuong gi" va "nguoi nay dang vuong gi".
+ */
+type GroupBy = 'tournament' | 'person';
+
 interface AuditPanelState {
   findings: AuditFinding[];
   running: boolean;
@@ -22,7 +32,11 @@ interface AuditPanelState {
   error: string;
   /** Dang dung lai `tournamentIndex` */
   rebuilding: boolean;
+  groupBy: GroupBy;
 }
+
+/** Dong khong nhac ten ai — van phai hien o cach gom theo nguoi, khong duoc nuot */
+const NO_ONE = '\u0000khong-ai';
 
 const LOOK: Record<AuditLevel, { icon: string; label: string; box: string; chip: string }> = {
   error: {
@@ -58,7 +72,15 @@ const LOOK: Record<AuditLevel, { icon: string; label: string; box: string; chip:
 class AuditPanel extends Component<AuditPanelProps, AuditPanelState> {
   state: AuditPanelState = {
     findings: [], running: false, ranAt: null, error: '', rebuilding: false,
+    groupBy: 'tournament',
   };
+
+  /** Muc nang nhat trong mot nhom — quyet dinh mau va thu tu cua ca nhom */
+  static worst(list: AuditFinding[]): AuditLevel {
+    if (list.some((f) => f.level === 'error')) return 'error';
+    if (list.some((f) => f.level === 'warn')) return 'warn';
+    return 'info';
+  }
 
   run = async () => {
     const { overview } = this.props;
@@ -73,7 +95,11 @@ class AuditPanel extends Component<AuditPanelProps, AuditPanelState> {
     }
   };
 
-  renderFinding(f: AuditFinding, i: number) {
+  /**
+   * @param showTournament Hien nut nhay sang giai. Tat khi dang gom theo giai —
+   *   ten giai da nam o tieu de nhom, lap lai o tung dong chi lam nhieu mat.
+   */
+  renderFinding(f: AuditFinding, i: number, showTournament: boolean) {
     const look = LOOK[f.level];
     return (
       <div key={`${f.id}-${i}`} className={`border rounded-card p-3.5 ${look.box}`}>
@@ -90,14 +116,16 @@ class AuditPanel extends Component<AuditPanelProps, AuditPanelState> {
                 {f.fix}
               </p>
             )}
-            <button
-              type="button"
-              onClick={() => this.props.onOpenTournament(f.id)}
-              className="mt-2 text-xs font-medium text-accent-700 hover:underline"
-            >
-              {f.name.replace(/\n/g, ' ')}
-              <i className="fa-solid fa-arrow-right ml-1.5" aria-hidden="true" />
-            </button>
+            {showTournament && (
+              <button
+                type="button"
+                onClick={() => this.props.onOpenTournament(f.id)}
+                className="mt-2 text-xs font-medium text-accent-700 hover:underline"
+              >
+                {f.name.replace(/\n/g, ' ')}
+                <i className="fa-solid fa-arrow-right ml-1.5" aria-hidden="true" />
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -130,9 +158,114 @@ class AuditPanel extends Component<AuditPanelProps, AuditPanelState> {
     }
   };
 
+  /**
+   * Khung mot nhom: vien mau theo muc nang nhat, tieu de, va cac dong ben trong.
+   */
+  renderGroup(
+    key: string,
+    heading: React.ReactNode,
+    list: AuditFinding[],
+    showTournament: boolean
+  ) {
+    const worst = AuditPanel.worst(list);
+    const counts = (['error', 'warn', 'info'] as AuditLevel[])
+      .map((lv) => [lv, list.filter((f) => f.level === lv).length] as const)
+      .filter(([, n]) => n > 0);
+
+    return (
+      <section key={key} className={`border rounded-card overflow-hidden ${LOOK[worst].box}`}>
+        <header className="px-3.5 py-2.5 bg-white/70 border-b border-slate-200/70
+          flex flex-wrap items-center gap-2">
+          <span className="font-semibold text-slate-800 text-sm min-w-0 flex-1">{heading}</span>
+          {counts.map(([lv, n]) => (
+            <span key={lv}
+              className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${LOOK[lv].chip}`}>
+              {n} {LOOK[lv].label.toLowerCase()}
+            </span>
+          ))}
+        </header>
+        <div className="p-2.5 space-y-2.5">
+          {list.map((f, i) => this.renderFinding(f, i, showTournament))}
+        </div>
+      </section>
+    );
+  }
+
+  /** Gom theo giai — tra loi "giai nay con vuong gi truoc gio thi" */
+  renderByTournament(findings: AuditFinding[]) {
+    const groups = new Map<string, AuditFinding[]>();
+    for (const f of findings) groups.set(f.id, [...(groups.get(f.id) || []), f]);
+
+    const rank: Record<AuditLevel, number> = { error: 0, warn: 1, info: 2 };
+    const ordered = [...groups.entries()].sort(([, a], [, b]) =>
+      rank[AuditPanel.worst(a)] - rank[AuditPanel.worst(b)]
+      || a[0].name.localeCompare(b[0].name, 'vi'));
+
+    return ordered.map(([id, list]) =>
+      this.renderGroup(
+        id,
+        <button type="button" onClick={() => this.props.onOpenTournament(id)}
+          className="text-left hover:underline whitespace-pre-line">
+          {list[0].name.replace(/\n/g, ' ')}
+          <i className="fa-solid fa-arrow-right ml-1.5 text-accent-700" aria-hidden="true" />
+        </button>,
+        list,
+        false
+      )
+    );
+  }
+
+  /**
+   * Gom theo nguoi — tra loi "nguoi nay dang vuong gi", ke ca khi ho vuong o
+   * bon giai khac nhau.
+   *
+   * Mot dong nhac hai nguoi thi hien o CA HAI — day la bang de soat, khong
+   * phai bang de dem, nen tha lap con hon de mot nguoi bi bo sot.
+   */
+  renderByPerson(findings: AuditFinding[]) {
+    const groups = new Map<string, { name: string; list: AuditFinding[] }>();
+    const push = (uid: string, name: string, f: AuditFinding) => {
+      const g = groups.get(uid) || { name, list: [] };
+      g.list.push(f);
+      groups.set(uid, g);
+    };
+
+    for (const f of findings) {
+      if (f.people?.length) for (const p of f.people) push(p.uid, p.name, f);
+      else push(NO_ONE, '', f);
+    }
+
+    const rank: Record<AuditLevel, number> = { error: 0, warn: 1, info: 2 };
+    const ordered = [...groups.entries()].sort(([ka, a], [kb, b]) =>
+      // Khoi "khong quy vao ai" luon xuong cuoi: no la viec cua giai, khong
+      // phai viec cua nguoi, ma tab nay dang hoi ve nguoi
+      (ka === NO_ONE ? 1 : 0) - (kb === NO_ONE ? 1 : 0)
+      || rank[AuditPanel.worst(a.list)] - rank[AuditPanel.worst(b.list)]
+      || a.name.localeCompare(b.name, 'vi'));
+
+    return ordered.map(([uid, g]) =>
+      this.renderGroup(
+        uid,
+        uid === NO_ONE ? (
+          <span className="text-slate-500">
+            <i className="fa-solid fa-trophy mr-1.5 text-slate-400" aria-hidden="true" />
+            Không quy vào ai — việc của giải
+          </span>
+        ) : (
+          <>
+            <i className="fa-solid fa-user mr-1.5 text-slate-400" aria-hidden="true" />
+            {g.name}
+          </>
+        ),
+        g.list,
+        true
+      )
+    );
+  }
+
   render() {
     const { overview } = this.props;
-    const { findings, running, ranAt, error, rebuilding } = this.state;
+    const { findings, running, ranAt, error, rebuilding, groupBy } = this.state;
 
     const counts = {
       error: findings.filter((f) => f.level === 'error').length,
@@ -179,6 +312,28 @@ class AuditPanel extends Component<AuditPanelProps, AuditPanelState> {
           )}
         </div>
 
+        {ranAt && !running && findings.length > 0 && (
+          <div className="flex items-center gap-1 bg-slate-100 rounded-control p-1 w-fit">
+            {([
+              ['tournament', 'Theo giải', 'fa-solid fa-trophy'],
+              ['person', 'Theo người', 'fa-solid fa-user-group'],
+            ] as [GroupBy, string, string][]).map(([g, label, icon]) => (
+              <button
+                key={g}
+                type="button"
+                onClick={() => this.setState({ groupBy: g })}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-control transition-colors
+                  ${groupBy === g
+                    ? 'bg-white text-slate-800 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                <i className={`${icon} mr-1.5`} aria-hidden="true" />
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {error && (
           <p role="alert" className="m-0 text-sm text-red-700 bg-red-50 border border-red-200
             rounded-control px-3 py-2.5">
@@ -203,7 +358,13 @@ class AuditPanel extends Component<AuditPanelProps, AuditPanelState> {
           />
         )}
 
-        {findings.length > 0 && <div className="space-y-2.5">{findings.map((f, i) => this.renderFinding(f, i))}</div>}
+        {findings.length > 0 && (
+          <div className="space-y-3">
+            {groupBy === 'tournament'
+              ? this.renderByTournament(findings)
+              : this.renderByPerson(findings)}
+          </div>
+        )}
       </div>
     );
   }

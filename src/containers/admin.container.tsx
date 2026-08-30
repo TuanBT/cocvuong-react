@@ -28,6 +28,7 @@ import {
   renameTournament, reopenTournament, restoreTournament, setOpenAccess, transferOwnership,
 } from '../services/tournamentService';
 import type { TournamentId } from '../types';
+import { formatEventDate } from '../utils/helpers';
 
 interface AdminContainerProps {
   user: AppUser;
@@ -452,6 +453,13 @@ class AdminContainer extends Component<AdminContainerProps, AdminContainerState>
                 <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${badge.className}`}>
                   {badge.text}
                 </span>
+                {formatEventDate(row.eventDate) && (
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full
+                    bg-sky-100 text-sky-800">
+                    <i className="fa-solid fa-calendar-days mr-1" aria-hidden="true" />
+                    {formatEventDate(row.eventDate)}
+                  </span>
+                )}
                 {row.demo && (
                   <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-600 text-white">
                     CHẤM NHANH
@@ -1047,15 +1055,6 @@ class AdminContainer extends Component<AdminContainerProps, AdminContainerState>
             <div className="space-y-2">{rows.map((u) => this.renderUserRow(u))}</div>
           )}
 
-          <p className="text-xs text-slate-500 bg-slate-100 border border-slate-200
-            rounded-control px-3 py-2.5 m-0 leading-relaxed">
-            <i className="fa-solid fa-circle-info mr-1.5 text-slate-400" aria-hidden="true" />
-            Trang này <strong>không khoá và không xoá được tài khoản Google</strong> — việc đó cần
-            Admin SDK, mà app không có server. Cắt hết quyền trong app thì làm được ngay tại đây;
-            đóng cửa tài khoản thì phải vào Firebase Console. Bảng này cũng{' '}
-            <strong>không cho biết ai đang là admin</strong>: rules chỉ cho mỗi người tự đọc ô
-            <code className="mx-1 bg-white px-1 rounded">appAdmin</code>của chính mình.
-          </p>
         </div>
       </SectionCard>
     );

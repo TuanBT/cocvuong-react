@@ -262,6 +262,12 @@ export async function revokeEverywhere(uid: string, tournamentIds: TournamentId[
 
 export type AuditLevel = 'error' | 'warn' | 'info';
 
+/** Nguoi bi mot dong ra soat nhac ten */
+export interface AuditPerson {
+  uid: string;
+  name: string;
+}
+
 export interface AuditFinding {
   level: AuditLevel;
   id: TournamentId;
@@ -270,6 +276,14 @@ export interface AuditFinding {
   detail: string;
   /** Viec can lam — hien ngay duoi dong canh bao */
   fix?: string;
+  /**
+   * Ai dinh toi dong nay. Rong = chuyen cua rieng giai (chua cap ma, chua co
+   * lich), khong quy vao ai.
+   *
+   * Co truong nay thi mot nguoi truc bon giai, moi giai hong mot kieu, van gom
+   * lai xem duoc mot lan — thay vi phai do bon dong roi rac trong ca danh sach.
+   */
+  people?: AuditPerson[];
 }
 
 const META_KEY = 'meta';
@@ -324,8 +338,9 @@ export async function auditTournaments(overview: AdminOverview): Promise<AuditFi
   );
 
   for (const { t, codes, scheduled } of probes) {
-    const at = (level: AuditLevel, title: string, detail: string, fix?: string) =>
-      found.push({ level, id: t.id, name: t.name, title, detail, fix });
+    const at = (
+      level: AuditLevel, title: string, detail: string, fix?: string, people?: AuditPerson[]
+    ) => found.push({ level, id: t.id, name: t.name, title, detail, fix, people });
 
     const staff = overview.staffByTournament[t.id] || [];
     const requests = overview.requestsByTournament[t.id] || [];
@@ -375,14 +390,16 @@ export async function auditTournaments(overview: AdminOverview): Promise<AuditFi
       if (people.length > 1) {
         at('warn', `Hai giám sát cùng ${arenaKeyLabel(key)}`,
           `${people.map((p) => p.name).join(', ')} cùng trực một sân — dễ ghi đè điểm của nhau.`,
-          'Sửa phân công để mỗi sân một người.');
+          'Sửa phân công để mỗi sân một người.',
+          people.map((p) => ({ uid: p.uid, name: p.name })));
       }
     }
     const idle = staff.filter((m) => assignedKeys(m.assignments).length === 0);
     if (idle.length) {
       at('warn', 'Giám sát không có sân nào',
         `${idle.map((p) => p.name).join(', ')} đã được duyệt nhưng không được phân sân — vào app sẽ kẹt ở màn xin quyền.`,
-        'Phân sân lại, hoặc gỡ hẳn.');
+        'Phân sân lại, hoặc gỡ hẳn.',
+        idle.map((p) => ({ uid: p.uid, name: p.name })));
     }
 
     // --- Don xin quyen ---
@@ -390,13 +407,15 @@ export async function auditTournaments(overview: AdminOverview): Promise<AuditFi
     if (pending.length && t.status === 'open') {
       at('info', `${pending.length} đơn đang chờ duyệt`,
         `${pending.map((r) => r.name).join(', ')} đang chờ. Chủ giải phải đang mở app mới thấy — app không gửi được thông báo đẩy.`,
-        'Duyệt hộ ngay tại đây.');
+        'Duyệt hộ ngay tại đây.',
+        pending.map((r) => ({ uid: r.uid, name: r.name })));
     }
     const rejected = requests.filter((r) => r.rejectedAt);
     if (rejected.length) {
       at('info', `${rejected.length} người bị từ chối, không nộp lại được`,
         `${rejected.map((r) => r.name).join(', ')} còn dấu từ chối nên rules chặn họ nộp đơn lại.`,
-        'Bấm “Cho xin lại” nếu là từ chối nhầm.');
+        'Bấm “Cho xin lại” nếu là từ chối nhầm.',
+        rejected.map((r) => ({ uid: r.uid, name: r.name })));
     }
 
     // --- Du lieu giai ---

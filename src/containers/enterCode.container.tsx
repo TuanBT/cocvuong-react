@@ -586,9 +586,11 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
     return this.shell(
       <>
         <div className="text-center mb-6">
-          <div className="inline-flex bg-white p-3 rounded-card shadow-card mb-4">
+          <Link to="/" title="Về trang chủ"
+            className="inline-flex bg-white p-3 rounded-card shadow-card mb-4
+              hover:shadow-lg transition-shadow">
             <img src={logo} alt="Cóc Vương" className="h-11 w-auto" />
-          </div>
+          </Link>
           <h1 className="text-2xl font-bold text-slate-800 mb-1">Gõ số của giải</h1>
           <p className="text-sm text-slate-500 m-0">
             Hai số giám sát đọc cho cả đoàn — xong rồi chọn sân và số của bạn

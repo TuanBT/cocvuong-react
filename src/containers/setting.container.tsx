@@ -48,6 +48,8 @@ interface SettingContainerState {
   selected: TournamentSummary | null;
   loading: boolean;
   tournamentName: string;
+  /** Ngay giai dien ra, `YYYY-MM-DD`. Rong = chua dat. */
+  eventDate: string;
   timeRound: number;
   timeBreak: number;
   timeExtra: number;
@@ -136,6 +138,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
       selected: null,
       loading: true,
       tournamentName: '',
+      eventDate: '',
       timeRound: 120,
       timeBreak: 60,
       timeExtra: 60,
@@ -237,6 +240,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
         timeExtra: this.settingObj.combat.timeExtra,
         timeExtraBreak: this.settingObj.combat.timeExtraBreak,
         tournamentName: this.settingObj.tournamentName,
+        eventDate: this.settingObj.eventDate || '',
         // Giai cu co the dang luu lech nhau giua combat/martial; gop lai thi
         // ben nao dang bat se thang, de khong tat mat thu chu giai da bat
         showCountryFlag: !!(this.settingObj.combat.isShowCountryFlag || this.settingObj.martial.isShowCountryFlag),
@@ -571,7 +575,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
 
   /** Toan bo o thiet dat, gom lai thanh mot luot ghi */
   get settingPayload() {
-    const { timeRound, timeBreak, timeExtra, timeExtraBreak, tournamentName,
+    const { timeRound, timeBreak, timeExtra, timeExtraBreak, tournamentName, eventDate,
             showCountryFlag, useFiveReferees,
             showCautionBoxCombat, prioritizeUnitNameCombat } = this.state;
 
@@ -581,6 +585,9 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
       "combat/timeExtra": timeExtra,
       "combat/timeExtraBreak": timeExtraBreak,
       "tournamentName": tournamentName,
+      // Xoa han khoa khi go trong, chu khong luu chuoi rong: chuoi rong van la
+      // mot gia tri, va no lot ca vao chi muc lan cac cho hien ngay
+      "eventDate": eventDate || null,
       "combat/isShowCautionBox": showCautionBoxCombat,
       "combat/isPrioritizeUnitName": prioritizeUnitNameCombat,
       // Mot cong tac tren UI, nhung duoi DB van ghi ca hai nhanh de cac man
@@ -653,7 +660,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
       : type === 'number' ? (parseInt(value) || 0)
       : value;
 
-    if (name === 'tournamentName') this.needIndexSync = true;
+    if (name === 'tournamentName' || name === 'eventDate') this.needIndexSync = true;
     if (name === 'useFiveReferees') this.needCodeSync = true;
 
     this.setState({ [name]: next } as any, () => {
@@ -873,7 +880,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
 
   render() {
     const {
-      tournaments, selected, loading, tournamentName,
+      tournaments, selected, loading, tournamentName, eventDate,
       timeRound, timeBreak, timeExtra, timeExtraBreak,
       showCountryFlag, useFiveReferees, showCautionBoxCombat, prioritizeUnitNameCombat,
       saveState, confirm,
@@ -1004,6 +1011,26 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
                 />
                 <p className="text-xs text-slate-400 mt-1.5 mb-0">
                   Tên này hiển thị trên màn hình trình chiếu, xuống dòng để tránh chữ quá nhỏ.
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="field-eventDate" className="block text-sm font-semibold text-slate-600 mb-2">
+                  Ngày giải diễn ra <span className="font-normal text-slate-400">(không bắt buộc)</span>
+                </label>
+                <input
+                  id="field-eventDate"
+                  name="eventDate"
+                  type="date"
+                  value={eventDate}
+                  onChange={this.handleInputChange}
+                  className="px-4 py-3 border border-slate-200 rounded-control
+                    text-slate-800 bg-white
+                    focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-shadow"
+                />
+                <p className="text-xs text-slate-400 mt-1.5 mb-0">
+                  Hiện cạnh tên giải ở các bảng chọn — để không nhầm giải năm nay với giải năm ngoái.
+                  Xoá trắng là bỏ ngày đi.
                 </p>
               </div>
 

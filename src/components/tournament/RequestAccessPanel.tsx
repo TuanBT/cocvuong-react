@@ -1,8 +1,9 @@
 import React, { Component } from 'react';
 import { toast } from 'react-toastify';
-import { Link } from 'react-router-dom';
+import { Link, Prompt, withRouter } from 'react-router-dom';
 import logo from '../../assets/img/logo.png';
 import Button from '../ui/Button';
+import { formatEventDate } from '../../utils/helpers';
 import { AppUser, signOut } from '../../services/authService';
 import { ArenaKind, arenaName, kindName } from '../../services/accessCodeService';
 import {
@@ -31,11 +32,23 @@ export interface SupervisorAccess {
   onChangeTournament: () => void;
 }
 
-interface RequestAccessPanelProps {
+interface RequestAccessPanelOwnProps {
   user: AppUser;
   kind: ArenaKind;
   children: (access: SupervisorAccess) => React.ReactNode;
 }
+
+/**
+ * Du an khong cai `@types/react-router-dom` nen ca goi router la `any` —
+ * `RouteComponentProps` doc ra khong co truong nao. Khai bao tay dung phan
+ * dang dung de bo nho van bat duoc loi go nham ten.
+ */
+interface RouterProps {
+  location: { pathname: string; search: string };
+  history: { push: (path: string) => void; replace: (path: string) => void };
+}
+
+type RequestAccessPanelProps = RequestAccessPanelOwnProps & RouterProps;
 
 type Phase = 'loading' | 'pick-tournament' | 'request' | 'waiting' | 'pick-arena' | 'ready' | 'revoked';
 
@@ -69,6 +82,32 @@ function requestedId(): TournamentId | null {
   return new URLSearchParams(window.location.search).get('giai') || null;
 }
 
+/** `?san=0|1` — cap voi `giai` o tren. So la so nen kiem duoc: sai thi coi nhu khong co. */
+function requestedArena(): number | null {
+  const raw = new URLSearchParams(window.location.search).get('san');
+  if (raw === null || raw === '') return null;
+  const n = Number(raw);
+  return ARENA_INDEXES.includes(n) ? n : null;
+}
+
+/**
+ * Dung phan `?...` cho giai + san dang truc.
+ *
+ * F5 giua tran la chuyen thuong: rot mang, may treo, ai do bam nham. Truoc day
+ * moi lan nhu vay la ve lai bang chon giai — dung luc dang cham thi phai chon
+ * lai giai roi chon lai san. Dia chi mang theo hai khoa nay thi tai lai trang
+ * la vao thang cho cu, y nhu giam dinh vao thang bang phien da luu.
+ *
+ * Giu lai cac khoa la cua nguoi khac trong `?...` — chi dong vao `giai`/`san`.
+ */
+function searchFor(id: TournamentId | null, arena: number | null): string {
+  const p = new URLSearchParams(window.location.search);
+  if (id) p.set('giai', id); else p.delete('giai');
+  if (arena !== null) p.set('san', String(arena)); else p.delete('san');
+  const q = p.toString();
+  return q ? `?${q}` : '';
+}
+
 /**
  * Cong vao cua giam sat: chon giai -> xin quyen -> cho duyet -> vao thang san.
  *
@@ -94,18 +133,24 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
   unsubRequest: (() => void) | null = null;
   unsubSummary: (() => void) | null = null;
 
-  state: RequestAccessPanelState = {
-    phase: 'loading',
-    tournaments: [],
-    myTournaments: new Set(),
-    selected: null,
-    staff: null,
-    want: allArenas(),
-    note: '',
-    arenaIndex: null,
-    busy: false,
-    error: '',
-  };
+  /**
+   * Da de lai mot muc "bang chon giai" phia sau chua.
+   *
+   * Vao tran thi day MOT muc lich su, de Back giua tran lui ve bang chon chu
+   * khong roi han ra trang chu. Doi san / doi giai sau do chi sua tai cho —
+   * cham diem xong bam Back muoi lan van chi co dung mot buoc de lui.
+   */
+  entered = false;
+
+  /**
+   * Dang tu sua dia chi.
+   *
+   * `enterUrl` phai di hai buoc — don muc hien tai ve tay khong roi moi day muc
+   * moi. React 17 chay `componentDidUpdate` ngay giua hai buoc do, luc dia chi
+   * con dang tay khong; khong chan thi no tuong nguoi ta vua bam Back va da
+   * man hinh ve bang chon giai, dung luc dang vao tran.
+   */
+  writing = false;
 
   componentDidMount() {
     void this.loadTournaments();
@@ -114,6 +159,111 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
   componentWillUnmount() {
     this.detach();
   }
+
+  /**
+   * Dia chi doi ma khong phai do minh vua ghi — tuc la nguoi ta bam Back/Forward,
+   * hoac dan mot link khac vao. Man hinh phai lui theo, khong duoc dung yen.
+   */
+  componentDidUpdate(prev: RequestAccessPanelProps) {
+    if (this.writing) return;
+    if (prev.location.search !== this.props.location.search) this.syncFromUrl();
+  }
+
+  /** Sua dia chi ma khong de `componentDidUpdate` tuong la nguoi ta bam Back. */
+  navigate(run: () => void) {
+    this.writing = true;
+    try {
+      run();
+    } finally {
+      this.writing = false;
+    }
+  }
+
+  syncFromUrl() {
+    const id = requestedId();
+    const arena = requestedArena();
+
+    // Dia chi khop voi cho dang dung — chinh minh vua ghi ra, khong lam gi ca
+    if (id === (this.state.selected?.id ?? null) && arena === this.state.arenaIndex) return;
+
+    if (!id) {
+      this.resetToList();
+      return;
+    }
+
+    // Dia chi da mang khoa giai ma minh khong ghi ra — tuc la dang dung tren
+    // dung cai muc lich su cua tran (bam Forward tro lai). Muc "bang chon" phia
+    // sau van con nguyen, day them mot cai nua la lich su phinh ra sau moi lan
+    // Back roi Forward.
+    this.entered = true;
+
+    const t = this.state.tournaments.find((x) => x.id === id);
+    this.setState({ arenaIndex: arena }, () => {
+      if (t) void this.pick(t);
+      else void this.loadTournaments(true);
+    });
+  }
+
+  /** Sua tai cho: van la mot buoc, Back khong dem them lan nao. */
+  syncUrl(id: TournamentId | null, arena: number | null) {
+    const { history, location } = this.props;
+    const search = searchFor(id, arena);
+    if (search === location.search) return;
+    this.navigate(() => history.replace(location.pathname + search));
+  }
+
+  /**
+   * Vao tran. Lan dau thi DAY mot muc, de sau do con cho ma lui ve.
+   *
+   * Vao thang bang `?giai=` (link tu trang quan tri, hoac F5 giua tran) thi dia
+   * chi da mang san khoa giai — phai don muc hien tai ve tay khong truoc, roi
+   * moi day. Neu khong thi phia sau tran van la trang chu nhu cu.
+   */
+  enterUrl(id: TournamentId | null, arena: number | null) {
+    const { history, location } = this.props;
+    const search = searchFor(id, arena);
+
+    if (this.entered) {
+      if (search !== location.search) {
+        this.navigate(() => history.replace(location.pathname + search));
+      }
+      return;
+    }
+
+    // Lan dau vao tran. Ke ca khi dia chi DA dung san (F5 giua tran, hay link
+    // `?giai=` tu trang quan tri) van phai lam du hai buoc — muc lich su phia
+    // sau luc do la trang chu, khong bo qua duoc.
+    this.navigate(() => {
+      if (location.search) history.replace(location.pathname);
+      history.push(location.pathname + search);
+    });
+    this.entered = true;
+  }
+
+  /**
+   * Chan moi duong ra khoi man cham.
+   *
+   * Minh tu sua dia chi (ghi giai/san, bam "Chon giai khac") thi cho qua thang
+   * — do la thao tac co y, hoi lai chi lam phien. Chi POP moi phai hoi: quet
+   * trackpad hai ngon giua hiep la loi tay, khong phai y dinh.
+   */
+  guardLeaving = (location: { pathname: string }, action: string): boolean | string => {
+    if (action !== 'POP' && location.pathname === this.props.location.pathname) return true;
+    return 'Trận đang chấm dở. Rời màn hình bây giờ thì phải mở lại và đợi tải xong mới chấm tiếp được.';
+  };
+
+  state: RequestAccessPanelState = {
+    phase: 'loading',
+    tournaments: [],
+    myTournaments: new Set(),
+    selected: null,
+    staff: null,
+    want: allArenas(),
+    note: '',
+    arenaIndex: requestedArena(),
+    busy: false,
+    error: '',
+  };
 
   detach() {
     this.unsubStaff?.();
@@ -167,7 +317,13 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
     }
   };
 
-  async loadTournaments() {
+  /**
+   * @param autoEnter Vao thang khi chi co mot loi di ro rang. Tat khi nguoi ta
+   *   VUA CHU DONG lui ve day — bam Back giua tran, hay bam "Chon giai khac".
+   *   Khong tat thi giai duy nhat cua ho keo tuot vao lai tran, Back thanh nut
+   *   khong lam gi ca.
+   */
+  async loadTournaments(autoEnter = true) {
     const { user } = this.props;
 
     try {
@@ -191,7 +347,7 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
       const mine = new Set<TournamentId>(checked.filter((i): i is TournamentId => i !== null));
 
       // `?giai=<khoa>` tu trang quan tri — vao thang giai duoc chi dinh
-      const wanted = requestedId();
+      const wanted = autoEnter ? requestedId() : null;
       const direct = wanted === null ? undefined : usable.find((t) => t.id === wanted);
       if (direct) {
         await this.pick(direct);
@@ -201,7 +357,7 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
 
       // Dung mot giai dung duoc thi vao thang, khong bat chon
       const candidates = usable.filter((t) => mine.has(t.id));
-      if (candidates.length === 1) {
+      if (autoEnter && candidates.length === 1) {
         await this.pick(candidates[0]);
         this.setState({ tournaments: usable, myTournaments: mine });
         return;
@@ -217,6 +373,7 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
     const { user } = this.props;
     this.detach();
     this.setState({ selected: t, error: '' });
+    this.syncUrl(t.id, this.state.arenaIndex);
 
     this.unsubSummary = subscribeTournamentSummary(t.id, (fresh) => {
       if (fresh) this.setState({ selected: fresh });
@@ -268,7 +425,9 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
     // Ban cham nhanh: khong hoi san lan dau — vao thang San A cho nhanh. Nhung
     // da tu bam "Doi san" sang B thi phai giu, dung keo nguoc ve A.
     if (t.demo) {
-      this.setState({ arenaIndex: this.state.arenaIndex ?? 0, phase: 'ready' });
+      const a = this.state.arenaIndex ?? 0;
+      this.setState({ arenaIndex: a, phase: 'ready' });
+      this.enterUrl(t.id, a);
       return;
     }
 
@@ -285,11 +444,13 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
 
     if (this.state.arenaIndex !== null && usable.includes(this.state.arenaIndex)) {
       this.setState({ phase: 'ready' });
+      this.enterUrl(t.id, this.state.arenaIndex);
       return;
     }
 
     if (usable.length === 1) {
       this.setState({ arenaIndex: usable[0], phase: 'ready' });
+      this.enterUrl(t.id, usable[0]);
       return;
     }
 
@@ -297,6 +458,7 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
     const lastForKind = last && last.startsWith(kind) ? Number(last.slice(kind.length)) : null;
     if (lastForKind !== null && usable.includes(lastForKind)) {
       this.setState({ arenaIndex: lastForKind, phase: 'ready' });
+      this.enterUrl(t.id, lastForKind);
       return;
     }
 
@@ -307,6 +469,7 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
     const { user, kind } = this.props;
     const { selected } = this.state;
     this.setState({ arenaIndex: a, phase: 'ready' });
+    this.enterUrl(selected?.id ?? null, a);
     if (selected) {
       // Nho theo tai khoan -> doi may van vao dung san
       await setLastArena(selected.id, user.uid, `${kind}${a}` as ArenaAssignmentKey).catch(
@@ -349,14 +512,22 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
     this.setState({ phase: 'request' });
   };
 
-  backToList = () => {
+  /** Ve bang chon — chi trang thai. Dung khi dia chi DA dung san (Back, link dan vao). */
+  resetToList() {
     this.detach();
+    this.entered = false;
     this.setState({ selected: null, staff: null, arenaIndex: null, phase: 'pick-tournament', error: '' });
-    void this.loadTournaments();
+    void this.loadTournaments(false);
+  }
+
+  backToList = () => {
+    this.syncUrl(null, null);
+    this.resetToList();
   };
 
   changeArena = () => {
     this.setState({ arenaIndex: null, phase: 'pick-arena' });
+    this.syncUrl(this.state.selected?.id ?? null, null);
   };
 
   // ==================== Khung chung ====================
@@ -368,9 +539,11 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
         p-4 select-text bg-gradient-to-b from-slate-50 via-white to-slate-100">
         <div className="w-full max-w-lg">
           <div className="text-center mb-6">
-            <div className="inline-flex bg-white p-3 rounded-card shadow-card mb-4">
+            <Link to="/" title="Về trang chủ"
+              className="inline-flex bg-white p-3 rounded-card shadow-card mb-4
+                hover:shadow-lg transition-shadow">
               <img src={logo} alt="Cóc Vương" className="h-11 w-auto" />
-            </div>
+            </Link>
             <h1 className="text-xl font-bold text-slate-800 mb-1">{title}</h1>
             <p className="text-sm text-slate-500 m-0">{subtitle}</p>
           </div>
@@ -388,9 +561,6 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
             </button>
           </div>
 
-          <p className="text-center mt-4 mb-0">
-            <Link to="/" className="text-sm text-slate-400 hover:text-slate-600">Về trang chủ</Link>
-          </p>
         </div>
       </div>
     );
@@ -428,6 +598,8 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
       );
       return (
         <>
+          {/* Quet trackpad hai ngon giua hiep khong duoc phep lam mat man cham */}
+          <Prompt message={this.guardLeaving} />
           {children({
             tournament: selected,
             arenaIndex,
@@ -582,7 +754,9 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
     const mine = real.filter((t) => myTournaments.has(t.id));
     const others = real.filter((t) => !myTournaments.has(t.id));
 
-    const row = (t: TournamentSummary, ready: boolean) => (
+    const row = (t: TournamentSummary, ready: boolean) => {
+      const day = formatEventDate(t.eventDate);
+      return (
       <button
         key={t.id}
         type="button"
@@ -597,6 +771,9 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
         <span className="min-w-0 flex-1">
           <span className="block font-medium text-slate-800 whitespace-pre-line">{t.name}</span>
           <span className="block text-xs text-slate-500 mt-0.5">
+            {/* Ngay dung TRUOC: hai giai trung ten thi day la thu duy nhat
+                phan biet duoc, phai doc thay ngay chu khong nam cuoi dong */}
+            {day && <span className="font-medium text-slate-600">{day} · </span>}
             {ready
               ? t.ownerUid === user.uid ? 'Giải của bạn — vào thẳng'
                 : this.isAdmin ? 'Quản trị viên — vào thẳng'
@@ -608,7 +785,8 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
         </span>
         <i className="fa-solid fa-chevron-right text-slate-300" aria-hidden="true" />
       </button>
-    );
+      );
+    };
 
     // Hien ca khi tai khoan chua co ban nao — bam vao moi dung. Di qua
     // `enterDemo` chu khong qua `pick` de con lo ma giam dinh va san B.
@@ -682,4 +860,4 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
   }
 }
 
-export default RequestAccessPanel;
+export default withRouter(RequestAccessPanel) as React.ComponentType<RequestAccessPanelOwnProps>;

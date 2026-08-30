@@ -435,12 +435,12 @@ export async function syncTournamentCodes(
  * va giam sat thi quyen moi nguoi chi doc duoc nhanh san minh truc, nen ma
  * phai co mat o ca hai cho thi ca hai moi mo bang ma ra xem duoc.
  */
-async function createSharedCode(
+function sharedCodeWrites(
   prefix: string,
   pos: SharedPosition,
   ownerUid: string,
   tournamentName: string
-): Promise<string> {
+): Record<string, unknown> {
   const code = sharedCodeFor(prefix, pos.a, pos.r);
   const primary = pos.kinds[0];
   const payload: AccessCode = {
@@ -462,14 +462,25 @@ async function createSharedCode(
     payload.slotMartial = slotString({ t: pos.t, kind: 'martial', a: pos.a, r: pos.r });
   }
 
-  await set(ref(database, `accessCode/${code}`), payload);
+  const writes: Record<string, unknown> = { [`accessCode/${code}`]: payload };
   for (const kind of pos.kinds) {
-    await set(
-      ref(database, `tournamentCodeIndex/${pos.t}/${arenaKey(kind, pos.a)}/${pos.r}`),
-      code
-    );
+    writes[`tournamentCodeIndex/${pos.t}/${arenaKey(kind, pos.a)}/${pos.r}`] = code;
   }
-  return code;
+  return writes;
+}
+
+/** Duong lui khi ghi gop that bai — ghi tung o mot, dung nhu ban cu. */
+async function createSharedCode(
+  prefix: string,
+  pos: SharedPosition,
+  ownerUid: string,
+  tournamentName: string
+): Promise<void> {
+  for (const [path, value] of Object.entries(
+    sharedCodeWrites(prefix, pos, ownerUid, tournamentName)
+  )) {
+    await set(ref(database, path), value);
+  }
 }
 
 /** Node ma nay co dung nhung mon ma vi tri do dang co hay khong */
@@ -496,15 +507,28 @@ async function pruneStaleCodes(t: TournamentId, keep: Map<string, string>): Prom
   const live = new Set(keep.values());
   let removed = 0;
 
+  // Gom lai ghi mot luot: doi 5 giam dinh xuong 3 la bon o phai don, xep hang
+  // tung lenh xoa thi lai them bon vong di-ve.
+  const drop: Record<string, null> = {};
   for (const [sanKey, byReferee] of Object.entries(index)) {
     if (sanKey === META_KEY) continue;
     for (const [r, code] of Object.entries(byReferee || {})) {
       if (keep.get(`${sanKey}/${r}`) === code) continue;
-      await remove(ref(database, `tournamentCodeIndex/${t}/${sanKey}/${r}`));
+      drop[`tournamentCodeIndex/${t}/${sanKey}/${r}`] = null;
       if (!live.has(code)) {
-        await remove(ref(database, `accessCode/${code}`));
+        drop[`accessCode/${code}`] = null;
         removed++;
       }
+    }
+  }
+  if (!Object.keys(drop).length) return 0;
+
+  try {
+    await update(ref(database), drop);
+  } catch {
+    // Nhu luc cap ma: xoa gop truot thi xoa tung cai, con hon de lai ca mo
+    for (const path of Object.keys(drop)) {
+      await remove(ref(database, path)).catch(() => undefined);
     }
   }
   return removed;
@@ -518,6 +542,8 @@ async function ensureSharedCodes(
 ): Promise<EnsureCodesResult> {
   let prefix = known;
   let retries = 0;
+  /** Vua tu tay ghi node giu cho ngay trong luot nay */
+  let justClaimed = false;
 
   if (!prefix) {
     for (let attempt = 0; attempt < MAX_CODE_ATTEMPTS; attempt++) {
@@ -526,6 +552,7 @@ async function ensureSharedCodes(
       await writePrefixHolder(candidate, t, ownerUid, plan.tournamentName);
       prefix = candidate;
       retries = attempt;
+      justClaimed = true;
       break;
     }
     if (!prefix) throw new CodePoolFullError();
@@ -534,33 +561,63 @@ async function ensureSharedCodes(
   // Node giu cho 2 so dau GIO LA CUA VAO: giam dinh go dung no roi moi chon
   // cho ngoi. Mat no thi ca doan dung ngoai cua trong khi bang ma van hien
   // binh thuong — nen kiem lai moi lan dong bo, khong chi luc cap so moi.
-  const holder = await get(child(ref(database), `accessCode/${prefix}`));
-  const owned = holder.val() as AccessCode | null;
-  if (!owned) {
-    await writePrefixHolder(prefix, t, ownerUid, plan.tournamentName);
-  } else if (owned.tKey !== String(t)) {
-    // Giai khac dang giu 2 so nay — de nguyen, ghi de la cuop cua ho
-    throw new PrefixTakenError(prefix);
+  // Vua ghi xong ngay tren thi khong doc lai — do la mot vong di-ve chi de
+  // xac nhan thu minh vua dat xuong.
+  if (!justClaimed) {
+    const holder = await get(child(ref(database), `accessCode/${prefix}`));
+    const owned = holder.val() as AccessCode | null;
+    if (!owned) {
+      await writePrefixHolder(prefix, t, ownerUid, plan.tournamentName);
+    } else if (owned.tKey !== String(t)) {
+      // Giai khac dang giu 2 so nay — de nguyen, ghi de la cuop cua ho
+      throw new PrefixTakenError(prefix);
+    }
   }
 
-  let created = 0;
-  let kept = 0;
+  const positions = sharedPositions(t, plan);
   const keep = new Map<string, string>();
-
-  for (const pos of sharedPositions(t, plan)) {
+  for (const pos of positions) {
     const code = sharedCodeFor(prefix, pos.a, pos.r);
     for (const kind of pos.kinds) keep.set(`${arenaKey(kind, pos.a)}/${pos.r}`, code);
+  }
 
-    // Doc ca node chu khong moi `tKey`: doi thi quyen 5 -> 3 thi ma o GD3 van
-    // dung giai nhung khong con la ma hai mon nua, phai ghi lai chu khong giu
-    const snap = await get(child(ref(database), `accessCode/${code}`));
-    const data = snap.val() as AccessCode | null;
-    if (data?.tKey === String(t) && matchesKinds(data, pos.kinds)) {
-      kept++;
-      continue;
+  // Doc CA NODE chu khong moi `tKey`: doi thi quyen 5 -> 3 thi ma o GD3 van
+  // dung giai nhung khong con la ma hai mon nua, phai ghi lai chu khong giu.
+  //
+  // Doc SONG SONG. Cac vi tri khong biet gi ve nhau, ma xep hang tung cai thi
+  // moi cai an tron mot vong di-ve — tao giai o vung xa la ngoi cho vai giay
+  // cho mot viec von chi ton mot vong.
+  //
+  // Loi doc thi de no vang ra: doc hong ma coi nhu "chua co" la ghi de len ma
+  // cua giai khac.
+  const existing = await Promise.all(
+    positions.map((pos) =>
+      get(child(ref(database), `accessCode/${sharedCodeFor(prefix!, pos.a, pos.r)}`))
+        .then((snap) => snap.val() as AccessCode | null)
+    )
+  );
+
+  const todo = positions.filter(
+    (pos, i) => !(existing[i]?.tKey === String(t) && matchesKinds(existing[i]!, pos.kinds))
+  );
+  const kept = positions.length - todo.length;
+  const created = todo.length;
+
+  if (todo.length) {
+    const batch: Record<string, unknown> = {};
+    for (const pos of todo) {
+      Object.assign(batch, sharedCodeWrites(prefix, pos, ownerUid, plan.tournamentName));
     }
-    await createSharedCode(prefix, pos, ownerUid, plan.tournamentName);
-    created++;
+    try {
+      // Mot lan di ve cho ca bo ma, thay vi 3 lan moi vi tri
+      await update(ref(database), batch);
+    } catch {
+      // Ghi gop la mot khoi: mot o hong thi ca khoi truot. Quay ve ghi tung o
+      // de bo ma van len duoc gan het, con hon la khong len o nao.
+      for (const pos of todo) {
+        await createSharedCode(prefix, pos, ownerUid, plan.tournamentName);
+      }
+    }
   }
 
   const removed = await pruneStaleCodes(t, keep);

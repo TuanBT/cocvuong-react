@@ -280,6 +280,23 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
     }
   }
 
+  /**
+   * Ghi hong thi phai keu len.
+   *
+   * Toast xanh/do bao "da bam" chu khong bao "da len bang" — hai cai do khac
+   * nhau khi rules tu choi. Bao loi de len giua man hinh va o lau hon toast
+   * cham diem: giua tran giam dinh khong nhin dien thoai, luot qua mot giay
+   * la lai bam tiep ca buoi vao hu khong.
+   */
+  reportScoreFailed = () => {
+    toast.error('Không gửi được điểm! Báo giám sát ngay.', {
+      position: 'top-center',
+      autoClose: 4000,
+      theme: 'colored',
+      toastId: 'score-failed',
+    });
+  }
+
   redAddition = (score: number) => {
     this.buzz();
     sendScoreFromGiamDinh({
@@ -288,7 +305,7 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
       combatArenaNoIndex: this.combatArenaNoIndex,
       refereeIndex: this.referreIndex,
       arena: this.combatArenaNoIndex === 0 ? 'A' : 'B'
-    }, 'red', score);
+    }, 'red', score).catch(this.reportScoreFailed);
 
     toast.error("+" + score + " điểm cho ĐỎ", {
       position: "top-left",
@@ -305,7 +322,7 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
       combatArenaNoIndex: this.combatArenaNoIndex,
       refereeIndex: this.referreIndex,
       arena: this.combatArenaNoIndex === 0 ? 'A' : 'B'
-    }, 'blue', score);
+    }, 'blue', score).catch(this.reportScoreFailed);
 
     toast.info("+" + score + " điểm cho XANH", {
       position: "top-right",

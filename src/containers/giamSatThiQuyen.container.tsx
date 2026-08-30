@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import React, { Component, createRef, RefObject } from 'react';
 import { database } from '../firebase';
 import { ref, set, get, update, child, onValue, Database, DatabaseReference, off } from "firebase/database";
@@ -990,12 +991,13 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
                 ⏳ {pendingWritesCount} pending
               </span>
             )}
-            <a 
-              href="/" 
+            <Link
+              to="/"
+              title="Về trang chủ"
               className="flex-shrink-0 flex items-center p-1.5 bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-lg shadow-sm hover:shadow hover:border-slate-300 transition-all"
             >
               <img src={logo} alt="logo" className="h-6" />
-            </a>
+            </Link>
           </div>
           {/* Tournament Name - canh giua man hinh bang absolute */}
           <div className="absolute inset-0 flex items-center justify-center px-[15%] pointer-events-none" id="tournamentName">
@@ -1012,23 +1014,27 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
           <div className="flex items-center gap-3 flex-shrink-0 z-10">
             <span className="bg-slate-200 px-4 py-1.5 rounded font-bold text-base">{arenaName}</span>
 
-            {/* Giai dang mo toang / giai thu phai nhin thay duoc,
-                khong de ai quen minh dang cham vao dau */}
+            {/* Ban cham nhanh phai nhin thay duoc: man hinh nay giong het man
+                giai that, khong bao thi co nguoi cham ca buoi vao ban thu.
+                Con "MO TU DO" thi nam trong menu — xem cham do tren nut banh
+                rang ben duoi. */}
             {access.tournament.demo && (
               <span className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">CHẤM NHANH</span>
-            )}
-            {access.tournament.openAccess && !access.tournament.demo && (
-              <span className="bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded"
-                title="Ai đăng nhập cũng chấm được trên giải này">MỞ TỰ DO</span>
             )}
 
             {/* Quick Menu Button */}
             <div className="relative">
               <button 
                 onClick={() => this.setState({ showQuickMenu: !showQuickMenu })}
-                className="w-8 h-8 rounded-full bg-slate-600 hover:bg-slate-700 text-white flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-full bg-slate-600 hover:bg-slate-700 text-white flex items-center justify-center transition-colors relative"
               >
                 <i className="fa fa-cog text-sm"></i>
+                {/* Cham bao "co gi do dang bat" — nguoi truc ngoi ngay day thi
+                    thay, khan gia duoi hoi truong thi khong doc ra chu nao */}
+                {access.tournament.openAccess && !access.tournament.demo && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full
+                    bg-amber-400 border border-white" aria-hidden="true" />
+                )}
               </button>
               {showQuickMenu && (
                 <>
@@ -1041,6 +1047,20 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
                     {/* Trang nay con dung de trinh chieu: ten nguoi dang truc
                         nam trong day, khong bay tren man hinh ca giai cung nhin */}
                     <AccountIdentityRow user={user} subtitle={`${arenaName || 'Sân'} · Thi quyền`} />
+                    {/* Trang nay dung de trinh chieu nen canh bao nam TRONG day:
+                        mot nhan "MO TU DO" to tuong tren man hinh chi noi cho ca
+                        hoi truong biet giai dang khong khoa, ma nguoi duy nhat
+                        tat duoc no thi dang ngoi ngay canh nut nay */}
+                    {access.tournament.openAccess && !access.tournament.demo && (
+                      <div className="px-4 py-2.5 flex items-start gap-2 text-xs text-amber-800
+                        bg-amber-50 border-y border-amber-200">
+                        <i className="fa fa-lock-open mt-0.5 text-amber-500" aria-hidden="true"></i>
+                        <span>
+                          <strong className="block">Giải đang MỞ TỰ DO</strong>
+                          Ai đăng nhập cũng chấm được. Tắt ở trang Cài đặt bên dưới.
+                        </span>
+                      </div>
+                    )}
                     {access.tournament.demo && (
                       <button
                         onClick={() => { this.setState({ showQuickMenu: false }); this.resetDemo(); }}

@@ -101,7 +101,7 @@
       ".read": true,
       "$t": {
         ".write": "auth != null",
-        ".validate": "newData.child('tournamentName').val() === root.child('tournament/'+$t+'/setting/tournamentName').val() && newData.child('ownerUid').val() === root.child('tournament/'+$t+'/setting/ownerUid').val() && newData.child('ownerEmail').val() === root.child('tournament/'+$t+'/setting/ownerEmail').val() && newData.child('status').val() === root.child('tournament/'+$t+'/setting/status').val() && newData.child('openAccess').val() === root.child('tournament/'+$t+'/setting/openAccess').val() && newData.child('demo').val() === root.child('tournament/'+$t+'/setting/demo').val() && newData.child('createdAt').val() === root.child('tournament/'+$t+'/setting/createdAt').val() && newData.child('closedAt').val() === root.child('tournament/'+$t+'/setting/closedAt').val()"
+        ".validate": "newData.child('tournamentName').val() === root.child('tournament/'+$t+'/setting/tournamentName').val() && newData.child('ownerUid').val() === root.child('tournament/'+$t+'/setting/ownerUid').val() && newData.child('ownerEmail').val() === root.child('tournament/'+$t+'/setting/ownerEmail').val() && newData.child('status').val() === root.child('tournament/'+$t+'/setting/status').val() && newData.child('openAccess').val() === root.child('tournament/'+$t+'/setting/openAccess').val() && newData.child('demo').val() === root.child('tournament/'+$t+'/setting/demo').val() && newData.child('createdAt').val() === root.child('tournament/'+$t+'/setting/createdAt').val() && newData.child('closedAt').val() === root.child('tournament/'+$t+'/setting/closedAt').val() && newData.child('eventDate').val() === root.child('tournament/'+$t+'/setting/eventDate').val()"
       }
     },
 
