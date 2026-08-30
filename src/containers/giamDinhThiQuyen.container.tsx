@@ -293,7 +293,10 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
 
     const scoreValue = parseInt(this.refereeMartialScore) || 0;
 
-    // Gửi điểm lên Firebase + tính lại điểm tổng của đội
+    // Gửi điểm lên Firebase + tính lại điểm tổng của đội.
+    // Bị từ chối (sân khác đang giữ lượt, hoặc Giám Sát đã chốt điểm tay) thì
+    // PHẢI nói ra — báo "thành công" trong khi điểm không lên là kiểu mất điểm
+    // giữa trận không ai phát hiện được.
     submitMartialRefereeScore(
       { db: this.db, tournamentIndex: this.tournamentNoIndex, arenaIndex: this.martialArenaNoIndex },
       this.matchNoCurrentIndex,
@@ -301,11 +304,18 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
       this.referreIndex,
       scoreValue,
       this.numReferee
-    );
+    ).then((finalScore) => {
+      if (finalScore === null) {
+        toast.error("Chưa ghi được điểm — lượt thi này đang do sân khác chấm hoặc Giám Sát đã chốt điểm tổng.");
+      } else {
+        toast.success("Chấm điểm thành công!");
+      }
+    }).catch(() => {
+      toast.error("Chưa ghi được điểm — kiểm tra lại mạng rồi bấm lại.");
+    });
 
     this.refereeMartialScore = "";
     this.setState({ refereeResultBox: '00' });
-    toast.success("Chấm điểm thành công!");
   }
 
 

@@ -208,8 +208,9 @@ cơ chế `xfail`, và **danh sách bug đang được ghi nhận** — ở
 [tests/README.md](tests/README.md).
 
 > Bộ test dùng cờ `knownBug` để phân biệt **hồi quy** (❌ đỏ suite) với **bug đã
-> biết chưa sửa** (⚠️ xfail, không đỏ). Hiện có 10 bug đang được canh như vậy,
-> phần lớn là lost-update khi hai sân cùng ghi một node.
+> biết chưa sửa** (⚠️ xfail, không đỏ). Hiện **không còn cờ nào** — 10 bug của
+> đợt 30.08.2026 (lost-update khi hai sân cùng ghi một node, cửa sổ chấm điểm
+> co lại, thiếu khoá lượt thi thi quyền) đã sửa hết và nay là assert cứng.
 
 ## Firebase
 

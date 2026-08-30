@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 
 import {
   PageShell, PageHeader, SectionCard, Button, EmptyState,
-  ConfirmModal, Modal, Toast, AppFooter,
+  ConfirmModal, Modal, Toast, AppFooter, Pagination,
 } from '../components/ui';
 import { AccountChip } from '../components/auth';
 import CodeBoard from '../components/tournament/CodeBoard';
@@ -29,6 +29,12 @@ import {
 } from '../services/tournamentService';
 import type { TournamentId } from '../types';
 import { formatEventDate } from '../utils/helpers';
+import { pageOf, paginate } from '../utils/pagination';
+
+/** The giai cao gan mot phan tu man hinh — 10 the la du dai cho mot trang */
+const TOURNAMENT_PAGE_SIZE = 10;
+/** Bang chon giai trong hop thoai chi dinh — hop thoai khong duoc cao qua man hinh */
+const ASSIGN_PAGE_SIZE = 6;
 
 interface AdminContainerProps {
   user: AppUser;
@@ -54,6 +60,8 @@ interface AdminContainerState {
   tab: Tab;
   query: string;
   statusFilter: StatusFilter;
+  /** Trang cua bang giai, dem tu 0 — o tim va bo loc deu dua no ve 0 */
+  page: number;
 
   /** Giai dang mo bang chi tiet */
   expanded: TournamentId | null;
@@ -68,7 +76,11 @@ interface AdminContainerState {
   /** Giai dang doi ten, kem o go */
   rename: { id: TournamentId; value: string } | null;
   /** Chi dinh mot nguoi vao mot giai (mo tu tab Nguoi dung) */
-  assign: { user: AdminUserRow; id: TournamentId | null; draft: Assignments } | null;
+  assign: {
+    user: AdminUserRow; id: TournamentId | null; draft: Assignments;
+    /** Trang cua bang chon giai trong hop thoai — mo lai la ve 0 */
+    page: number;
+  } | null;
 }
 
 const STATUS_BADGE: Record<TournamentStatus, { text: string; className: string }> = {
@@ -111,6 +123,7 @@ class AdminContainer extends Component<AdminContainerProps, AdminContainerState>
     tab: 'tournaments',
     query: '',
     statusFilter: 'all',
+    page: 0,
     expanded: null,
     staff: [],
     expandedUser: null,
@@ -197,7 +210,11 @@ class AdminContainer extends Component<AdminContainerProps, AdminContainerState>
   };
 
   openTournamentTab = (index: TournamentId) => {
-    this.setState({ tab: 'tournaments', query: '', statusFilter: 'all' }, () => {
+    this.setState({ tab: 'tournaments', query: '', statusFilter: 'all', page: 0 }, () => {
+      // Bang giai di theo trang: giai duoc mo ra co the nam o trang 3, mo ma
+      // khong nhay trang thi bam vao chi thay bang giai khong doi gi
+      const at = this.visibleTournaments().findIndex((t) => t.id === index);
+      if (at >= 0) this.setState({ page: pageOf(at, TOURNAMENT_PAGE_SIZE) });
       if (this.state.expanded !== index) this.toggleExpand(index);
     });
   };
@@ -789,7 +806,7 @@ class AdminContainer extends Component<AdminContainerProps, AdminContainerState>
 
             <div className="flex flex-wrap gap-1.5 pt-1">
               <Button size="sm" variant="success" icon="fa-solid fa-user-plus"
-                onClick={() => this.setState({ assign: { user: u, id: null, draft: allArenas() } })}>
+                onClick={() => this.setState({ assign: { user: u, id: null, draft: allArenas(), page: 0 } })}>
                 Chỉ định vào một giải
               </Button>
               {u.duties.length > 0 && (
@@ -872,6 +889,9 @@ class AdminContainer extends Component<AdminContainerProps, AdminContainerState>
 
     const choices = this.tournaments.filter((t) => t.status !== 'deleted' && !t.demo);
     const already = new Set(assign.user.duties.map((d) => d.id));
+    // Hop thoai chi cao co han: cuon mot khung 14rem qua ca tram giai la cach
+    // chac chan nhat de chi dinh nham nguoi vao nham giai
+    const paged = paginate(choices, assign.page, ASSIGN_PAGE_SIZE);
 
     return (
       <Modal
@@ -894,24 +914,36 @@ class AdminContainer extends Component<AdminContainerProps, AdminContainerState>
         {choices.length === 0 ? (
           <p className="m-0 text-sm text-slate-400 italic">Chưa có giải nào để chỉ định.</p>
         ) : (
-          <div className="space-y-1 max-h-56 overflow-y-auto mb-4">
-            {choices.map((t) => {
-              const on = assign.id === t.id;
-              return (
-                <button key={t.id} type="button"
-                  onClick={() => this.setState({ assign: { ...assign, id: t.id } })}
-                  className={`w-full text-left px-2.5 py-2 rounded-control border transition-colors
-                    ${on ? 'border-accent-500 bg-accent-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
-                  <span className="block text-sm text-slate-800 truncate">
-                    {t.name.replace(/\n/g, ' ')}
-                  </span>
-                  <span className="block text-[11px] text-slate-500">
-                    {STATUS_BADGE[t.status].text}
-                    {already.has(t.id) && ' · đang trực giải này'}
-                  </span>
-                </button>
-              );
-            })}
+          <div className="mb-4">
+            <div className="space-y-1">
+              {paged.items.map((t) => {
+                const on = assign.id === t.id;
+                return (
+                  <button key={t.id} type="button"
+                    onClick={() => this.setState({ assign: { ...assign, id: t.id } })}
+                    className={`w-full text-left px-2.5 py-2 rounded-control border transition-colors
+                      ${on ? 'border-accent-500 bg-accent-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+                    <span className="block text-sm text-slate-800 truncate">
+                      {t.name.replace(/\n/g, ' ')}
+                    </span>
+                    <span className="block text-[11px] text-slate-500">
+                      {STATUS_BADGE[t.status].text}
+                      {already.has(t.id) && ' · đang trực giải này'}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <Pagination
+              page={paged.page}
+              pageCount={paged.pageCount}
+              from={paged.from}
+              to={paged.to}
+              total={paged.total}
+              onPage={(p) => this.setState({ assign: { ...assign, page: p } })}
+              unit="giải"
+            />
           </div>
         )}
 
@@ -935,7 +967,7 @@ class AdminContainer extends Component<AdminContainerProps, AdminContainerState>
     const item = (key: Tab, icon: string, label: string, badge?: number) => (
       <button
         type="button"
-        onClick={() => this.setState({ tab: key, query: '' })}
+        onClick={() => this.setState({ tab: key, query: '', page: 0 })}
         className={`flex items-center gap-2 px-3.5 py-2 text-sm font-semibold rounded-control
           border transition-colors
           ${tab === key
@@ -967,7 +999,7 @@ class AdminContainer extends Component<AdminContainerProps, AdminContainerState>
           text-slate-300 text-sm" aria-hidden="true" />
         <input
           value={this.state.query}
-          onChange={(e) => this.setState({ query: e.target.value })}
+          onChange={(e) => this.setState({ query: e.target.value, page: 0 })}
           placeholder={placeholder}
           className="w-full pl-9 pr-3 py-2.5 text-sm border border-slate-200 rounded-control bg-white
             focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent"
@@ -977,8 +1009,9 @@ class AdminContainer extends Component<AdminContainerProps, AdminContainerState>
   }
 
   renderTournamentsTab() {
-    const { statusFilter, busy } = this.state;
+    const { statusFilter, busy, page } = this.state;
     const rows = this.visibleTournaments();
+    const paged = paginate(rows, page, TOURNAMENT_PAGE_SIZE);
     const deletedCount = this.tournaments.filter((t) => t.status === 'deleted').length;
 
     const filters: { key: StatusFilter; label: string }[] = [
@@ -1006,7 +1039,7 @@ class AdminContainer extends Component<AdminContainerProps, AdminContainerState>
           <div className="flex flex-wrap gap-1.5">
             {filters.map((f) => (
               <button key={f.key} type="button"
-                onClick={() => this.setState({ statusFilter: f.key })}
+                onClick={() => this.setState({ statusFilter: f.key, page: 0 })}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition-colors
                   ${statusFilter === f.key
                     ? 'border-accent-500 bg-accent-50 text-accent-700'
@@ -1019,7 +1052,20 @@ class AdminContainer extends Component<AdminContainerProps, AdminContainerState>
           {rows.length === 0 ? (
             <EmptyState icon="fa-solid fa-folder-open" title="Không có giải nào khớp" />
           ) : (
-            <div className="space-y-2.5">{rows.map((row) => this.renderTournamentRow(row))}</div>
+            <>
+              <div className="space-y-2.5">
+                {paged.items.map((row) => this.renderTournamentRow(row))}
+              </div>
+              <Pagination
+                page={paged.page}
+                pageCount={paged.pageCount}
+                from={paged.from}
+                to={paged.to}
+                total={paged.total}
+                onPage={(p) => this.setState({ page: p })}
+                unit="giải"
+              />
+            </>
           )}
         </div>
       </SectionCard>

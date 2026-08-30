@@ -30,6 +30,8 @@ import {
 // Import Martial Write Service (logic ghi thi quyền — dùng chung với bộ test e2e)
 import {
   overrideMartialFinalScore,
+  claimMartialTurn,
+  releaseMartialTurn,
   setLastMatchMartial,
   rankTeams,
   nextMartialPosition,
@@ -206,6 +208,8 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
   theLastTeamOfMatch: boolean;
   refereeMartialScore: string;
   martialArenaNoIndex: number | string;
+  /** Lượt thi mà sân này đang GIỮ khoá — nhả khi chuyển lượt hoặc rời màn */
+  heldTurn: { matchIdx: number; teamIdx: number } | null = null;
   tournamentNoIndex: TournamentId;
 
   // Connection tracking cleanup functions
@@ -407,6 +411,10 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
   }
 
   componentWillUnmount(): void {
+    if (this.heldTurn) {
+      releaseMartialTurn(this.martialWriteCtx, this.heldTurn.matchIdx, this.heldTurn.teamIdx);
+      this.heldTurn = null;
+    }
     document.removeEventListener("keydown", this._handleKeyDown);
     this.firebaseListeners.forEach(listenerRef => {
       off(listenerRef);
@@ -452,6 +460,11 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
       const lastMatchMartialObj: LastMatchMartialData = snapshot.val();
       this.matchMartialNoCurrent = lastMatchMartialObj.matchMartialNo;
       this.teamMartialNoCurrent = lastMatchMartialObj.teamMartialNo;
+
+      // Giành khoá NGAY khi mở màn, không đợi tới lúc bấm chuyển lượt: hai sân
+      // cùng mở lại đúng lượt đang dở là chuyện thường, và nếu chưa ai giữ khoá
+      // thì tổ giám định của cả hai sân đều ghi đè điểm tổng của nhau.
+      this.syncTurnLock();
 
       const martialRef = ref(this.db, 'tournament/' + this.tournamentNoIndex + '/martial');
       this.firebaseListeners.push(martialRef);
@@ -657,7 +670,36 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     this.restoreMatch();
   }
 
+  /**
+   * Giành quyền chấm lượt thi hiện tại cho sân mình và nhả lượt cũ.
+   *
+   * Sân kia đang chấm thì màn này vẫn XEM được, chỉ báo cho Giám Sát biết —
+   * và tổ giám định của sân này sẽ bị từ chối ở submitMartialRefereeScore,
+   * nên điểm của sân đang giữ không bị đè.
+   */
+  syncTurnLock(): void {
+    const matchIdx = this.matchMartialNoCurrent - 1;
+    const teamIdx = this.teamMartialNoCurrent - 1;
+    if (matchIdx < 0 || teamIdx < 0) return;
+
+    const previous = this.heldTurn;
+    if (previous && (previous.matchIdx !== matchIdx || previous.teamIdx !== teamIdx)) {
+      this.heldTurn = null;
+      releaseMartialTurn(this.martialWriteCtx, previous.matchIdx, previous.teamIdx);
+    }
+
+    claimMartialTurn(this.martialWriteCtx, matchIdx, teamIdx).then((claim) => {
+      if (claim.ok) {
+        this.heldTurn = { matchIdx, teamIdx };
+      } else {
+        this.heldTurn = null;
+        toast.error(`Sân ${claim.heldBy === 0 ? 'A' : 'B'} đang chấm lượt thi này!`);
+      }
+    }).catch(() => { /* mất mạng: cứ để chấm như cũ */ });
+  }
+
   restoreMatch(): void {
+    this.syncTurnLock();
 
     smartSet(this.db, 'tournament/' + this.tournamentNoIndex + '/martialArena/' + this.martialArenaNoIndex + '/lastMatchMartial', {
       "matchMartialNo": this.matchMartialNoCurrent,

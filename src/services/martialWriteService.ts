@@ -5,12 +5,16 @@
  * giamSatThiQuyen.container.tsx (confirmSubmit, restoreMatch, computeRanking)
  * để bộ test gọi ĐÚNG code app đang chạy.
  *
- * QUY TẮC: hành vi phải giống hệt bản cũ trong container — kể cả việc
- * finalScore do CHÍNH client giám định tính bằng đọc-rồi-ghi, và việc reset
- * bảng điểm luôn ghi 5 ô. Bộ test e2e dựa vào đó để phát hiện hồi quy.
+ * QUY TẮC: đây là chỗ DUY NHẤT ghi điểm thi quyền. Hai màn thi quyền và bộ
+ * test e2e đều gọi vào đây.
+ *
+ * Hai luật giữ cho điểm không bị nuốt:
+ *   · Điểm tổng Giám Sát ghi đè bằng tay là QUYẾT ĐỊNH CUỐI của lượt đó —
+ *     giám định bấm sau không được tính lại đè lên (`finalScoreOverride`).
+ *   · Một lượt thi chỉ thuộc về MỘT sân tại một thời điểm (`martialTurnLock`).
  */
 
-import { Database, ref, get, update } from 'firebase/database';
+import { Database, ref, get, update, runTransaction } from 'firebase/database';
 import { smartUpdate, smartSet } from './offlineService';
 import { emptyRefereeMartial, type MartialContent, type MartialTeamEntry } from '../utils/martialBuilder';
 import type { TournamentId } from '../types';
@@ -32,6 +36,27 @@ export const martialRefereePath = (t: TournamentId, matchIdx: number, teamIdx: n
   `${martialTeamPath(t, matchIdx, teamIdx)}/refereeMartial/${refIdx}`;
 export const lastMatchMartialPath = (t: TournamentId, a: number) =>
   `tournament/${t}/martialArena/${a}/lastMatchMartial`;
+/**
+ * Khoá lượt thi — sân nào đang chấm lượt này.
+ *
+ * Phải là node RIÊNG chứ không suy ra từ `lastMatchMartial`: cả hai sân đều
+ * khởi tạo `lastMatchMartial = {1,1}` nên nhìn vào đó thì lượt đầu tiên lúc
+ * nào cũng có vẻ đang bị sân kia giữ.
+ */
+export const martialTurnLockPath = (t: TournamentId, matchIdx: number, teamIdx: number) =>
+  `tournament/${t}/martialTurnLock/${matchIdx}_${teamIdx}`;
+
+/**
+ * Khoá cũ hơn ngần này thì sân khác được giành lại.
+ *
+ * Máy Giám Sát sập nguồn / mất mạng / đóng tab cứng thì `releaseMartialTurn`
+ * không kịp chạy, khoá nằm lại vĩnh viễn và lượt thi đó KHÔNG SÂN NÀO chấm
+ * được nữa — giữa buổi thi thì đó là hỏng nặng hơn cả bug đang sửa. 15 phút đủ
+ * dài để không cướp khoá của người đang chấm thật (một lượt thi tính bằng phút)
+ * và đủ ngắn để không kẹt hết buổi. Mốc thời gian do máy giành khoá ghi nên
+ * lệch giờ giữa các máy vẫn nằm gọn trong khoảng này.
+ */
+export const MARTIAL_TURN_LOCK_TTL_MS = 15 * 60 * 1000;
 
 // ==================== Hàm thuần ====================
 
@@ -125,13 +150,19 @@ export function rankTeams(content: MartialContent | null | undefined): {
 /**
  * Giám định gửi điểm cho một đội.
  *
- * ⚠️ ĐỌC-RỒI-GHI trên nhiều máy: sau khi ghi điểm của mình, client này đọc lại
- * cả bảng điểm rồi TỰ TÍNH finalScore và ghi đè. Bộ test e2e đã đo 20 lượt với
- * 5 giám định bấm cùng lúc và điểm tổng vẫn đúng, nên chưa có bằng chứng lỗi ở
- * luồng chấm bình thường — nhưng đây vẫn là điểm yếu kiến trúc: cùng cơ chế này
- * ĐÃ gây lỗi thật khi Giám Sát ghi đè điểm tổng (xem case
- * knownBug: martial-override-overwritten).
- * Nếu sửa, hướng đúng là để một chỗ duy nhất tính điểm tổng, hoặc runTransaction.
+ * Trả về điểm tổng sau khi chấm, hoặc `null` nếu cú chấm bị TỪ CHỐI.
+ *
+ * Hai cửa kiểm, chạy TRƯỚC khi ghi bất cứ thứ gì:
+ *   1. Lượt thi này có đang thuộc sân của giám định không (khoá lượt thi).
+ *   2. Giám Sát đã chốt điểm tổng bằng tay chưa (`finalScoreOverride`).
+ *
+ * Bị từ chối thì KHÔNG ghi gì cả. Ghi điểm vào bảng rồi chặn ở bước tính tổng
+ * là kiểu sai nguy hiểm nhất: bảng trên màn hình mang điểm của sân này, còn
+ * điểm tổng lại là của sân kia — nhìn vào không ai biết số nào đúng, mà lần
+ * chấm kế tiếp sẽ tính tổng từ bảng đã bị pha tạp.
+ *
+ * Nơi gọi PHẢI báo cho giám định biết khi trả về `null` — bấm vào hư không mà
+ * máy vẫn báo "chấm điểm thành công" là mất điểm không ai phát hiện.
  */
 export async function submitMartialRefereeScore(
   ctx: MartialWriteContext,
@@ -142,15 +173,33 @@ export async function submitMartialRefereeScore(
   numReferee: number
 ): Promise<number | null> {
   const { db, tournamentIndex: t } = ctx;
+  const teamPath = martialTeamPath(t, matchIdx, teamIdx);
+
+  // 1. Sân khác đang giữ lượt thi này
+  const holder = await martialTurnHolder(ctx, matchIdx, teamIdx);
+  if (holder !== -1 && holder !== ctx.arenaIndex) {
+    console.warn(`[thi quyền] lượt ${matchIdx + 1}/${teamIdx + 1} đang do sân ${holder} chấm — từ chối`);
+    return null;
+  }
+
+  const before = await get(ref(db, teamPath));
+  const teamObj = before.val();
+  if (!teamObj) return null;
+
+  // 2. Giám Sát đã "Lấy điểm chính" -> giữ nguyên quyết định của Giám Sát.
+  //    Muốn chấm lại thì Giám Sát ghi đè lần nữa bằng số đúng.
+  if (teamObj.finalScoreOverride === true) {
+    console.warn('[thi quyền] điểm tổng lượt này đã do Giám Sát chốt tay — từ chối');
+    return null;
+  }
 
   await update(ref(db, martialRefereePath(t, matchIdx, teamIdx, refereeIndex)), { score });
 
-  const teamPath = martialTeamPath(t, matchIdx, teamIdx);
-  const snapshot = await get(ref(db, teamPath));
-  const teamObj = snapshot.val();
-  if (!teamObj) return null;
+  const after = await get(ref(db, teamPath));
+  const teamAfter = after.val();
+  if (!teamAfter) return null;
 
-  const finalScore = computeFinalScore(teamObj.refereeMartial, numReferee);
+  const finalScore = computeFinalScore(teamAfter.refereeMartial, numReferee);
   await update(ref(db, teamPath), { finalScore: parseInt(String(finalScore)) });
   return finalScore;
 }
@@ -158,8 +207,13 @@ export async function submitMartialRefereeScore(
 /**
  * Giám Sát ghi đè điểm tổng bằng tay ("Lấy điểm chính").
  *
- * ⚠️ Ghi finalScore rồi reset bảng giám định về 5 ô 0 — kể cả giải chỉ dùng
- * 3 giám định (cùng họ với bug referee-array-length-oscillates bên đối kháng).
+ * Đặt cờ `finalScoreOverride` để giám định bấm muộn không tính lại đè lên.
+ * Trước đây người bấm sau đọc bảng vừa bị reset về 0, tính ra một con số khác
+ * rồi ghi đè, xoá mất quyết định của Giám Sát mà không cảnh báo gì
+ * (bug martial-override-overwritten).
+ *
+ * Ghi CẢ BA ô trong một lệnh: hai lệnh `update` liên tiếp như bản cũ để hở một
+ * khe cho cú chấm chen vào giữa.
  */
 export function overrideMartialFinalScore(
   ctx: MartialWriteContext,
@@ -167,9 +221,88 @@ export function overrideMartialFinalScore(
   teamIdx: number,
   finalScore: number
 ): void {
-  const path = martialTeamPath(ctx.tournamentIndex, matchIdx, teamIdx);
-  smartUpdate(ctx.db, path, { finalScore: finalScore || 0 });
-  smartUpdate(ctx.db, path, { refereeMartial: emptyRefereeMartial() });
+  smartUpdate(ctx.db, martialTeamPath(ctx.tournamentIndex, matchIdx, teamIdx), {
+    finalScore: finalScore || 0,
+    finalScoreOverride: true,
+    refereeMartial: emptyRefereeMartial(),
+  });
+}
+
+/** Mở lại chấm tự động cho lượt thi (gỡ cờ ghi đè tay của Giám Sát) */
+export function clearMartialFinalScoreOverride(
+  ctx: MartialWriteContext,
+  matchIdx: number,
+  teamIdx: number
+): void {
+  smartUpdate(ctx.db, martialTeamPath(ctx.tournamentIndex, matchIdx, teamIdx), {
+    finalScoreOverride: false,
+  });
+}
+
+// ==================== Khoá lượt thi giữa 2 sân ====================
+
+/**
+ * Sân nào đang giữ lượt thi này. `-1` = chưa sân nào giữ.
+ *
+ * Giải cũ (chưa có node khoá) luôn trả `-1` nên chạy y như trước.
+ */
+export async function martialTurnHolder(
+  ctx: MartialWriteContext,
+  matchIdx: number,
+  teamIdx: number
+): Promise<number> {
+  const snap = await get(ref(ctx.db, martialTurnLockPath(ctx.tournamentIndex, matchIdx, teamIdx)));
+  const val = snap.val();
+  return typeof val?.arenaIndex === 'number' ? val.arenaIndex : -1;
+}
+
+export interface MartialTurnClaim {
+  ok: boolean;
+  /** Sân đang giữ lượt (khi ok = false) */
+  heldBy: number;
+}
+
+/**
+ * Giám Sát mở một lượt thi — giành quyền chấm cho sân mình.
+ *
+ * Trả về `ok: false` nếu sân kia đang chấm chính lượt đó. Trước đây không có
+ * khoá nào: hai sân cùng mở một lượt thì tổ chấm sau đè hẳn điểm tổ trước,
+ * không cảnh báo gì (bug martial-no-turn-lock-across-arenas).
+ */
+export async function claimMartialTurn(
+  ctx: MartialWriteContext,
+  matchIdx: number,
+  teamIdx: number
+): Promise<MartialTurnClaim> {
+  const lockRef = ref(ctx.db, martialTurnLockPath(ctx.tournamentIndex, matchIdx, teamIdx));
+
+  const now = Date.now();
+  const res = await runTransaction(lockRef, (current) => {
+    if (current == null) return { arenaIndex: ctx.arenaIndex, at: now };
+    if (current.arenaIndex === ctx.arenaIndex) return { ...current, at: now };
+    // Sân kia giữ khoá nhưng đã bỏ đó quá lâu (máy sập, mất mạng) -> giành lại
+    const at = typeof current.at === 'number' ? current.at : 0;
+    if (now - at > MARTIAL_TURN_LOCK_TTL_MS) return { arenaIndex: ctx.arenaIndex, at: now };
+    return undefined; // sân khác đang chấm thật -> huỷ giao dịch
+  });
+
+  const heldBy = res.snapshot.val()?.arenaIndex;
+  const owner = typeof heldBy === 'number' ? heldBy : -1;
+  if (!res.committed || owner !== ctx.arenaIndex) return { ok: false, heldBy: owner };
+  return { ok: true, heldBy: ctx.arenaIndex };
+}
+
+/** Giám Sát rời lượt thi — nhả khoá để sân kia dùng được */
+export async function releaseMartialTurn(
+  ctx: MartialWriteContext,
+  matchIdx: number,
+  teamIdx: number
+): Promise<void> {
+  const lockRef = ref(ctx.db, martialTurnLockPath(ctx.tournamentIndex, matchIdx, teamIdx));
+  await runTransaction(lockRef, (current) => {
+    if (current != null && current.arenaIndex !== ctx.arenaIndex) return undefined;
+    return null;
+  }).catch(() => { /* nhả khoá hỏng thì thôi, khoá sẽ bị sân sau ghi đè khi trống */ });
 }
 
 /** Đặt lượt thi hiện tại của sân */

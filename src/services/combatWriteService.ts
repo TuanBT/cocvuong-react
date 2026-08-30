@@ -5,12 +5,17 @@
  * makeScoreTimer, saveMatch, restoreMatch, redWin/blueWin guard) để test có
  * thể gọi ĐÚNG code mà app đang chạy, thay vì test một bản copy.
  *
- * QUY TẮC: hành vi ở đây phải giống hệt bản cũ trong container — kể cả cách
- * ghi cả node `fighters` và off-by-one ở canRescoreMatch. Bộ test e2e dựa vào
- * đó để phát hiện hồi quy; đừng "tiện tay" sửa mà không cập nhật test.
+ * QUY TẮC: đây là chỗ DUY NHẤT ghi dữ liệu trận đối kháng. Màn Giám Sát và bộ
+ * test e2e đều gọi vào đây, nên đừng dựng bản chép tay thứ hai ở nơi khác.
+ *
+ * Nguyên tắc ghi (rút ra sau đợt sửa các bug chạy song song):
+ *   · Ghi HẸP NHẤT có thể — đúng ô mình đổi, không bao giờ `set` cả node
+ *     `fighters`. Hai sân chạy song song luôn có máy cầm mirror cũ; ghi rộng
+ *     là xoá mất việc sân kia vừa làm.
+ *   · Cộng dồn (điểm) phải đi qua `runTransaction`, không đọc-sửa-ghi.
  */
 
-import { Database } from 'firebase/database';
+import { Database, ref, runTransaction } from 'firebase/database';
 import { getModes } from '../utils/helpers';
 import { smartSet, smartUpdate } from './offlineService';
 import { CombatMatch, Fighter, RefereeScore, TournamentId } from '../types';
@@ -29,11 +34,26 @@ export interface CombatWriteContext {
 
 export const combatPath = (t: TournamentId, i: number) => `tournament/${t}/combat/${i}`;
 export const fightersPath = (t: TournamentId, i: number) => `tournament/${t}/combat/${i}/fighters`;
+/** Đường tới ĐÚNG một góc VĐV — dùng để ghi hẹp, không đụng góc còn lại */
+export const fighterSidePath = (t: TournamentId, i: number, side: FighterSide) =>
+  `${fightersPath(t, i)}/${side}`;
 export const matchWinPath = (t: TournamentId, i: number) => `tournament/${t}/combat/${i}/match/win`;
 export const refereePath = (t: TournamentId, a: number) => `tournament/${t}/combatArena/${a}/referee`;
 export const lastMatchPath = (t: TournamentId, a: number) => `tournament/${t}/combatArena/${a}/lastMatch/no`;
 
+export type FighterSide = 'redFighter' | 'blueFighter';
+
 // ==================== Hàm thuần (không đụng Firebase) ====================
+
+/**
+ * Bảng giám định rỗng ĐÚNG số ô của giải.
+ *
+ * ⚠️ Đừng dùng `DEFAULT_COMBAT_CONST.referee` để reset: hằng số đó LUÔN có 5 ô
+ * nên giải 3 giám định bị nhảy 3 ↔ 5 ô suốt trận (bug referee-array-length-oscillates).
+ */
+export function zeroRefereeScores(numReferee: number): RefereeScore[] {
+  return Array.from({ length: numReferee }, () => ({ redScore: 0, blueScore: 0 }));
+}
 
 /** Reset trạng thái thi đấu của VĐV khi chuyển sang trận mới */
 export function resetFighterState(fighter: Fighter): void {
@@ -90,32 +110,32 @@ export function tallyRefereeScores(
 
 /**
  * Guard "Bạn không thể chấm lại trận đấu này!" trong redWin/blueWin.
- * Trả về false nếu trận đã được dùng kết quả ở trận sau.
  *
- * ⚠️ GIỮ NGUYÊN off-by-one của bản gốc: `winMatch2 = "W." + j` với j là
- * INDEX mảng, trong khi số trận = index + 1. Bộ test e2e có case đánh dấu
- * bug này (knownBug: rescore-guard-off-by-one).
+ * Chặn khi kết quả của trận này ĐÃ ĐƯỢC DÙNG: có ô W.x/L.x ở trận sau đã được
+ * `replaceFighter` điền VĐV thật vào (tên không còn là chỗ trống "W.x"/"L.x").
+ * Chấm lại lúc đó sẽ để lại một VĐV sai nằm trong nhánh sau mà không ai gỡ.
+ *
+ * Bản cũ so `"W." + j` với j là INDEX mảng, trong khi số trận = index + 1, nên
+ * gần như không bao giờ khớp và guard chưa từng chặn được lần nào
+ * (bug rescore-guard-off-by-one).
  */
 export function canRescoreMatch(combatObj: CombatMatch[], matchNoCurrent: number): boolean {
-  const winMatch = "W." + matchNoCurrent;
+  const fedBy = ["W." + matchNoCurrent, "L." + matchNoCurrent];
+
+  // Ô của trận sau mang result = W.x/L.x của trận này; matchNoCurrent là số
+  // trận nên combatObj[matchNoCurrent] đã là TRẬN KẾ TIẾP.
   for (let i = matchNoCurrent; i < combatObj.length; i++) {
-    const fightersTemp = combatObj[i].fighters;
-    if (fightersTemp.redFighter.result === winMatch) {
-      for (let j = i; j < combatObj.length; j++) {
-        const fightersTemp2 = combatObj[j].fighters;
-        const winMatch2 = "W." + j;
-        if (fightersTemp2.redFighter.result === winMatch2)
-          if (fightersTemp2.redFighter.name !== winMatch2) {
-            return false;
-          }
-        if (fightersTemp2.blueFighter.result === winMatch2) {
-          if (fightersTemp2.blueFighter.name !== winMatch2) {
-            return false;
-          }
-        }
-      }
+    const fighters = combatObj[i]?.fighters;
+    if (!fighters) continue;
+
+    for (const side of ['redFighter', 'blueFighter'] as FighterSide[]) {
+      const slot = fighters[side];
+      if (!slot || !fedBy.includes(slot.result)) continue;
+      // Còn mang đúng chỗ trống ⇒ chưa ai điền vào ⇒ vẫn được chấm lại
+      if (slot.name !== slot.result) return false;
     }
   }
+
   return true;
 }
 
@@ -124,10 +144,10 @@ export function canRescoreMatch(combatObj: CombatMatch[], matchNoCurrent: number
 /**
  * Điền VĐV thắng/thua vào ô W.x / L.x của trận kế tiếp.
  *
- * ⚠️ Ghi CẢ node `fighters` (redFighter + blueFighter) lấy từ bản mirror
- * `combatObj` của client. Nếu sân kia vừa điền ô còn lại của cùng trận mà
- * mirror chưa kịp cập nhật, ghi này sẽ đè mất kết quả của sân kia.
- * Bộ test e2e có case đánh dấu bug này (knownBug: replace-fighter-lost-update).
+ * Chỉ ghi ĐÚNG góc vừa điền (`fighters/redFighter` hoặc `fighters/blueFighter`).
+ * Bản cũ ghi cả node `fighters` lấy từ mirror của client: hai bán kết chạy ở
+ * hai sân cùng nuôi một chung kết thì sân xác nhận sau xoá mất VĐV sân trước
+ * vừa điền (bug replace-fighter-lost-update).
  *
  * @returns index trận đã ghi, hoặc -1 nếu không tìm thấy ô nào để điền
  */
@@ -140,49 +160,25 @@ export function replaceFighter(
 ): number {
   const matchWin = "W." + matchNoCurrent;
   const matchLose = "L." + matchNoCurrent;
-  let winFighter: Fighter;
-  let loseFighter: Fighter;
 
-  if (winColor === "red") {
-    winFighter = match.fighters.redFighter;
-    loseFighter = match.fighters.blueFighter;
-  } else {
-    winFighter = match.fighters.blueFighter;
-    loseFighter = match.fighters.redFighter;
-  }
+  const winFighter = winColor === "red" ? match.fighters.redFighter : match.fighters.blueFighter;
+  const loseFighter = winColor === "red" ? match.fighters.blueFighter : match.fighters.redFighter;
 
   for (let i = matchNoCurrent; i < combatObj.length; i++) {
-    const fightersTemp = combatObj[i].fighters;
+    const fightersTemp = combatObj[i]?.fighters;
+    if (!fightersTemp) continue;
 
-    if (fightersTemp.redFighter.result === matchWin) {
-      fightersTemp.redFighter = JSON.parse(JSON.stringify(winFighter));
-      fightersTemp.redFighter.result = matchWin;
-      resetFighterState(fightersTemp.redFighter);
-      smartUpdate(ctx.db, fightersPath(ctx.tournamentIndex, i), fightersTemp);
-      return i;
-    }
+    for (const side of ['redFighter', 'blueFighter'] as FighterSide[]) {
+      const slotResult = fightersTemp[side]?.result;
+      if (slotResult !== matchWin && slotResult !== matchLose) continue;
 
-    if (fightersTemp.redFighter.result === matchLose) {
-      fightersTemp.redFighter = JSON.parse(JSON.stringify(loseFighter));
-      fightersTemp.redFighter.result = matchLose;
-      resetFighterState(fightersTemp.redFighter);
-      smartUpdate(ctx.db, fightersPath(ctx.tournamentIndex, i), fightersTemp);
-      return i;
-    }
+      const source = slotResult === matchWin ? winFighter : loseFighter;
+      const filled: Fighter = JSON.parse(JSON.stringify(source));
+      filled.result = slotResult;
+      resetFighterState(filled);
 
-    if (fightersTemp.blueFighter.result === matchWin) {
-      fightersTemp.blueFighter = JSON.parse(JSON.stringify(winFighter));
-      fightersTemp.blueFighter.result = matchWin;
-      resetFighterState(fightersTemp.blueFighter);
-      smartUpdate(ctx.db, fightersPath(ctx.tournamentIndex, i), fightersTemp);
-      return i;
-    }
-
-    if (fightersTemp.blueFighter.result === matchLose) {
-      fightersTemp.blueFighter = JSON.parse(JSON.stringify(loseFighter));
-      fightersTemp.blueFighter.result = matchLose;
-      resetFighterState(fightersTemp.blueFighter);
-      smartUpdate(ctx.db, fightersPath(ctx.tournamentIndex, i), fightersTemp);
+      fightersTemp[side] = filled;
+      smartSet(ctx.db, fighterSidePath(ctx.tournamentIndex, i, side), filled);
       return i;
     }
   }
@@ -191,35 +187,80 @@ export function replaceFighter(
 }
 
 /**
- * Cộng điểm của phiên chấm vào trận và reset bảng giám định của sân.
+ * Cộng thêm `delta` vào ô điểm của một góc — bằng transaction, nên hai sân
+ * cùng chốt một trận thì CẢ HAI lần cộng đều vào (bug no-match-lock-across-arenas).
  *
- * ⚠️ `score +=` đọc-sửa-ghi trên bản mirror rồi `set` CẢ node `fighters`
- * (không dùng transaction). Bộ test e2e có case đánh dấu bug này
- * (knownBug: score-commit-lost-update).
+ * @param fallback giá trị mirror đã cộng sẵn, dùng khi mất mạng
+ */
+function bumpFighterScore(
+  ctx: CombatWriteContext,
+  matchIndex: number,
+  side: FighterSide,
+  delta: number,
+  fallback: number
+): void {
+  const path = `${fighterSidePath(ctx.tournamentIndex, matchIndex, side)}/score`;
+  runTransaction(ref(ctx.db, path), (current) =>
+    (typeof current === 'number' ? current : 0) + delta
+  ).catch((err) => {
+    // Mất mạng / rules từ chối: rơi về đường ghi có hàng đợi offline
+    console.warn('[combat] cộng điểm bằng transaction hỏng, ghi bù:', err);
+    smartSet(ctx.db, path, fallback);
+  });
+}
+
+/**
+ * Chốt phiên chấm: cộng mode điểm của các giám định vào trận, xoá bảng giám định.
+ *
+ * Cộng điểm đi qua transaction trên ĐÚNG ô `score`. Bản cũ `score +=` trên
+ * mirror rồi `set` cả node `fighters`: vừa nuốt mất một lần cộng khi hai sân
+ * chốt cùng lúc (score-commit-lost-update), vừa xoá tên VĐV sân kia vừa điền.
  */
 export function commitRefereeScores(
   ctx: CombatWriteContext,
   matchIndex: number,
   match: CombatMatch,
   refereeObj: RefereeScore[],
-  numReferee: number,
-  refereeConst: RefereeScore[]
+  numReferee: number
 ): { red: number; blue: number } {
   const tally = tallyRefereeScores(refereeObj, numReferee);
 
+  // Mirror lên trước để màn hình nhảy ngay; onValue sẽ chỉnh lại theo giá trị thật
   match.fighters.redFighter.score += tally.red;
   match.fighters.blueFighter.score += tally.blue;
-  smartSet(ctx.db, fightersPath(ctx.tournamentIndex, matchIndex), match.fighters);
 
-  // Reset Giám định
-  smartSet(ctx.db, refereePath(ctx.tournamentIndex, ctx.arenaIndex), refereeConst);
+  if (tally.red !== 0) {
+    bumpFighterScore(ctx, matchIndex, 'redFighter', tally.red, match.fighters.redFighter.score);
+  }
+  if (tally.blue !== 0) {
+    bumpFighterScore(ctx, matchIndex, 'blueFighter', tally.blue, match.fighters.blueFighter.score);
+  }
+
+  // Reset Giám định — ĐÚNG số ô của giải
+  resetRefereeScores(ctx, zeroRefereeScores(numReferee));
 
   return tally;
 }
 
-/** Ghi lại toàn bộ trận hiện tại (điểm cộng/trừ tay, caution, đòn chân) */
+/**
+ * Ghi lại trạng thái thi đấu của trận hiện tại (điểm cộng/trừ tay, caution,
+ * đòn chân) — CHỈ những ô Giám Sát thực sự đổi được.
+ *
+ * Bản cũ `update` cả node `combat/{i}` với object `match` đang cầm; RTDB thay
+ * NGUYÊN cây con `fighters`, nên một cú bấm cảnh cáo ở sân A xoá mất VĐV sân B
+ * vừa điền vào cùng trận đó (bug save-match-lost-update). Tên / mã / result là
+ * việc của replaceFighter, không phải của nút cảnh cáo.
+ */
 export function saveMatch(ctx: CombatWriteContext, matchIndex: number, match: CombatMatch): void {
-  smartUpdate(ctx.db, combatPath(ctx.tournamentIndex, matchIndex), match);
+  const patch: Record<string, any> = {};
+  for (const side of ['redFighter', 'blueFighter'] as FighterSide[]) {
+    const f = match.fighters[side];
+    if (!f) continue;
+    patch[`fighters/${side}/score`] = f.score;
+    patch[`fighters/${side}/caution`] = f.caution;
+    patch[`fighters/${side}/legStrike`] = f.legStrike;
+  }
+  smartUpdate(ctx.db, combatPath(ctx.tournamentIndex, matchIndex), patch);
 }
 
 /** Ghi kết quả thắng của trận */
@@ -227,12 +268,24 @@ export function saveMatchWin(ctx: CombatWriteContext, matchIndex: number, winCol
   smartSet(ctx.db, matchWinPath(ctx.tournamentIndex, matchIndex), winColor);
 }
 
-/** Đặt trận đang thi đấu của sân */
-export function setLastMatch(ctx: CombatWriteContext, matchNo: number): void {
-  smartSet(ctx.db, lastMatchPath(ctx.tournamentIndex, ctx.arenaIndex), matchNo);
+/**
+ * Đặt trận đang thi đấu của sân.
+ *
+ * Trả về promise để nơi gọi CHỜ ĐƯỢC nếu cần thứ tự chắc chắn; màn Giám Sát
+ * gọi bỏ promise như cũ.
+ */
+export function setLastMatch(ctx: CombatWriteContext, matchNo: number): Promise<void> {
+  return smartSet(ctx.db, lastMatchPath(ctx.tournamentIndex, ctx.arenaIndex), matchNo);
 }
 
-/** Reset bảng điểm giám định của sân về 0 */
-export function resetRefereeScores(ctx: CombatWriteContext, referees: RefereeScore[]): void {
-  smartSet(ctx.db, refereePath(ctx.tournamentIndex, ctx.arenaIndex), referees);
+/**
+ * Reset bảng điểm giám định của sân về 0.
+ *
+ * ⚠️ Máy Giám Sát và máy giám định là HAI kết nối Firebase khác nhau, không có
+ * bảo đảm thứ tự giữa chúng. Lệnh xoá bảng này mà còn đang bay thì cú bấm của
+ * giám định ngay sau đó sẽ bị nó ghi đè về 0 — điểm mất mà không ai thấy.
+ * Chuyển trận xong PHẢI chờ lệnh này xong rồi mới mở cho tổ giám định bấm.
+ */
+export function resetRefereeScores(ctx: CombatWriteContext, referees: RefereeScore[]): Promise<void> {
+  return smartSet(ctx.db, refereePath(ctx.tournamentIndex, ctx.arenaIndex), referees);
 }

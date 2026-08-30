@@ -77,6 +77,13 @@
           }
         },
 
+        // Khoá lượt thi: sân nào đang chấm lượt nào. Giám Sát giành/nhả khoá,
+        // giám định chỉ ĐỌC (node `tournament` vốn public-read) để biết cú chấm
+        // của mình có được tính vào điểm tổng không.
+        "martialTurnLock": {
+          ".write": "root.child('tournamentStaff/'+$t+'/'+auth.uid+'/assignments/martial0').val() === true || root.child('tournamentStaff/'+$t+'/'+auth.uid+'/assignments/martial1').val() === true || root.child('tournament/'+$t+'/setting/ownerUid').val() === auth.uid || (auth != null && root.child('tournament/'+$t+'/setting/openAccess').val() === true) || (auth != null && !root.child('tournament/'+$t+'/setting/ownerUid').exists()) || root.child('appAdmin/'+auth.uid).val() === true"
+        },
+
         "martialArena": {
           "$a": {
             ".write": "root.child('tournamentStaff/'+$t+'/'+auth.uid+'/assignments/'+'martial'+$a).val() === true || root.child('tournament/'+$t+'/setting/ownerUid').val() === auth.uid || (auth != null && root.child('tournament/'+$t+'/setting/openAccess').val() === true) || (auth != null && !root.child('tournament/'+$t+'/setting/ownerUid').exists()) || root.child('appAdmin/'+auth.uid).val() === true"

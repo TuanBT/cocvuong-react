@@ -3,7 +3,9 @@ import { toast } from 'react-toastify';
 import { Link, Prompt, withRouter } from 'react-router-dom';
 import logo from '../../assets/img/logo.png';
 import Button from '../ui/Button';
+import Pagination from '../ui/Pagination';
 import { formatEventDate } from '../../utils/helpers';
+import { paginate } from '../../utils/pagination';
 import { AppUser, signOut } from '../../services/authService';
 import { ArenaKind, arenaName, kindName } from '../../services/accessCodeService';
 import {
@@ -64,9 +66,19 @@ interface RequestAccessPanelState {
   arenaIndex: number | null;
   busy: boolean;
   error: string;
+  /** Trang cua hai bang chon giai, dem tu 0 */
+  minePage: number;
+  othersPage: number;
 }
 
 const ARENA_INDEXES = [0, 1];
+
+/**
+ * Bang chon giai o day la mot cot dong trong mot the hep — 8 dong da kin man
+ * dien thoai. Giam sat mo trang nay ngay truoc gio thi dau, khong phai luc de
+ * cuon di tim.
+ */
+const PICK_PAGE_SIZE = 8;
 
 /**
  * `?giai=<khoa>` — duong tat tu trang quan tri: vao thang giai do, bo qua bang chon.
@@ -263,6 +275,8 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
     arenaIndex: requestedArena(),
     busy: false,
     error: '',
+    minePage: 0,
+    othersPage: 0,
   };
 
   detach() {
@@ -580,7 +594,8 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
 
   render() {
     const { kind, user, children } = this.props;
-    const { phase, tournaments, myTournaments, selected, staff, want, note, arenaIndex, busy } = this.state;
+    const { phase, tournaments, myTournaments, selected, staff, want, note, arenaIndex, busy,
+      minePage, othersPage } = this.state;
 
     if (phase === 'loading') {
       return (
@@ -751,8 +766,8 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
     // no khong gan voi danh sach VDV nao ca — xep chung vao "vao thang duoc"
     // thi nguoi ta tuong day la mot giai da duoc duyet
     const real = tournaments.filter((t) => !t.demo);
-    const mine = real.filter((t) => myTournaments.has(t.id));
-    const others = real.filter((t) => !myTournaments.has(t.id));
+    const mine = paginate(real.filter((t) => myTournaments.has(t.id)), minePage, PICK_PAGE_SIZE);
+    const others = paginate(real.filter((t) => !myTournaments.has(t.id)), othersPage, PICK_PAGE_SIZE);
 
     const row = (t: TournamentSummary, ready: boolean) => {
       const day = formatEventDate(t.eventDate);
@@ -831,21 +846,33 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
           {demoRow}
         </div>
 
-        {mine.length > 0 && (
+        {mine.total > 0 && (
           <div className="mb-5">
             <p className="m-0 mb-2 text-xs font-semibold text-emerald-700 uppercase tracking-wide">
               Vào thẳng được
             </p>
-            <div className="space-y-2">{mine.map((t) => row(t, true))}</div>
+            <div className="space-y-2">{mine.items.map((t) => row(t, true))}</div>
+            <Pagination
+              page={mine.page} pageCount={mine.pageCount}
+              from={mine.from} to={mine.to} total={mine.total}
+              onPage={(p) => this.setState({ minePage: p })}
+              unit="giải"
+            />
           </div>
         )}
 
-        {others.length > 0 && (
+        {others.total > 0 && (
           <div>
             <p className="m-0 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">
               Giải đang mở
             </p>
-            <div className="space-y-2">{others.map((t) => row(t, false))}</div>
+            <div className="space-y-2">{others.items.map((t) => row(t, false))}</div>
+            <Pagination
+              page={others.page} pageCount={others.pageCount}
+              from={others.from} to={others.to} total={others.total}
+              onPage={(p) => this.setState({ othersPage: p })}
+              unit="giải"
+            />
           </div>
         )}
 

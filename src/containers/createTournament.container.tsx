@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 
 import {
   PageShell, PageHeader, Button, ConfirmModal, EmptyState,
-  LoadingOverlay, Toast, AppFooter,
+  LoadingOverlay, Toast, AppFooter, Pagination,
 } from '../components/ui';
 import { AccountChip } from '../components/auth';
 import { read, write, utils } from 'xlsx';
@@ -38,6 +38,10 @@ import {
 import { syncTournamentCodes } from '../services/accessCodeService';
 import type { TournamentId } from '../types';
 import { formatEventDate } from '../utils/helpers';
+import { pageOf, paginate } from '../utils/pagination';
+
+/** Bang chon giai o buoc 1 la luoi 2 cot — 5 dong la het mot man */
+const PICKER_PAGE_SIZE = 10;
 
 interface CreateTournamentContainerProps {
   user: AppUser;
@@ -48,6 +52,8 @@ interface CreateTournamentContainerState {
   tournamentName: string;
   /** Tom tat cac giai cua chinh minh (+ giai cu chua co chu) */
   summaries: TournamentSummary[];
+  /** Trang cua bang chon giai o buoc 1, dem tu 0 */
+  pickerPage: number;
   // UI State
   collapsedSections: {[key: string]: boolean};
   isLoading: boolean;
@@ -221,6 +227,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
       data: [],
       tournamentName: '',
       summaries: [],
+      pickerPage: 0,
       // UI State
       collapsedSections: {},
       isLoading: false,
@@ -287,6 +294,13 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
           summaries: mine,
           tournamentsLoading: false,
           selectedTournament: this.tournamentNoIndex,
+          // Giai moi tao nam CUOI danh sach (xep theo ngay tao) — khong nhay
+          // theo thi vua bam "Tao giai moi" xong quay lai buoc 1 la khong thay
+          // no dau, tuong la tao hong
+          pickerPage: pageOf(
+            mine.findIndex((t) => t.id === this.tournamentNoIndex),
+            PICKER_PAGE_SIZE
+          ),
         });
         this.loadTournamentName();
       })
@@ -1285,8 +1299,10 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
    * kia van bao dang mo.
    */
   renderPickTournamentStep = () => {
-    const { tournamentsLoading, selectedTournament, newTournamentName, newTournamentDate } = this.state;
+    const { tournamentsLoading, selectedTournament, newTournamentName, newTournamentDate,
+      pickerPage } = this.state;
     const canCreate = newTournamentName.trim().length > 0;
+    const paged = paginate(this.tournaments, pickerPage, PICKER_PAGE_SIZE);
 
     return (
       <div className="space-y-5">
@@ -1296,43 +1312,55 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
             Đang tải danh sách giải…
           </div>
         ) : this.tournaments.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-            {this.tournaments.map(([id, name]) => {
-              const row = this.state.summaries.find((x) => x.id === id);
-              return (
-                <label
-                  key={id}
-                  className={`flex items-center gap-3 p-3.5 border-2 rounded-control cursor-pointer transition-colors
-                    ${selectedTournament === id
-                      ? 'border-accent-500 bg-accent-50'
-                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
-                >
-                  <input
-                    type="radio"
-                    name="tournamentPicker"
-                    checked={selectedTournament === id}
-                    onChange={() => this.chooseTournament(id)}
-                    className="w-4 h-4 flex-shrink-0"
-                  />
-                  <span className="min-w-0">
-                    <span className="block font-medium text-slate-700 whitespace-pre-line">{name}</span>
-                    {row && (
-                      <span className="block text-xs text-slate-400 mt-0.5">
-                        {formatEventDate(row.eventDate) && (
-                          <span className="font-medium text-slate-500">
-                            {formatEventDate(row.eventDate)} ·{' '}
-                          </span>
-                        )}
-                        {row.status === 'open' ? 'đang mở'
-                          : row.status === 'closed' ? 'đã đóng' : 'chưa mở'}
-                        {!row.ownerUid && ' · giải cũ chưa có chủ'}
-                      </span>
-                    )}
-                  </span>
-                </label>
-              );
-            })}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              {paged.items.map(([id, name]) => {
+                const row = this.state.summaries.find((x) => x.id === id);
+                return (
+                  <label
+                    key={id}
+                    className={`flex items-center gap-3 p-3.5 border-2 rounded-control cursor-pointer transition-colors
+                      ${selectedTournament === id
+                        ? 'border-accent-500 bg-accent-50'
+                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
+                  >
+                    <input
+                      type="radio"
+                      name="tournamentPicker"
+                      checked={selectedTournament === id}
+                      onChange={() => this.chooseTournament(id)}
+                      className="w-4 h-4 flex-shrink-0"
+                    />
+                    <span className="min-w-0">
+                      <span className="block font-medium text-slate-700 whitespace-pre-line">{name}</span>
+                      {row && (
+                        <span className="block text-xs text-slate-400 mt-0.5">
+                          {formatEventDate(row.eventDate) && (
+                            <span className="font-medium text-slate-500">
+                              {formatEventDate(row.eventDate)} ·{' '}
+                            </span>
+                          )}
+                          {row.status === 'open' ? 'đang mở'
+                            : row.status === 'closed' ? 'đã đóng' : 'chưa mở'}
+                          {!row.ownerUid && ' · giải cũ chưa có chủ'}
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+
+            <Pagination
+              page={paged.page}
+              pageCount={paged.pageCount}
+              from={paged.from}
+              to={paged.to}
+              total={paged.total}
+              onPage={(p) => this.setState({ pickerPage: p })}
+              unit="giải"
+            />
+          </>
         ) : (
           <EmptyState
             icon="fa-solid fa-trophy"

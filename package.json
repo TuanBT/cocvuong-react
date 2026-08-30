@@ -23,6 +23,7 @@
     "start": "env-cmd -f .env.development react-scripts start",
     "start:prod": "env-cmd -f .env.production react-scripts start",
     "build": "env-cmd -f .env.production react-scripts build",
+    "build:dev": "env-cmd -f .env.development react-scripts build",
     "test:e2e": "./tests/e2e/with-emulator.sh",
     "test:e2e:parallel": "./tests/e2e/with-emulator.sh --only=song-song",
     "test:e2e:live": "tsx tests/e2e/run.ts --live",
@@ -40,7 +41,10 @@
     "test:e2e:clean": "tsx tests/e2e/clean.ts",
     "test:e2e:clean:live": "tsx tests/e2e/clean.ts --live",
     "test:e2e:khoma": "tsx tests/e2e/kho-ma.ts",
-    "test:e2e:khoma:live": "tsx tests/e2e/kho-ma.ts --live"
+    "test:e2e:khoma:live": "tsx tests/e2e/kho-ma.ts --live",
+    "test:e2e:seed:live": "tsx tests/e2e/seed-batch.ts --live",
+    "test:e2e:realistic:live": "tsx tests/e2e/run.ts --live --only=realistic",
+    "test:e2e:stress:live": "tsx tests/e2e/run.ts --live --only=stress"
   },
   "browserslist": {
     "production": [

@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "cocvuong-se60824"
+    "default": "cocvuong-se60824",
+    "prod": "cocvuong-se60824",
+    "dev": "fvc-score"
   }
 }

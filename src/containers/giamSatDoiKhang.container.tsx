@@ -11,8 +11,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { COLORS } from '../constants/colors';
 import { ROUNDS, REFEREE_COUNT, TIME_SCORE } from '../constants/rounds';
 
-/** Nhịp kiểm tra cửa sổ chấm điểm (ms) — sai số đóng phiên tối đa ngần này */
-const SCORE_TICK_MS = 200;
+import { CombatScoreSession, SCORE_TICK_MS } from '../services/combatScoreSession';
 import { DEFAULT_COMBAT_CONST, DEFAULT_MATCH_OBJ } from '../constants/settings';
 import FitText from '../components/common/FitText';
 
@@ -32,8 +31,7 @@ import {
     setLastMatch,
     resetRefereeScores,
     canRescoreMatch,
-    hasAnyRefereeScored,
-    hasScoreQuorum,
+    zeroRefereeScores,
     type CombatWriteContext,
 } from '../services/combatWriteService';
 
@@ -218,14 +216,10 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
     scoreTimer: ReturnType<typeof setInterval> | undefined;
     isTimerRunning: boolean;
     /**
-     * Mốc hết cửa sổ chấm điểm (epoch ms). `0` = không có phiên nào đang mở.
-     *
-     * Là MỐC THỜI GIAN chứ không phải bộ đếm nhịp: nhịp kiểm tra chạy tự do
-     * nên đếm nhịp thì cửa sổ dài ngắn tuỳ lúc bấm rơi vào đâu trong nhịp —
-     * `TIME_SCORE = 2` mà thực tế có khi chỉ được 1 giây. Hai giám định bấm
-     * cách nhau 1,2 giây lúc ăn lúc không là kiểu hỏng không ai tin nổi.
+     * Cửa sổ chấm điểm của phiên hiện tại — luật nằm trong
+     * services/combatScoreSession.ts để màn này và bộ test e2e dùng CHUNG.
      */
-    scoreDeadline: number;
+    scoreSession: CombatScoreSession;
     isHumanPauseTimer: boolean;
 
     // Time settings
@@ -378,7 +372,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         this.effectTimer = undefined;
         this.scoreTimer = undefined;
         this.isTimerRunning = false;
-        this.scoreDeadline = 0;
+        this.scoreSession = new CombatScoreSession(this.timeScore);
         this.temporaryWin = null;
         this.countryRed = "red";
         this.countryBlue = "blue";
@@ -1240,12 +1234,10 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             this.matchNoCurrentIndex,
             this.match,
             this.refereeObj,
-            this.numReferee,
-            this.combatConst.referee
+            this.numReferee
         );
-        // QUAN TRỌNG: Deep copy để tránh reference mutation
-        this.refereeObj = JSON.parse(JSON.stringify(this.combatConst.referee));
-        this.scoreDeadline = 0;
+        this.refereeObj = zeroRefereeScores(this.numReferee);
+        this.scoreSession.reset();
         // Force UI update
         this.showValue();
     }
@@ -1264,15 +1256,9 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
      */
     onRefereeScored(): void {
         if (!this.refereeObj || !this.match || this.matchNoCurrentIndex === undefined) return;
-        if (!hasAnyRefereeScored(this.refereeObj, this.numReferee)) return;
 
-        // Cửa sổ đếm từ cú bấm ĐẦU TIÊN của phiên, không phải từ nhịp kiểm tra
-        if (!this.scoreDeadline) {
-            this.scoreDeadline = Date.now() + this.timeScore * 1000;
-        }
-
-        //Kết thúc ngay nếu có >50% trọng tài chấm điểm — không cần chờ hết giờ
-        if (hasScoreQuorum(this.refereeObj, this.numReferee)) {
+        //Đủ quá bán là chốt ngay, không chờ hết giờ
+        if (this.scoreSession.onRefereeScored(this.refereeObj, this.numReferee)) {
             this.closeScoreSession();
         }
     }
@@ -1284,17 +1270,9 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
      * luôn là 0 nên thực tế là không cộng điểm nào.
      */
     makeScoreTimer(): void {
-        if (!this.scoreDeadline) return;
         if (!this.refereeObj || !this.match || this.matchNoCurrentIndex === undefined) return;
 
-        // Bảng đã bị xoá bởi đường khác (chuyển trận, xoá điểm) — đóng phiên,
-        // đừng để mốc cũ treo lại rồi chốt oan vào cú bấm của phiên sau
-        if (!hasAnyRefereeScored(this.refereeObj, this.numReferee)) {
-            this.scoreDeadline = 0;
-            return;
-        }
-
-        if (Date.now() >= this.scoreDeadline || hasScoreQuorum(this.refereeObj, this.numReferee)) {
+        if (this.scoreSession.tick(this.refereeObj, this.numReferee)) {
             this.closeScoreSession();
         }
     }
@@ -1425,7 +1403,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
             }, 500);
         }
         if (!this.scoreTimer) {
-            // Nhịp mịn hơn 1 giây để phiên đóng đúng sát mốc `scoreDeadline`;
+            // Nhịp mịn hơn 1 giây để phiên đóng đúng sát mốc hết cửa sổ;
             // không có phiên nào mở thì `makeScoreTimer` thoát ngay ở dòng đầu
             this.scoreTimer = setInterval(() => {
                 this.makeScoreTimer();

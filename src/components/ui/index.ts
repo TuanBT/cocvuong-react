@@ -14,6 +14,7 @@ export type { Column } from './DataTable';
 export { default as Toggle } from './Toggle';
 export { default as NumberField } from './NumberField';
 export { default as EmptyState } from './EmptyState';
+export { default as Pagination } from './Pagination';
 export { default as StatusDot } from './StatusDot';
 export { default as LoadingOverlay } from './LoadingOverlay';
 export { default as Toast } from './Toast';

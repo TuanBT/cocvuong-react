@@ -6,7 +6,7 @@ import { NavLink } from "react-router-dom";
 
 import {
   PageShell, PageHeader, SectionCard, Button, Toggle, NumberField,
-  ConfirmModal, Toast, AppFooter,
+  ConfirmModal, Toast, AppFooter, Pagination,
 } from '../components/ui';
 import { AccountChip } from '../components/auth';
 import CodeBoard from '../components/tournament/CodeBoard';
@@ -25,6 +25,10 @@ import {
   isPrefixFree, reissueTournamentCodes, resolvePrefix, spacedCode, syncTournamentCodes,
 } from '../services/accessCodeService';
 import { isAdmin } from '../services/adminService';
+import { pageOf, paginate } from '../utils/pagination';
+
+/** Bang chon giai la luoi 2 cot — 5 dong vua mot man, khong phai cuon */
+const PICKER_PAGE_SIZE = 10;
 
 /**
  * `?giai=<khoa>` — duong tat tu trang quan tri: mo thang thiet dat cua giai do.
@@ -46,6 +50,8 @@ interface SettingContainerProps {
 interface SettingContainerState {
   tournaments: TournamentSummary[];
   selected: TournamentSummary | null;
+  /** Trang cua bang chon giai, dem tu 0 */
+  pickerPage: number;
   loading: boolean;
   tournamentName: string;
   /** Ngay giai dien ra, `YYYY-MM-DD`. Rong = chua dat. */
@@ -139,6 +145,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     this.state = {
       tournaments: [],
       selected: null,
+      pickerPage: 0,
       loading: true,
       tournamentName: '',
       eventDate: '',
@@ -202,7 +209,12 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
         (wanted === null ? undefined : mine.find((t) => t.id === wanted)) ||
         mine.find((t) => !t.demo) ||
         mine[0];
-      if (first) this.selectTournament(first);
+      if (first) {
+        // Bang chon di theo trang, ma giai duoc chon san co the nam o trang 4:
+        // khong nhay theo thi trang mo ra voi mot o da tich khong ai nhin thay
+        this.setState({ pickerPage: pageOf(mine.indexOf(first), PICKER_PAGE_SIZE) });
+        this.selectTournament(first);
+      }
     } catch {
       this.setState({ loading: false });
       toast.error('Không đọc được danh sách giải.');
@@ -263,7 +275,13 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     const all = await listTournaments();
     const mine = all.filter((t) => this.visible(t)).sort(demoFirst);
     const fresh = mine.find((t) => t.id === this.index) || null;
-    this.setState({ tournaments: mine, selected: fresh });
+    // Xoa mot giai la moi giai sau no lui mot o — giai dang chon co the roi
+    // sang trang khac, nen tinh lai trang thay vi giu nguyen so cu
+    this.setState({
+      tournaments: mine,
+      selected: fresh,
+      pickerPage: fresh ? pageOf(mine.indexOf(fresh), PICKER_PAGE_SIZE) : 0,
+    });
   }
 
   // ==================== Trang thai giai ====================
@@ -864,12 +882,13 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
 
   render() {
     const {
-      tournaments, selected, loading, tournamentName, eventDate,
+      tournaments, selected, pickerPage, loading, tournamentName, eventDate,
       timeRound, timeBreak, timeExtra, timeExtraBreak,
       showCountryFlag, useFiveReferees, useArenaB, showCautionBoxCombat, prioritizeUnitNameCombat,
       saveState, confirm,
     } = this.state;
     const { user } = this.props;
+    const paged = paginate(tournaments, pickerPage, PICKER_PAGE_SIZE);
 
     return (
       <PageShell accent="tool">
@@ -886,36 +905,48 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
                 để bắt đầu.
               </p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                {tournaments.map((t) => (
-                  <label
-                    key={t.id}
-                    className={`flex items-center gap-3 p-3.5 border-2 rounded-control cursor-pointer transition-colors
-                      ${t.demo ? 'md:col-span-2' : ''}
-                      ${selected?.id === t.id
-                        ? t.demo
-                          ? 'border-emerald-500 bg-emerald-50'
-                          : 'border-accent-500 bg-accent-50'
-                        : t.demo
-                          ? 'border-emerald-200 bg-emerald-50/40 hover:border-emerald-400 hover:bg-emerald-50'
-                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
-                  >
-                    <input
-                      type="radio"
-                      name="tournamentRadio"
-                      checked={selected?.id === t.id}
-                      onChange={() => this.selectTournament(t)}
-                      className="w-4 h-4 flex-shrink-0"
-                    />
-                    <span className="min-w-0">
-                      <span className="block font-medium text-slate-700 whitespace-pre-line">{t.name}</span>
-                      {t.status === 'closed' && (
-                        <span className="block text-xs text-red-600 mt-0.5">đã đóng</span>
-                      )}
-                    </span>
-                  </label>
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                  {paged.items.map((t) => (
+                    <label
+                      key={t.id}
+                      className={`flex items-center gap-3 p-3.5 border-2 rounded-control cursor-pointer transition-colors
+                        ${t.demo ? 'md:col-span-2' : ''}
+                        ${selected?.id === t.id
+                          ? t.demo
+                            ? 'border-emerald-500 bg-emerald-50'
+                            : 'border-accent-500 bg-accent-50'
+                          : t.demo
+                            ? 'border-emerald-200 bg-emerald-50/40 hover:border-emerald-400 hover:bg-emerald-50'
+                            : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
+                    >
+                      <input
+                        type="radio"
+                        name="tournamentRadio"
+                        checked={selected?.id === t.id}
+                        onChange={() => this.selectTournament(t)}
+                        className="w-4 h-4 flex-shrink-0"
+                      />
+                      <span className="min-w-0">
+                        <span className="block font-medium text-slate-700 whitespace-pre-line">{t.name}</span>
+                        {t.status === 'closed' && (
+                          <span className="block text-xs text-red-600 mt-0.5">đã đóng</span>
+                        )}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+
+                <Pagination
+                  page={paged.page}
+                  pageCount={paged.pageCount}
+                  from={paged.from}
+                  to={paged.to}
+                  total={paged.total}
+                  onPage={(p) => this.setState({ pickerPage: p })}
+                  unit="giải"
+                />
+              </>
             )}
 
             {this.renderStatusBar()}

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import EmptyState from '../ui/EmptyState';
-import Button from '../ui/Button';
+import Pagination from '../ui/Pagination';
+import { paginate } from '../../utils/pagination';
 import { TournamentSummary } from '../../services/tournamentService';
 import type { TournamentId } from '../../types';
 
@@ -20,16 +21,17 @@ interface PublicTournamentPickerProps {
  * xem. Danh sach nay chi la ten giai — do lieu that chi tai khi bam vao mot
  * cai cu the.
  *
- * Chi hien vai giai gan nhat: mua giai nao cung chi co mot hai giai dang chay,
- * con lai la tra cuu — de tra cuu thi co o tim.
+ * Danh sach di theo trang chu khong do het ra: giai moi nhat dung dau nen thu
+ * nguoi ta tim gan nhu luon o trang dau, con muon giai cu thi go vao o tim.
+ * Bay giai thi khong thay thanh trang nao ca — no chi hien khi that su dai.
  */
-const INITIAL_COUNT = 8;
+const PAGE_SIZE = 12;
 
 const PublicTournamentPicker: React.FC<PublicTournamentPickerProps> = ({
   tournaments, loading, onSelect, what,
 }) => {
   const [query, setQuery] = useState('');
-  const [expanded, setExpanded] = useState(false);
+  const [page, setPage] = useState(0);
 
   const matched = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -37,9 +39,7 @@ const PublicTournamentPicker: React.FC<PublicTournamentPickerProps> = ({
     return tournaments.filter((t) => t.name.toLowerCase().includes(q));
   }, [tournaments, query]);
 
-  // Tim thi hien het ket qua — go xong ma van phai bam "Xem them" la vo ly
-  const shown = expanded || query.trim() ? matched : matched.slice(0, INITIAL_COUNT);
-  const hidden = matched.length - shown.length;
+  const paged = paginate(matched, page, PAGE_SIZE);
 
   if (loading) {
     return (
@@ -67,14 +67,15 @@ const PublicTournamentPicker: React.FC<PublicTournamentPickerProps> = ({
           </p>
         </div>
 
-        {tournaments.length > INITIAL_COUNT && (
+        {tournaments.length > PAGE_SIZE && (
           <div className="relative">
             <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2
               text-slate-400 text-sm" aria-hidden="true" />
             <input
               type="search"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              // Go them chu ma van dung o trang 5 thi ket qua dau tien bi giau
+              onChange={(e) => { setQuery(e.target.value); setPage(0); }}
               placeholder="Tìm theo tên giải…"
               aria-label="Tìm theo tên giải"
               className="w-full sm:w-64 pl-9 pr-3 py-2 text-sm border-2 border-slate-200
@@ -92,7 +93,7 @@ const PublicTournamentPicker: React.FC<PublicTournamentPickerProps> = ({
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-          {shown.map((t) => (
+          {paged.items.map((t) => (
             <button
               key={t.id}
               type="button"
@@ -120,14 +121,15 @@ const PublicTournamentPicker: React.FC<PublicTournamentPickerProps> = ({
         </div>
       )}
 
-      {hidden > 0 && (
-        <div className="mt-3 text-center">
-          <Button variant="secondary" icon="fa-solid fa-chevron-down"
-            onClick={() => setExpanded(true)}>
-            Xem thêm {hidden} giải cũ
-          </Button>
-        </div>
-      )}
+      <Pagination
+        page={paged.page}
+        pageCount={paged.pageCount}
+        from={paged.from}
+        to={paged.to}
+        total={paged.total}
+        onPage={setPage}
+        unit="giải"
+      />
     </section>
   );
 };
