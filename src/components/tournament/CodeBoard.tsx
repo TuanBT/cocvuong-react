@@ -3,9 +3,9 @@ import { toast } from 'react-toastify';
 import Button from '../ui/Button';
 import EmptyState from '../ui/EmptyState';
 import {
-  AccessCode, CodeIndex, CodeSlot, SHARED_CODE_LENGTH,
-  arenaName, kindName, positionLabel, prefixOf, slotLabel, slotString, spacedCode,
-  subscribeArenaCodeIndex, subscribeCode, subscribeCodeIndex, unlockCode,
+  AccessCode, CodeSlot,
+  arenaName, positionLabel, positionsOfHolder, slotString, spacedCode,
+  subscribeCode, subscribePrefix, unlockCode,
 } from '../../services/accessCodeService';
 import { ArenaAssignmentKey, parseArenaKey } from '../../services/staffService';
 import { subscribeSlotPresence } from '../../services/firebaseService';
@@ -26,7 +26,7 @@ interface Cell {
   code: string;
   a: number;
   r: number;
-  /** Nhung o cham diem ma nay mo duoc. Ma dung chung: ca doi khang lan thi quyen. */
+  /** Nhung o cham diem ma nay mo duoc — thuong la ca doi khang lan thi quyen */
   slots: CodeSlot[];
   data: AccessCode | null;
 }
@@ -34,24 +34,18 @@ interface Cell {
 /**
  * Bang ma giam dinh.
  *
- * Vi sao phai co `tournamentCodeIndex`: `accessCode` co tinh de `.read: false`
- * o goc de khong ai quet duoc toan bo kho ma — he qua la CHINH chu giai cung
- * khong liet ke nguoc ra ma cua giai minh. Khong co nut chi muc thi bang nay
- * khong dung duoc.
- *
- * Ma 4 so la mot ma cho ca hai mon o cung vi tri, nen bang xep theo SAN, moi
- * vi tri mot o. Chi muc co ma nay o ca hai nhanh mon nen phai bo trung, khong
- * thi moi ma hien hai lan.
- *
  * **Thu duy nhat phai doc to la 2 SO CUA GIAI.** San va vi tri thi giam dinh
  * CHAM VAO MAN HINH sau khi go 2 so — khong ai doc, chep hay go 12-24 ma roi
- * rac nua. Ma 4 so day du van con (no la thu that su mo cua o duoi) nhung tu
- * gio la chuyen noi bo cua may: bang nay khong hien no ra, vi hien ra la lai
- * co nguoi doc no cho nhau. Danh sach vi tri ben duoi chi de xem AI DA VAO va
- * de bam Mo khoa.
+ * rac nua. Ma 4 so day du van con (no la thu that su mo cua o duoi) nhung la
+ * chuyen noi bo cua may: bang nay khong hien no ra, vi hien ra la lai co nguoi
+ * doc no cho nhau. Danh sach vi tri ben duoi chi de xem AI DA VAO va de bam
+ * Mo khoa.
  *
- * Giai cu cap tu thoi "moi o mot ma 2 so" van hien duoc: khong co 2 so chung
- * thi tung ma van phai doc rieng, nen bang do ma to len va in ra day du.
+ * Bang duoc **tinh ra**, khong doc tu mot bang luu san nao: 2 so cua giai +
+ * so san + so giam dinh (ca ba nam tren node `accessCode/{2 so}`) la du dung
+ * lai chinh xac bo o. Truoc day cho nay doc `tournamentCodeIndex`, mot ban sao
+ * khong giu thong tin nao rieng — va vi moi ma nam o ca hai nhanh mon nen con
+ * phai khu trung tay.
  */
 const CodeBoard: React.FC<CodeBoardProps> = ({
   tournamentIndex,
@@ -60,7 +54,8 @@ const CodeBoard: React.FC<CodeBoardProps> = ({
   canManage = false,
   compact = false,
 }) => {
-  const [index, setIndex] = useState<CodeIndex>({});
+  const [prefix, setPrefix] = useState('');
+  const [holder, setHolder] = useState<AccessCode | null>(null);
   const [codes, setCodes] = useState<Record<string, AccessCode | null>>({});
   const [online, setOnline] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
@@ -71,49 +66,45 @@ const CodeBoard: React.FC<CodeBoardProps> = ({
   const arenaFilterKey = arenaKeys ? arenaKeys.join(',') : '';
 
   /**
-   * Chu giai doc ca nhanh mot lan; giam sat PHAI doc tung san mot — rules chi
-   * cho ho doc `tournamentCodeIndex/{t}/{sanKey}` cua san duoc phan cong, doc
-   * ca `{t}` la bi tu choi.
+   * 2 so cua giai — bi mat cua giai, va la thu duy nhat phai doc that.
+   *
+   * Giam sat doc duoc neu dang truc mot san bat ky cua giai; nguoi khong
+   * lien quan thi rules tu choi, va man hinh phai noi ro thay vi hien bang rong.
    */
   useEffect(() => {
     setDenied(false);
-    if (!arenaFilterKey) {
-      return subscribeCodeIndex(tournamentIndex, setIndex, () => setDenied(true));
-    }
+    setPrefix('');
+    setHolder(null);
+    return subscribePrefix(tournamentIndex, (p) => setPrefix(p || ''), () => setDenied(true));
+  }, [tournamentIndex]);
 
-    const keys = arenaFilterKey.split(',');
-    setIndex({});
-    const unsubs = keys.map((key) =>
-      subscribeArenaCodeIndex(
-        tournamentIndex,
-        key,
-        (byReferee) => setIndex((prev) => ({ ...prev, [key]: byReferee })),
-        () => setDenied(true)
-      )
-    );
-    return () => unsubs.forEach((u) => u());
-  }, [tournamentIndex, arenaFilterKey]);
+  /** Ban thiet ke cua giai nam ngay tren node 2 so — mot lan dang ky, tu chay theo */
+  useEffect(() => {
+    if (!prefix) {
+      setHolder(null);
+      return;
+    }
+    return subscribeCode(prefix, setHolder);
+  }, [prefix]);
 
   useEffect(() => subscribeSlotPresence(setOnline), []);
 
-  // Danh sach ma dang hien — bam theo chuoi de khong dang ky lai listener
-  // moi lan `index` doi tham chieu ma noi dung khong doi
-  const visible = useMemo(() => {
-    const out: { key: ArenaAssignmentKey; r: number; code: string }[] = [];
-    for (const key of Object.keys(index)) {
-      if (arenaKeys && !arenaKeys.includes(key as ArenaAssignmentKey)) continue;
-      const byReferee = index[key] || {};
-      for (const r of Object.keys(byReferee).sort((a, b) => Number(a) - Number(b))) {
-        if (byReferee[r]) out.push({ key: key as ArenaAssignmentKey, r: Number(r), code: byReferee[r] });
-      }
-    }
-    return out;
-  }, [index, arenaKeys]);
+  /** Bo o cua giai, tinh thang tu ban thiet ke — khong ton mot vong doc nao */
+  const positions = useMemo(() => {
+    if (!prefix || !holder?.reserved) return [];
+    const wanted = arenaFilterKey
+      ? new Set(
+        arenaFilterKey.split(',')
+          .map((k) => parseArenaKey(k as ArenaAssignmentKey)?.a)
+          .filter((a): a is number => a !== undefined)
+      )
+      : null;
+    return positionsOfHolder(prefix, holder).filter((p) => !wanted || wanted.has(p.a));
+  }, [prefix, holder, arenaFilterKey]);
 
-  const codeListKey = useMemo(
-    () => [...new Set(visible.map((v) => v.code))].join(','),
-    [visible]
-  );
+  // Danh sach ma dang hien — bam theo chuoi de khong dang ky lai listener
+  // moi lan `positions` doi tham chieu ma noi dung khong doi
+  const codeListKey = useMemo(() => positions.map((p) => p.code).join(','), [positions]);
 
   useEffect(() => {
     const list = codeListKey ? codeListKey.split(',') : [];
@@ -123,44 +114,18 @@ const CodeBoard: React.FC<CodeBoardProps> = ({
     return () => unsubs.forEach((u) => u());
   }, [codeListKey]);
 
-  /**
-   * Do dai ma la dau hieu dong bo duy nhat doc duoc ngay: `accessCode` ve sau
-   * mot nhip, ma bang ma thi khong duoc phep nhay bo cuc giua chung.
-   */
-  const shared = visible.length > 0 && visible.every((v) => v.code.length === SHARED_CODE_LENGTH);
-  const prefix = shared ? prefixOf(visible[0].code) : '';
-
+  /** Xep theo san, moi vi tri mot dong */
   const groups = useMemo(() => {
     const map = new Map<string, Cell[]>();
-    const seen = new Map<string, Cell>();
-
-    for (const v of visible) {
-      const parsed = parseArenaKey(v.key);
-      if (!parsed) continue;
-
-      const slot: CodeSlot = { t: tournamentIndex, kind: parsed.kind, a: parsed.a, r: v.r };
-
-      // Ma dung chung nam o ca hai nhanh mon: gap lai thi gop mon vao mot o
-      const existing = seen.get(v.code);
-      if (existing) {
-        existing.slots.push(slot);
-        continue;
-      }
-
-      const label = shared
-        ? arenaName(parsed.a)
-        : `${kindName(parsed.kind)} — ${arenaName(parsed.a)}`;
-      const cell: Cell = {
-        code: v.code, a: parsed.a, r: v.r, slots: [slot], data: codes[v.code] ?? null,
-      };
-      seen.set(v.code, cell);
+    for (const p of positions) {
+      const label = arenaName(p.a);
+      const cell: Cell = { code: p.code, a: p.a, r: p.r, slots: p.slots, data: codes[p.code] ?? null };
       if (!map.has(label)) map.set(label, []);
       map.get(label)!.push(cell);
     }
-
     for (const cells of map.values()) cells.sort((a, b) => a.r - b.r);
     return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0], 'vi'));
-  }, [visible, codes, tournamentIndex, shared]);
+  }, [positions, codes]);
 
   const handleUnlock = useCallback(async (cell: Cell) => {
     setBusy(cell.code);
@@ -176,21 +141,6 @@ const CodeBoard: React.FC<CodeBoardProps> = ({
     }
   }, []);
 
-  /**
-   * Ma dung chung mo ca hai mon.
-   *
-   * Khong doan bang so slot nhin thay: man giam sat chi doc duoc nhanh san
-   * minh truc nen o day ma dung chung cung chi hien MOT slot. Phai hoi chinh
-   * ma xem no co ca hai nhanh khong.
-   */
-  const bothKinds = useCallback(
-    (cell: Cell) =>
-      cell.data
-        ? !!cell.data.slotCombat && !!cell.data.slotMartial
-        : cell.slots.length > 1,
-    []
-  );
-
   /** Chep cai gui qua Zalo cho ca doan giam dinh: mot so, kem cach vao */
   const handleCopyPrefix = useCallback(async () => {
     const text =
@@ -205,19 +155,6 @@ const CodeBoard: React.FC<CodeBoardProps> = ({
     }
   }, [tournamentName, prefix]);
 
-  const handleCopyCell = useCallback(async (cell: Cell) => {
-    const what = bothKinds(cell)
-      ? positionLabel(cell.a, cell.r)
-      : slotLabel(cell.slots[0]);
-    const text = `${tournamentName.replace(/\n/g, ' ')} · ${what} · mã ${cell.code}`;
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success('Đã chép — dán vào Zalo được rồi.');
-    } catch {
-      toast.info(text);
-    }
-  }, [tournamentName, bothKinds]);
-
   /**
    * In ra giay de dan o ban giam dinh truoc gio thi.
    *
@@ -226,23 +163,14 @@ const CodeBoard: React.FC<CodeBoardProps> = ({
    * trong bang — dung cai viec ma so cua giai sinh ra de bo.
    */
   const handlePrint = useCallback(() => {
-    const body = shared
-      ? `
+    const body = `
         <div class="hero">
           <p class="cap">Số của giải</p>
           <p class="num">${spacedCode(prefix)}</p>
         </div>
         <p class="how">Mở app → <b>Vào chấm điểm</b> → gõ <b>${prefix}</b></p>
         <p class="eg">Rồi chọn <b>sân</b> và <b>số giám định</b> của bạn ngay trên màn hình.</p>
-        <p class="note">Một chỗ ngồi chấm được CẢ đối kháng lẫn thi quyền — chọn môn khi vào.</p>`
-      : `
-        ${groups.map(([label, cells]) => `
-          <h2>${label}</h2>
-          <table class="old">
-            <tr>${cells.map((c) => `<th>GĐ${c.r + 1}</th>`).join('')}</tr>
-            <tr>${cells.map((c) => `<td class="d">${spacedCode(c.code)}</td>`).join('')}</tr>
-          </table>`).join('')}
-        <p class="note">Mỗi mã vào thẳng đúng một ô chấm điểm. Không đưa nhầm mã sang bàn khác.</p>`;
+        <p class="note">Một chỗ ngồi chấm được CẢ đối kháng lẫn thi quyền — chọn môn khi vào.</p>`;
 
     const win = window.open('', '_blank', 'width=900,height=700');
     if (!win) {
@@ -274,7 +202,7 @@ const CodeBoard: React.FC<CodeBoardProps> = ({
     win.document.close();
     win.focus();
     win.print();
-  }, [groups, tournamentName, shared, prefix]);
+  }, [tournamentName, prefix]);
 
   if (denied) {
     return (
@@ -299,8 +227,7 @@ const CodeBoard: React.FC<CodeBoardProps> = ({
   return (
     <div className="space-y-5">
       {/* Ca man hinh chi de doc to MOT so nay. Con lai la viec cua giam dinh. */}
-      {shared && (
-        <div className="border-2 border-accent-300 bg-accent-50 rounded-card p-4 sm:p-5 text-center">
+      <div className="border-2 border-accent-300 bg-accent-50 rounded-card p-4 sm:p-5 text-center">
           <p className="m-0 text-xs font-semibold uppercase tracking-[0.18em] text-accent-700">
             Số của giải
           </p>
@@ -326,12 +253,11 @@ const CodeBoard: React.FC<CodeBoardProps> = ({
               </Button>
             )}
           </div>
-        </div>
-      )}
+      </div>
 
       <div>
         <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2 m-0">
-          {shared ? 'Ai đã vào bàn chấm' : 'Mã của từng bàn'}
+          Ai đã vào bàn chấm
         </h3>
 
         <div className="space-y-4">
@@ -364,25 +290,10 @@ const CodeBoard: React.FC<CodeBoardProps> = ({
                         </span>
                       </span>
 
-                      {bothKinds(cell) && (
+                      {cell.slots.length > 1 && (
                         <span className="text-[10px] text-slate-400 uppercase tracking-wide">
                           đối kháng và thi quyền
                         </span>
-                      )}
-
-                      {/* Giai cu thi ma NAY la cai giam dinh go, phai hien.
-                          Giai dung so cua giai thi 4 so la chuyen noi bo cua
-                          may — hien ra chi to sinh them mot so de doc nham */}
-                      {!shared && (
-                        <button
-                          type="button"
-                          onClick={() => handleCopyCell(cell)}
-                          title="Bấm để chép mã"
-                          className="text-base font-bold tabular-nums tracking-[0.2em]
-                            text-slate-700 hover:text-accent-700 transition-colors whitespace-nowrap"
-                        >
-                          {spacedCode(cell.code)}
-                        </button>
                       )}
 
                       {canManage && (
@@ -409,16 +320,6 @@ const CodeBoard: React.FC<CodeBoardProps> = ({
         </div>
       </div>
 
-      {!compact && !shared && (
-        <div className="pt-3 border-t border-slate-100 flex flex-wrap gap-2.5">
-          <Button variant="secondary" icon="fa-solid fa-print" onClick={handlePrint}>
-            In / Lưu ảnh bảng mã
-          </Button>
-          <p className="m-0 text-xs text-slate-500 self-center">
-            Dán ở bàn giám định trước giờ thi — mỗi bàn chỉ đọc đúng ô của mình.
-          </p>
-        </div>
-      )}
     </div>
   );
 };

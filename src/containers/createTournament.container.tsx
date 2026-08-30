@@ -35,7 +35,7 @@ import { AppUser } from '../services/authService';
 import {
   TournamentSummary, addTournament as createTournamentRecord, isLegacy, listTournaments,
 } from '../services/tournamentService';
-import { ensureTournamentCodes } from '../services/accessCodeService';
+import { syncTournamentCodes } from '../services/accessCodeService';
 import type { TournamentId } from '../types';
 import { formatEventDate } from '../utils/helpers';
 
@@ -345,14 +345,12 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
       const setting = JSON.parse(JSON.stringify(DEFAULT_SETTING)).setting;
       try {
-        const result = await ensureTournamentCodes(
+        const result = await syncTournamentCodes(
           newIndex,
           {
             combatReferees: setting.combat.isShowFiveReferee ? 5 : 3,
             martialReferees: setting.martial.isShowFiveReferee ? 5 : 3,
             useArenaB: setting.combat.isShowArenaB !== false,
-            // Nhan ma in ra mang ten giai — phai la ten that, khong phai mac dinh
-            tournamentName: name,
           },
           user.uid
         );

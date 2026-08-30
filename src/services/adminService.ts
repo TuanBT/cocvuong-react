@@ -30,6 +30,7 @@ import {
 import {
   TournamentStatus, TournamentSummary, demoFirst, listAllTournaments,
 } from './tournamentService';
+import { AccessCode, planOf, resolvePrefix, sharedPositions } from './accessCodeService';
 
 export async function isAdmin(uid: string): Promise<boolean> {
   try {
@@ -286,22 +287,20 @@ export interface AuditFinding {
   people?: AuditPerson[];
 }
 
-const META_KEY = 'meta';
-
-/** So ma dang song cua mot giai (bo node `meta`, bo trung) */
+/**
+ * So o cham diem dang mo cua mot giai.
+ *
+ * Tinh tu ban thiet ke nam tren node 2 so cua giai, khong dem tung node ma:
+ * bo o luon la `so san x so giam dinh`, nen doc mot node la du. Truoc day cho
+ * nay keo ca bang chi muc ve roi khu trung — mot cay du lieu chi de ra mot so.
+ */
 async function countCodes(t: TournamentId): Promise<number> {
   try {
-    const snap = await get(child(ref(database), `tournamentCodeIndex/${t}`));
-    const raw = snap.val() as Record<string, unknown> | null;
-    if (!raw) return 0;
-    const codes = new Set<string>();
-    for (const [key, byReferee] of Object.entries(raw)) {
-      if (key === META_KEY) continue;
-      for (const code of Object.values((byReferee || {}) as Record<string, string>)) {
-        if (code) codes.add(code);
-      }
-    }
-    return codes.size;
+    const prefix = await resolvePrefix(t);
+    if (!prefix) return 0;
+    const holder = (await get(child(ref(database), `accessCode/${prefix}`))).val() as AccessCode | null;
+    if (!holder?.reserved) return 0;
+    return sharedPositions(t, planOf(holder)).length;
   } catch {
     return -1; // doc khong duoc: khong ket luan gi ca, khac han voi "khong co ma"
   }

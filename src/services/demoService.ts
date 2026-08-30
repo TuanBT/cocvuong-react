@@ -20,7 +20,7 @@ import { ref, get, set, update, child, push } from 'firebase/database';
 import { database } from '../firebase';
 import { DEFAULT_SETTING } from '../constants/settings';
 import type { TournamentId } from '../types';
-import { ensureTournamentCodes } from './accessCodeService';
+import { syncTournamentCodes } from './accessCodeService';
 import {
   TournamentSummary, listTournaments, reopenTournament, syncTournamentIndex,
 } from './tournamentService';
@@ -242,14 +242,9 @@ export async function ensureDemoCodesOnDemand(
 ): Promise<void> {
   if (!t?.demo || t.ownerUid !== uid) return;
   try {
-    await ensureTournamentCodes(
+    await syncTournamentCodes(
       t.id,
-      {
-        combatReferees: 3,
-        martialReferees: 3,
-        useArenaB: true,
-        tournamentName: 'Chấm nhanh',
-      },
+      { combatReferees: 3, martialReferees: 3, useArenaB: true },
       uid
     );
   } catch {

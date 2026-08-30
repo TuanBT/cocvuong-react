@@ -21,8 +21,8 @@ import {
 } from '../services/tournamentService';
 import type { TournamentId } from '../types';
 import {
-  CodeMeta, PREFIX_LENGTH, TournamentCodePlan,
-  isPrefixFree, reissueTournamentCodes, resolveCodeMeta, spacedCode, syncTournamentCodes,
+  PREFIX_LENGTH, TournamentCodePlan,
+  isPrefixFree, reissueTournamentCodes, resolvePrefix, spacedCode, syncTournamentCodes,
 } from '../services/accessCodeService';
 import { isAdmin } from '../services/adminService';
 
@@ -57,6 +57,8 @@ interface SettingContainerState {
   /** Co quoc gia va so giam dinh la mot thiet dat chung cho ca hai noi dung */
   showCountryFlag: boolean;
   useFiveReferees: boolean;
+  /** Giai co dung San B khong — tat la bo ma cua san do bi go ngay */
+  useArenaB: boolean;
   showCautionBoxCombat: boolean;
   prioritizeUnitNameCombat: boolean;
   /** Thiet dat tu luu, nen phai co cho bao cho chu giai biet da luu chua */
@@ -65,7 +67,8 @@ interface SettingContainerState {
   confirm: { title: string; message: string; label?: string; action: () => void } | null;
   regenerating: boolean;
   /** 2 so cua giai dang chon (rong = giai cu, chua cap ma 4 so) */
-  codeMeta: CodeMeta | null;
+  /** 2 so cua giai — chuoi rong khi chua doc duoc */
+  codePrefix: string;
   /** O "Đổi số" dang mo hay khong, va 2 so dang go do */
   prefixOpen: boolean;
   prefixDraft: string;
@@ -145,12 +148,13 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
       timeExtraBreak: 30,
       showCountryFlag: false,
       useFiveReferees: false,
+      useArenaB: true,
       showCautionBoxCombat: false,
       prioritizeUnitNameCombat: false,
       saveState: 'idle',
       confirm: null,
       regenerating: false,
-      codeMeta: null,
+      codePrefix: '',
       prefixOpen: false,
       prefixDraft: '',
       prefixState: 'idle',
@@ -213,15 +217,15 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     // Ghi not thay doi cua giai cu TRUOC khi state doi sang giai moi, khong thi
     // thiet dat cua giai nay se de len giai kia
     if (this.dirty) void this.flushSave();
-    this.setState({ selected: t, codeMeta: null, prefixOpen: false, prefixDraft: '', prefixState: 'idle' });
+    this.setState({ selected: t, codePrefix: '', prefixOpen: false, prefixDraft: '', prefixState: 'idle' });
     this.loadSetting(t.id);
-    void this.loadCodeMeta(t.id);
+    void this.loadCodePrefix(t.id);
   };
 
-  async loadCodeMeta(index: TournamentId) {
+  async loadCodePrefix(index: TournamentId) {
     try {
-      const meta = await resolveCodeMeta(index);
-      if (this.index === index) this.setState({ codeMeta: meta });
+      const prefix = await resolvePrefix(index);
+      if (this.index === index) this.setState({ codePrefix: prefix || '' });
     } catch {
       /* doc khong duoc thi bang ma van hien, chi la khong doi kieu duoc */
     }
@@ -245,6 +249,8 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
         // ben nao dang bat se thang, de khong tat mat thu chu giai da bat
         showCountryFlag: !!(this.settingObj.combat.isShowCountryFlag || this.settingObj.martial.isShowCountryFlag),
         useFiveReferees: !!(this.settingObj.combat.isShowFiveReferee || this.settingObj.martial.isShowFiveReferee),
+        // Giai cu khong co khoa nay — vang nghia la CO San B, khong phai tat
+        useArenaB: this.settingObj.combat.isShowArenaB !== false,
         showCautionBoxCombat: this.settingObj.combat.isShowCautionBox,
         prioritizeUnitNameCombat: this.settingObj.combat.isPrioritizeUnitName || false,
         saveState: 'idle',
@@ -350,7 +356,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     try {
       await purgeTournament(selected.id);
       toast.success('Đã xoá giải vĩnh viễn.');
-      this.setState({ selected: null, codeMeta: null });
+      this.setState({ selected: null, codePrefix: '' });
       await this.loadTournaments();
     } catch {
       toast.error('Không xoá được giải này.');
@@ -393,8 +399,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     return {
       combatReferees: this.state.useFiveReferees ? 5 : 3,
       martialReferees: this.state.useFiveReferees ? 5 : 3,
-      useArenaB: this.settingObj?.combat?.isShowArenaB !== false,
-      tournamentName: this.state.selected?.name || '',
+      useArenaB: this.state.useArenaB,
     };
   }
 
@@ -402,11 +407,9 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
    * Bo ma chay theo thiet dat vua luu — khong hoi, khong nut.
    *
    * Ma la `so cua giai + so san + so giam dinh`, nen bat 5 giam dinh la GD4 va
-   * GD5 phai co ma ngay; ha ve 3 la hai ma do phai bien. Chu giai chi can nho
-   * DUNG MOT so cua giai, khong phai nho them thao tac nao.
-   *
-   * Giai cu (chua co so cua giai) thi `syncTournamentCodes` bo qua — don sang
-   * kieu moi la moi ma dang cam chet ngay, phai bam "Đặt số cho giải" moi lam.
+   * GD5 phai co ma ngay; ha ve 3 la hai ma do phai bien. Tat San B thi bon ma
+   * cua san do phai dong lai. Chu giai chi can nho DUNG MOT so cua giai,
+   * khong phai nho them thao tac nao.
    */
   syncCodes = async (plan: TournamentCodePlan = this.codePlan) => {
     const { selected } = this.state;
@@ -415,9 +418,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
 
     try {
       const result = await syncTournamentCodes(selected.id, plan, user.uid);
-      if (result.skipped) return;
-
-      this.setState({ codeMeta: { prefix: result.prefix } });
+      this.setState({ codePrefix: result.prefix || '' });
 
       // Chi len tieng khi bo ma that su doi — luu thiet dat khac thi im lang
       if (result.created || result.removed) {
@@ -451,7 +452,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     try {
       const result = await reissueTournamentCodes(selected.id, this.codePlan, user.uid, prefix);
       this.setState({
-        codeMeta: { prefix: result.prefix },
+        codePrefix: result.prefix || '',
         prefixOpen: false,
         prefixDraft: '',
         prefixState: 'idle',
@@ -474,7 +475,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     const draft = raw.replace(/\D/g, '').slice(0, PREFIX_LENGTH);
     this.setState({ prefixDraft: draft, prefixState: 'idle' });
     if (draft.length < PREFIX_LENGTH) return;
-    if (draft === this.state.codeMeta?.prefix) {
+    if (draft === this.state.codePrefix) {
       this.setState({ prefixState: 'free' });
       return;
     }
@@ -567,7 +568,6 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
         combatReferees: fresh.combat.isShowFiveReferee ? 5 : 3,
         martialReferees: fresh.martial.isShowFiveReferee ? 5 : 3,
         useArenaB: fresh.combat.isShowArenaB !== false,
-        tournamentName: fresh.tournamentName,
       });
       toast.success("Cài lại thiết đặt thành công!");
     });
@@ -576,7 +576,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
   /** Toan bo o thiet dat, gom lai thanh mot luot ghi */
   get settingPayload() {
     const { timeRound, timeBreak, timeExtra, timeExtraBreak, tournamentName, eventDate,
-            showCountryFlag, useFiveReferees,
+            showCountryFlag, useFiveReferees, useArenaB,
             showCautionBoxCombat, prioritizeUnitNameCombat } = this.state;
 
     return {
@@ -596,6 +596,8 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
       "martial/isShowCountryFlag": showCountryFlag,
       "combat/isShowFiveReferee": useFiveReferees,
       "martial/isShowFiveReferee": useFiveReferees,
+      "combat/isShowArenaB": useArenaB,
+      "martial/isShowArenaB": useArenaB,
     };
   }
 
@@ -661,7 +663,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
       : value;
 
     if (name === 'tournamentName' || name === 'eventDate') this.needIndexSync = true;
-    if (name === 'useFiveReferees') this.needCodeSync = true;
+    if (name === 'useFiveReferees' || name === 'useArenaB') this.needCodeSync = true;
 
     this.setState({ [name]: next } as any, () => {
       // O go so (cac moc thoi gian): dang go dở thi con la so vo nghia — "12"
@@ -787,46 +789,28 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
    * lam mot lan truoc gio thi, ngay canh cho chu giai dang nhin so.
    */
   renderPrefix() {
-    const { codeMeta, prefixOpen, prefixDraft, prefixState, regenerating } = this.state;
-    if (!codeMeta) return null;
+    const { codePrefix, prefixOpen, prefixDraft, prefixState, regenerating } = this.state;
+    if (!codePrefix) return null;
 
     return (
       <div className="mb-4 border border-slate-200 rounded-control p-3">
         {!prefixOpen ? (
           <div className="flex items-center gap-3 flex-wrap">
-            {codeMeta.prefix ? (
-              /* So cua giai da nam to giua bang ma ngay ben duoi — o day chi
-                 con dung mot viec la doi no */
-              <>
-                <span className="text-xs text-slate-500 leading-snug">
-                  Số của giải đang là <strong className="tabular-nums">{spacedCode(codeMeta.prefix)}</strong>.
-                  Đổi số thì mọi máy đang chấm phải vào lại từ đầu.
-                </span>
-                <Button size="sm" variant="ghost" icon="fa-solid fa-pen"
-                  disabled={regenerating}
-                  onClick={() => this.setState({
-                    prefixOpen: true, prefixDraft: codeMeta.prefix || '', prefixState: 'free',
-                  })}>
-                  Đổi số
-                </Button>
-              </>
-            ) : (
-              /* Giai cu: ma con la kieu "moi o mot so 2 chu so". Khong tu doi
-                 giup — doi la moi ma dang cam chet ngay, phai chu giai bam. */
-              <>
-                <span className="text-sm text-slate-600 leading-snug">
-                  Giải này còn dùng mã kiểu cũ, mỗi ô một số riêng. Đặt một số cho cả giải
-                  để chỉ phải nhớ đúng một số.
-                </span>
-                <Button size="sm" variant="primary" icon="fa-solid fa-pen"
-                  disabled={regenerating}
-                  onClick={() => this.setState({
-                    prefixOpen: true, prefixDraft: '', prefixState: 'idle',
-                  })}>
-                  Đặt số cho giải
-                </Button>
-              </>
-            )}
+            {/* So cua giai da nam to giua bang ma ngay ben duoi — o day chi
+                con dung mot viec la doi no */}
+            <>
+              <span className="text-xs text-slate-500 leading-snug">
+                Số của giải đang là <strong className="tabular-nums">{spacedCode(codePrefix)}</strong>.
+                Đổi số thì mọi máy đang chấm phải vào lại từ đầu.
+              </span>
+              <Button size="sm" variant="ghost" icon="fa-solid fa-pen"
+                disabled={regenerating}
+                onClick={() => this.setState({
+                  prefixOpen: true, prefixDraft: codePrefix, prefixState: 'free',
+                })}>
+                Đổi số
+              </Button>
+            </>
           </div>
         ) : (
           <>
@@ -882,7 +866,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     const {
       tournaments, selected, loading, tournamentName, eventDate,
       timeRound, timeBreak, timeExtra, timeExtraBreak,
-      showCountryFlag, useFiveReferees, showCautionBoxCombat, prioritizeUnitNameCombat,
+      showCountryFlag, useFiveReferees, useArenaB, showCautionBoxCombat, prioritizeUnitNameCombat,
       saveState, confirm,
     } = this.state;
     const { user } = this.props;
@@ -1041,6 +1025,9 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
                 <Toggle name="useFiveReferees" checked={useFiveReferees}
                   onChange={this.handleInputChange} label="Dùng 5 giám định"
                   hint="Tắt để dùng 3 — áp dụng cho đối kháng và thi quyền" />
+                <Toggle name="useArenaB" checked={useArenaB}
+                  onChange={this.handleInputChange} label="Thi đấu 2 sân"
+                  hint="Tắt nếu chỉ có Sân A — giám định sẽ không bị hỏi chọn sân" />
               </div>
 
               <fieldset className="border border-emerald-200 bg-emerald-50/50 rounded-card p-4 sm:p-5 m-0">

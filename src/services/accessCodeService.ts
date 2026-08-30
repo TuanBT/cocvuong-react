@@ -13,6 +13,22 @@
  *   biet ma -> claim ma (ghi `claimedUid`) -> tao `codeSession/{uid}`
  *   -> rules doc `slot` tu `codeSession` de quyet dinh cho ghi o dau.
  * Khong tu bia `slot` duoc: rules bat no phai khop dung `slot` cua ma da claim.
+ *
+ * ## Khong con bang chi muc
+ *
+ * Truoc day moi ma con duoc chep vao `tournamentCodeIndex/{t}` de chu giai
+ * dung lai bang ma. Bang do la thu **tinh ra duoc**: ma cua mot o luon bang
+ * `prefix + (san+1) + (vi tri+1)`, nen biet 2 so cua giai va so san / so giam
+ * dinh la dung lai duoc ca bang, khong sai mot mach.
+ *
+ * Nen gio kho chi giu **nhung gi khong tinh duoc**:
+ *   · `accessCode/{prefix}`      2 so cua giai + so san + so giam dinh
+ *   · `accessCode/{ma}`          cac slot ma no mo, va may nao dang cam
+ *   · `tournamentCodePrefix/{t}` giai nay mang 2 so nao (chi chu giai va
+ *                                giam sat cua giai doc duoc)
+ *
+ * Bo bang chi muc di keo theo: khong con node `meta`, khong con don rac chi
+ * muc, khong con canh mot ma nam o hai nhanh mon roi phai khu trung.
  */
 import {
   ref, get, set, update, remove, child, onValue, off,
@@ -49,7 +65,17 @@ export const MAX_CODE_ATTEMPTS = 50;
 /** Qua ngan nay lan random lai la kho ma sap day — canh bao nguoi dung */
 export const CODE_PRESSURE_WARN = 5;
 
+/**
+ * Tran cua ma dung chung: `sharedCodeFor` danh cho san va vi tri moi ben DUNG
+ * MOT chu so, nen khong bao gio co san thu 3 hay giam dinh thu 6.
+ */
+export const MAX_ARENAS = 2;
+export const MAX_REFEREES = 5;
+
 const SESSION_CACHE_KEY = 'cocvuong_code_session';
+
+/** Giai nay mang 2 so nao. Chu giai va giam sat cua giai doc duoc; nguoi ngoai khong. */
+const PREFIX_PATH = 'tournamentCodePrefix';
 
 export type ArenaKind = 'combat' | 'martial';
 
@@ -63,46 +89,43 @@ export interface CodeSlot {
   r: number;
 }
 
+/**
+ * Mot node trong kho ma. Hai loai node dung chung mot hinh dang:
+ *
+ *   · **o cham diem** (`accessCode/8311`) — co `slotCombat` / `slotMartial`
+ *   · **2 so cua giai** (`accessCode/83`) — co `reserved`, va mang ban thiet
+ *     ke cua giai de man chon cho dung lai duoc bang o ma khong can doc them
+ *
+ * Moi truong o day deu co nguoi doc. Truoc day node nay con mang `kind`, `a`,
+ * `r`, `label`, `ownerUid`, `claimedAt` — deu ghi roi khong ai doc lai, va
+ * `label` con noi sai ten giai sau khi chu giai doi ten.
+ */
 export interface AccessCode {
   /**
-   * Vang o node **giu cho 2 so dau** (`reserved`) — node do khong phai ma vao
-   * duoc, chi de khong giai nao khac nhan trung 2 so ay.
-   */
-  slot?: string;
-  t: TournamentId;
-  kind?: ArenaKind;
-  a?: number;
-  r?: number;
-  /**
-   * Ban sao dang CHUOI cua `t` va `kind`+`a`.
+   * Khoa giai, dang CHUOI.
    *
-   * Rules phai noi chuoi de dung toi `tournament/{t}/...` va
-   * `assignments/{kind}{a}`; giu san hai truong chuoi nay de moi phep noi
-   * trong rules la chuoi + chuoi, khong phu thuoc vao viec engine co ep kieu
-   * so sang chuoi hay khong.
+   * Rules phai noi chuoi de dung toi `tournament/{t}/...`, nen truong nay ton
+   * tai de moi phep noi trong rules la chuoi + chuoi. App doc chinh no luon —
+   * truoc day co them mot ban sao ten `t` y het, giu ca hai la thua mot cai.
    */
-  tKey: string;
+  tKey: TournamentId;
+  /**
+   * `combat0` / `martial1`… — rules dung de tra `tournamentStaff/{t}/{uid}/assignments/{arenaKey}`.
+   * Rules khong ep duoc so sang chuoi nen khong tu ghep `kind + a` duoc.
+   */
   arenaKey: string;
-  label: string;
-  ownerUid: string;
   claimedUid?: string;
-  claimedAt?: number;
 
-  /**
-   * MOT ma cho ca hai mon o cung mot o — dung cho moi ma 4 so.
-   *
-   * `slot` van giu mot slot cu the (mon dau tien co that o vi tri nay) de rules
-   * cu khong phai doi; hai truong duoi la day du cac slot ma nguoi cam ma nay
-   * duoc phep vao. Giam dinh chon mon o man xac nhan. Ma 2 so cua giai cu
-   * khong co truong nay — chung chi mo dung mot o.
-   */
-  shared?: boolean;
+  /** O cham diem: nhung slot ma nay mo. Giam dinh chon mon o man xac nhan. */
   slotCombat?: string;
   slotMartial?: string;
 
-  /** Node giu cho 2 so dau cua mot giai — go vao chi hien goi y, khong vao duoc */
+  /** Node 2 so cua giai — go vao chi hien bang chon, khong vao thang duoc */
   reserved?: boolean;
-  prefix?: string;
+  /** Giai nay mo may san (1 hoac 2) — de man chon dung lai bang o, khong doc them */
+  arenas?: number;
+  refCombat?: number;
+  refMartial?: number;
 }
 
 export interface CodeSession {
@@ -114,7 +137,6 @@ export interface CodeSession {
 export interface CachedSession {
   code: string;
   slot: string;
-  label: string;
   tournamentName: string;
 }
 
@@ -163,17 +185,14 @@ export function positionLabel(a: number, r: number): string {
 }
 
 /**
- * Nhung o cham diem mot ma mo duoc.
- *
- * Ma 4 so: mot hoac hai o (doi khang / thi quyen) cung san cung vi tri — day
- * chinh la cai giam dinh phai chon luc vao. Ma 2 so cua giai cu: dung mot o.
+ * Nhung o cham diem mot ma mo duoc — mot hoac hai (doi khang / thi quyen)
+ * cung san cung vi tri. Day chinh la cai giam dinh phai chon luc vao.
  */
 export function availableSlots(data: AccessCode | null): CodeSlot[] {
   if (!data || data.reserved) return [];
-  const raw = data.shared ? [data.slotCombat, data.slotMartial] : [data.slot];
   const out: CodeSlot[] = [];
-  for (const one of raw) {
-    const slot = parseSlot(one);
+  for (const raw of [data.slotCombat, data.slotMartial]) {
+    const slot = parseSlot(raw);
     if (slot) out.push(slot);
   }
   return out;
@@ -213,30 +232,6 @@ export async function isPrefixFree(prefix: string): Promise<boolean> {
   return !snap.exists();
 }
 
-/**
- * Giu cho 2 so dau bang mot node ngay trong kho ma.
- *
- * Giai khac khong nhan trung 2 so nay nua (cung mot phep kiem "da ton tai
- * chua" voi ma cua giai cu). Giam dinh go dung 2 so nay thi ra node giu cho
- * -> man hinh bao "gõ tiếp 2 số nữa" thay vi bao ma sai.
- */
-async function writePrefixHolder(
-  prefix: string,
-  t: TournamentId,
-  ownerUid: string,
-  tournamentName: string
-): Promise<void> {
-  await set(ref(database, `accessCode/${prefix}`), {
-    reserved: true,
-    prefix,
-    t,
-    tKey: String(t),
-    arenaKey: arenaKey('combat', 0),
-    label: `${tournamentName} · 2 số của giải`,
-    ownerUid,
-  });
-}
-
 export class PrefixTakenError extends Error {
   constructor(prefix: string) {
     super(`Số ${prefix} đang có giải khác dùng. Chọn 2 số khác giúp.`);
@@ -254,7 +249,7 @@ export class CodePoolFullError extends Error {
   }
 }
 
-// ==================== Bo ma cua mot giai ====================
+// ==================== Ban thiet ke cua mot giai ====================
 
 export interface TournamentCodePlan {
   /** So giam dinh doi khang (3 hoac 5) */
@@ -263,7 +258,6 @@ export interface TournamentCodePlan {
   martialReferees: number;
   /** Co dung San B hay khong */
   useArenaB: boolean;
-  tournamentName: string;
 }
 
 /** Mot o cua bang ma: mot vi tri giam dinh, dung duoc cho 1-2 mon */
@@ -278,182 +272,112 @@ export interface SharedPosition {
   kinds: ArenaKind[];
 }
 
+function clampPlan(plan: TournamentCodePlan): TournamentCodePlan {
+  return {
+    combatReferees: Math.max(0, Math.min(MAX_REFEREES, plan.combatReferees)),
+    martialReferees: Math.max(0, Math.min(MAX_REFEREES, plan.martialReferees)),
+    useArenaB: plan.useArenaB,
+  };
+}
+
 export function sharedPositions(t: TournamentId, plan: TournamentCodePlan): SharedPosition[] {
-  const arenas = plan.useArenaB ? [0, 1] : [0];
-  const most = Math.max(plan.combatReferees, plan.martialReferees);
+  const p = clampPlan(plan);
+  const arenas = p.useArenaB ? [0, 1] : [0];
+  const most = Math.max(p.combatReferees, p.martialReferees);
   const out: SharedPosition[] = [];
   for (const a of arenas) {
     for (let r = 0; r < most; r++) {
       const kinds: ArenaKind[] = [];
-      if (r < plan.combatReferees) kinds.push('combat');
-      if (r < plan.martialReferees) kinds.push('martial');
+      if (r < p.combatReferees) kinds.push('combat');
+      if (r < p.martialReferees) kinds.push('martial');
       if (kinds.length) out.push({ t, a, r, kinds });
     }
   }
   return out;
 }
 
+/**
+ * Ban thiet ke doc nguoc tu node 2 so cua giai.
+ *
+ * Day la thu thay cho ca bang chi muc cu: ba con so nay du de dung lai chinh
+ * xac bo o cua giai, o bat ky man nao — man chon cho cua giam dinh, bang ma
+ * cua chu giai, trang quan tri.
+ *
+ * Giai cap truoc ban nay chua co ba truong do; coi nhu ban mac dinh (2 san,
+ * 3 giam dinh) de man hinh khong trong troi — lan dong bo thiet dat ke tiep
+ * se ghi so that vao.
+ */
+export function planOf(holder: AccessCode | null | undefined): TournamentCodePlan {
+  return clampPlan({
+    combatReferees: holder?.refCombat ?? 3,
+    martialReferees: holder?.refMartial ?? 3,
+    useArenaB: (holder?.arenas ?? MAX_ARENAS) > 1,
+  });
+}
+
+/** Ba con so cua ban thiet ke, dang ghi xuong node 2 so cua giai */
+function planFields(plan: TournamentCodePlan): Pick<AccessCode, 'arenas' | 'refCombat' | 'refMartial'> {
+  const p = clampPlan(plan);
+  return {
+    arenas: p.useArenaB ? 2 : 1,
+    refCombat: p.combatReferees,
+    refMartial: p.martialReferees,
+  };
+}
+
 // ==================== 2 so cua giai ====================
 
-/** 2 so dau cua giai, nam canh chi muc ma */
-export interface CodeMeta {
-  /** Vang o giai cu chua duoc cap lai theo kieu 4 so */
-  prefix?: string;
-}
-
-const META_KEY = 'meta';
-
 /**
- * Chu giai doc duoc; giam sat thi KHONG (rules chi mo dung nhanh san ho truc).
- * Man giam sat khong can den: 2 so dau doc thang tu chinh ma dang hien.
+ * Giai nay mang 2 so nao.
+ *
+ * Doc `tournamentCodePrefix/{t}`. Giai cap truoc ban nay giu so o node `meta`
+ * cua bang chi muc cu — doc song song ca hai cho, cho nao co thi lay, roi lan
+ * dong bo ke tiep ghi sang cho moi. Doc song song chu khong noi tiep: giai moi
+ * nao cung tra loi "chua co" o ca hai cho, khong dang ton hai vong di-ve.
  */
-export async function getCodeMeta(t: TournamentId): Promise<CodeMeta | null> {
-  const snap = await get(child(ref(database), `tournamentCodeIndex/${t}/${META_KEY}`));
-  return snap.val();
+export async function resolvePrefix(t: TournamentId): Promise<string | undefined> {
+  const [fresh, legacy] = await Promise.all([
+    get(child(ref(database), `${PREFIX_PATH}/${t}`)).then((s) => s.val()).catch(() => null),
+    get(child(ref(database), `tournamentCodeIndex/${t}/meta/prefix`)).then((s) => s.val()).catch(() => null),
+  ]);
+  const found = fresh || legacy;
+  return typeof found === 'string' && found ? found : undefined;
 }
 
-async function setCodeMeta(t: TournamentId, meta: CodeMeta): Promise<void> {
-  const payload: CodeMeta = {};
-  if (meta.prefix) payload.prefix = meta.prefix;
-  await set(ref(database, `tournamentCodeIndex/${t}/${META_KEY}`), payload);
+export function subscribePrefix(
+  t: TournamentId,
+  cb: (prefix: string | null) => void,
+  onError?: (err: Error) => void
+): () => void {
+  const r = ref(database, `${PREFIX_PATH}/${t}`);
+  onValue(r, (snap) => cb(snap.val()), (err) => onError?.(err));
+  return () => off(r);
 }
 
-/** Moi ma dang co cua mot giai (bo qua node `meta`, bo trung) */
-async function codesOfTournament(t: TournamentId): Promise<string[]> {
-  const snap = await get(child(ref(database), `tournamentCodeIndex/${t}`));
-  const index = snap.val() as Record<string, unknown> | null;
-  if (!index) return [];
-
-  const out = new Set<string>();
-  for (const [key, byReferee] of Object.entries(index)) {
-    if (key === META_KEY) continue;
-    for (const code of Object.values((byReferee || {}) as Record<string, string>)) {
-      if (code) out.add(code);
-    }
-  }
-  return [...out];
-}
-
-/**
- * 2 so cua giai — vang neu day la giai cu, cap ma tu thoi con kieu "moi o mot
- * ma 2 so ngau nhien". Chua tu y doi so o day: doi la moi ma dang cam chet
- * ngay, phai do nguoi goi quyet dinh.
- */
-export async function resolveCodeMeta(t: TournamentId): Promise<CodeMeta> {
-  try {
-    const meta = await getCodeMeta(t);
-    if (meta?.prefix) return { prefix: meta.prefix };
-  } catch {
-    /* khong doc duoc meta thi doc nguoc tu chinh bo ma */
-  }
-
-  // Mat node `meta` nhung ma van con: doc nguoc 2 so tu chinh ma dang chay.
-  // Khong lam vay thi mot node bien mat la ca giai phai doc lai so.
-  return { prefix: prefixFromCodes(await codesOfTournament(t)) };
-}
-
-/**
- * 2 so cua giai suy nguoc tu bo ma dang co — `undefined` neu day khong phai
- * mot bo ma 4 so cung chung mot dau (giai cu, hoac bo ma da lan lon).
- */
-function prefixFromCodes(codes: string[]): string | undefined {
-  if (!codes.length || !codes.every((c) => c.length === SHARED_CODE_LENGTH)) return undefined;
-  const prefixes = new Set(codes.map(prefixOf));
-  return prefixes.size === 1 ? [...prefixes][0] : undefined;
-}
+// ==================== Cap ma ====================
 
 export interface EnsureCodesResult {
   created: number;
   kept: number;
-  /** So ma bi go vi o do khong con trong thiet dat nua */
+  /** So NODE MA bi go vi o do khong con trong thiet dat nua */
   removed: number;
   maxRetries: number;
   /** True khi kho ma sap het — hien canh bao cho nguoi dung */
   poolPressure: boolean;
   prefix?: string;
-  /** True khi phai bo bo ma kieu cu cua giai de cap lai theo 2 so cua giai */
-  migrated: boolean;
 }
 
 /**
- * Bao dam moi o cham diem cua giai deu co ma.
+ * Payload cua mot o cham diem.
  *
- * Goi ngay LUC TAO GIAI, khong bat bam them mot buoc: mo Thiet dat ra la da
- * co ma san de doc cho giam dinh.
- *
- * Giai cu (ma 2 so roi rac, chua co "so cua giai") thi phai **don sach truoc**:
- * de nguyen thi mot o cham diem co hai duong vao — ma cu va ma moi — con ma cu
- * thi nam giu cho trong kho toi luc dong giai.
+ * `arenaKey` lay theo mon dau tien co that o vi tri nay — rules chi dung no de
+ * tra phan cong giam sat, ma giam sat duoc phan cong san nao thi duoc ca hai
+ * mon cua san do.
  */
-export async function ensureTournamentCodes(
-  t: TournamentId,
-  plan: TournamentCodePlan,
-  ownerUid: string
-): Promise<EnsureCodesResult> {
-  const meta = await resolveCodeMeta(t);
-  const migrated = !meta.prefix && (await codesOfTournament(t)).length > 0;
-  if (migrated) await revokeTournamentCodes(t);
-  const res = await ensureSharedCodes(t, plan, ownerUid, meta.prefix);
-  return { ...res, migrated };
-}
-
-export interface SyncCodesResult extends EnsureCodesResult {
-  /** True khi day la giai cu chua co so cua giai — khong tu y dong bo */
-  skipped: boolean;
-}
-
-/**
- * Dong bo bo ma theo dung thiet dat hien tai — goi NGAY SAU khi luu thiet dat.
- *
- * So giam dinh la thu chu giai doi duoc bat cu luc nao; bo ma phai chay theo
- * mot cach im lang. Khong co ham nay thi bat 5 giam dinh xong, GD4 va GD5 go
- * dung cong thuc van bi bao "khong co ma nay" — va chu giai phai biet den mot
- * nut "cap ma" de vao vet, thu ma le ra ho khong bao gio phai nghi den.
- *
- * Giai cu (con ma kieu moi o mot so, chua co so cua giai) thi **bo qua**: don
- * sang kieu moi la moi ma dang cam chet ngay, viec do phai chu giai bam.
- */
-export async function syncTournamentCodes(
-  t: TournamentId,
-  plan: TournamentCodePlan,
-  ownerUid: string
-): Promise<SyncCodesResult> {
-  const meta = await resolveCodeMeta(t);
-  if (!meta.prefix && (await codesOfTournament(t)).length > 0) {
-    return {
-      created: 0, kept: 0, removed: 0, maxRetries: 0,
-      poolPressure: false, migrated: false, skipped: true,
-    };
-  }
-  return { ...(await ensureSharedCodes(t, plan, ownerUid, meta.prefix)), skipped: false };
-}
-
-/**
- * Cap mot ma dung chung cho mot vi tri giam dinh.
- *
- * Chi muc duoc ghi vao **ca hai** nhanh mon cua vi tri do: giam sat doi khang
- * va giam sat thi quyen moi nguoi chi doc duoc nhanh san minh truc, nen ma
- * phai co mat o ca hai cho thi ca hai moi mo bang ma ra xem duoc.
- */
-function sharedCodeWrites(
-  prefix: string,
-  pos: SharedPosition,
-  ownerUid: string,
-  tournamentName: string
-): Record<string, unknown> {
-  const code = sharedCodeFor(prefix, pos.a, pos.r);
-  const primary = pos.kinds[0];
+function positionPayload(pos: SharedPosition): AccessCode {
   const payload: AccessCode = {
-    slot: slotString({ t: pos.t, kind: primary, a: pos.a, r: pos.r }),
-    t: pos.t,
-    kind: primary,
-    a: pos.a,
-    r: pos.r,
-    tKey: String(pos.t),
-    arenaKey: arenaKey(primary, pos.a),
-    label: `${tournamentName} · ${positionLabel(pos.a, pos.r)}`,
-    ownerUid,
-    shared: true,
+    tKey: pos.t,
+    arenaKey: arenaKey(pos.kinds[0], pos.a),
   };
   if (pos.kinds.includes('combat')) {
     payload.slotCombat = slotString({ t: pos.t, kind: 'combat', a: pos.a, r: pos.r });
@@ -461,172 +385,174 @@ function sharedCodeWrites(
   if (pos.kinds.includes('martial')) {
     payload.slotMartial = slotString({ t: pos.t, kind: 'martial', a: pos.a, r: pos.r });
   }
-
-  const writes: Record<string, unknown> = { [`accessCode/${code}`]: payload };
-  for (const kind of pos.kinds) {
-    writes[`tournamentCodeIndex/${pos.t}/${arenaKey(kind, pos.a)}/${pos.r}`] = code;
-  }
-  return writes;
+  return payload;
 }
 
-/** Duong lui khi ghi gop that bai — ghi tung o mot, dung nhu ban cu. */
-async function createSharedCode(
-  prefix: string,
-  pos: SharedPosition,
-  ownerUid: string,
-  tournamentName: string
-): Promise<void> {
-  for (const [path, value] of Object.entries(
-    sharedCodeWrites(prefix, pos, ownerUid, tournamentName)
-  )) {
-    await set(ref(database, path), value);
-  }
+function holderPayload(t: TournamentId, prefix: string, plan: TournamentCodePlan): AccessCode {
+  return {
+    reserved: true,
+    tKey: t,
+    arenaKey: arenaKey('combat', 0),
+    ...planFields(plan),
+  };
 }
 
-/** Node ma nay co dung nhung mon ma vi tri do dang co hay khong */
-function matchesKinds(data: AccessCode, kinds: ArenaKind[]): boolean {
-  return kinds.includes('combat') === !!data.slotCombat
-    && kinds.includes('martial') === !!data.slotMartial;
+/** Node 2 so cua giai da mang dung ban thiet ke chua */
+function sameHolder(has: AccessCode | null, want: AccessCode): boolean {
+  return !!has
+    && has.reserved === true
+    && has.tKey === want.tKey
+    && has.arenaKey === want.arenaKey
+    && has.arenas === want.arenas
+    && has.refCombat === want.refCombat
+    && has.refMartial === want.refMartial;
+}
+
+/** Node ma nay da dung hinh dang can co chua */
+function upToDate(data: AccessCode | null, pos: SharedPosition): boolean {
+  if (!data || data.tKey !== pos.t) return false;
+  const want = positionPayload(pos);
+  return data.slotCombat === want.slotCombat
+    && data.slotMartial === want.slotMartial
+    && data.arenaKey === want.arenaKey
+    // Node cap truoc ban nay mang mot dong truong khong ai doc. Ghi lai mot
+    // luot cho no gon — khong thi giai cu mang mai hinh dang cu.
+    && (data as unknown as Record<string, unknown>).label === undefined;
 }
 
 /**
- * Go nhung ma khong con nam trong thiet dat.
+ * Nhung o KHONG con trong thiet dat nua, doc tu ban thiet ke CU.
  *
  * Ha 5 giam dinh xuong 3 ma de nguyen thi ma cua GD4, GD5 van mo duoc mot o
- * cham diem khong con ai nhin — mot cua vao thua nam mo giua giai. Bo ma phai
- * la ban sao dung cua thiet dat, khong phai cai chi biet dai them ra.
+ * cham diem khong con ai nhin — mot cua vao thua nam mo giua giai.
  *
- * `keep`: `{sanKey}/{vi tri}` -> ma dung cho o do.
+ * Biet ban cu thi biet chinh xac o nao tung ton tai, nen chi ra lenh xoa dung
+ * nhung o do. Doan bua ca luoi 2x5 thi phan lon lenh xoa roi vao node khong co
+ * that, ma rules chan xoa node khong con `tKey` — loi do khong lam hong gi
+ * nhung in day mot mau canh bao ra console.
  */
-async function pruneStaleCodes(t: TournamentId, keep: Map<string, string>): Promise<number> {
-  const snap = await get(child(ref(database), `tournamentCodeIndex/${t}`));
-  const index = snap.val() as Record<string, Record<string, string>> | null;
-  if (!index) return 0;
-
-  // Mot ma nam o ca hai nhanh mon: chi xoa node ma khi khong nhanh nao con giu
-  const live = new Set(keep.values());
-  let removed = 0;
-
-  // Gom lai ghi mot luot: doi 5 giam dinh xuong 3 la bon o phai don, xep hang
-  // tung lenh xoa thi lai them bon vong di-ve.
-  const drop: Record<string, null> = {};
-  for (const [sanKey, byReferee] of Object.entries(index)) {
-    if (sanKey === META_KEY) continue;
-    for (const [r, code] of Object.entries(byReferee || {})) {
-      if (keep.get(`${sanKey}/${r}`) === code) continue;
-      drop[`tournamentCodeIndex/${t}/${sanKey}/${r}`] = null;
-      if (!live.has(code)) {
-        drop[`accessCode/${code}`] = null;
-        removed++;
-      }
-    }
+function staleCodes(prefix: string, before: TournamentCodePlan, after: SharedPosition[], t: TournamentId): string[] {
+  const live = new Set(after.map((p) => sharedCodeFor(prefix, p.a, p.r)));
+  const out: string[] = [];
+  for (const pos of sharedPositions(t, before)) {
+    const code = sharedCodeFor(prefix, pos.a, pos.r);
+    if (!live.has(code)) out.push(code);
   }
-  if (!Object.keys(drop).length) return 0;
-
-  try {
-    await update(ref(database), drop);
-  } catch {
-    // Nhu luc cap ma: xoa gop truot thi xoa tung cai, con hon de lai ca mo
-    for (const path of Object.keys(drop)) {
-      await remove(ref(database, path)).catch(() => undefined);
-    }
-  }
-  return removed;
+  return out;
 }
 
-async function ensureSharedCodes(
+/**
+ * Bao dam moi o cham diem cua giai deu co ma, va KHONG con o thua nao.
+ *
+ * Goi ca luc tao giai lan ngay sau khi luu thiet dat. So giam dinh la thu chu
+ * giai doi duoc bat cu luc nao; bo ma phai chay theo mot cach im lang — khong
+ * co ham nay thi bat 5 giam dinh xong, GD4 va GD5 go dung cong thuc van bi bao
+ * "khong co ma nay".
+ *
+ * Ghi mot luot: node 2 so cua giai, cac o phai cap, con tro `tournamentCodePrefix`
+ * va cac o phai go — tat ca trong dung MOT lenh `update`. Truoc day day la ba
+ * bon vong di-ve noi tiep, va node chi muc bi doc lai bon lan trong cung mot
+ * luot cap ma.
+ */
+export async function syncTournamentCodes(
   t: TournamentId,
   plan: TournamentCodePlan,
   ownerUid: string,
   known?: string
 ): Promise<EnsureCodesResult> {
-  let prefix = known;
+  let prefix = known || (await resolvePrefix(t));
   let retries = 0;
-  /** Vua tu tay ghi node giu cho ngay trong luot nay */
-  let justClaimed = false;
+  /** Vua tu tay nhan so trong luot nay: khong the co san o nao duoi no */
+  let fresh = false;
 
   if (!prefix) {
     for (let attempt = 0; attempt < MAX_CODE_ATTEMPTS; attempt++) {
       const candidate = randomPrefix();
       if (!(await isPrefixFree(candidate))) continue;
-      await writePrefixHolder(candidate, t, ownerUid, plan.tournamentName);
       prefix = candidate;
       retries = attempt;
-      justClaimed = true;
+      fresh = true;
       break;
     }
     if (!prefix) throw new CodePoolFullError();
   }
 
-  // Node giu cho 2 so dau GIO LA CUA VAO: giam dinh go dung no roi moi chon
-  // cho ngoi. Mat no thi ca doan dung ngoai cua trong khi bang ma van hien
-  // binh thuong — nen kiem lai moi lan dong bo, khong chi luc cap so moi.
-  // Vua ghi xong ngay tren thi khong doc lai — do la mot vong di-ve chi de
-  // xac nhan thu minh vua dat xuong.
-  if (!justClaimed) {
-    const holder = await get(child(ref(database), `accessCode/${prefix}`));
-    const owned = holder.val() as AccessCode | null;
-    if (!owned) {
-      await writePrefixHolder(prefix, t, ownerUid, plan.tournamentName);
-    } else if (owned.tKey !== String(t)) {
-      // Giai khac dang giu 2 so nay — de nguyen, ghi de la cuop cua ho
-      throw new PrefixTakenError(prefix);
-    }
-  }
-
   const positions = sharedPositions(t, plan);
-  const keep = new Map<string, string>();
-  for (const pos of positions) {
-    const code = sharedCodeFor(prefix, pos.a, pos.r);
-    for (const kind of pos.kinds) keep.set(`${arenaKey(kind, pos.a)}/${pos.r}`, code);
+
+  // Doc node 2 so cua giai va cac o hien co TRONG MOT VONG.
+  //
+  // Chung khong biet gi ve nhau nen khong co ly do xep hang: tao giai o vung
+  // xa la ngoi cho vai giay cho mot viec von chi ton mot vong. Loi doc thi de
+  // no vang ra — doc hong ma coi nhu "chua co" la ghi de len ma cua giai khac.
+  const [holder, pointer, existing] = fresh
+    ? [null, null, positions.map(() => null)]
+    : await Promise.all([
+      get(child(ref(database), `accessCode/${prefix}`)).then((s) => s.val() as AccessCode | null),
+      get(child(ref(database), `${PREFIX_PATH}/${t}`)).then((s) => s.val() as string | null),
+      Promise.all(positions.map((pos) =>
+        get(child(ref(database), `accessCode/${sharedCodeFor(prefix!, pos.a, pos.r)}`))
+          .then((s) => s.val() as AccessCode | null)
+      )),
+    ]);
+
+  // Giai khac dang giu 2 so nay — de nguyen, ghi de la cuop cua ho
+  if (holder && holder.tKey !== t) throw new PrefixTakenError(prefix);
+
+  const writes: Record<string, unknown> = {};
+
+  const wantHolder = holderPayload(t, prefix, plan);
+  if (!sameHolder(holder, wantHolder)) writes[`accessCode/${prefix}`] = wantHolder;
+  if (pointer !== prefix) writes[`${PREFIX_PATH}/${t}`] = prefix;
+
+  let created = 0;
+  positions.forEach((pos, i) => {
+    if (upToDate(existing[i], pos)) return;
+    // Giu nguyen may dang cam o nay: doi 3 lon 5 giam dinh giua giai khong
+    // duoc day nguoi dang cham ra khoi ban cua ho
+    const keepClaim = existing[i]?.claimedUid;
+    const payload = positionPayload(pos);
+    if (keepClaim) payload.claimedUid = keepClaim;
+    writes[`accessCode/${sharedCodeFor(prefix!, pos.a, pos.r)}`] = payload;
+    created++;
+  });
+
+  // Chi go duoc khi biet ban thiet ke CU. Khong co node 2 so — so vua nhan,
+  // hoac vua thu hoi xong — thi khong co gi de go.
+  //
+  // Quan trong hon la khong duoc DOAN: mot lenh xoa nham vao node khong co that
+  // bi rules tu choi, ma `update` nhieu duong la mot khoi — mot duong hong thi
+  // ca khoi truot, va ca luot cap ma roi xuong duong ghi tung o.
+  const stale = holder ? staleCodes(prefix, planOf(holder), positions, t) : [];
+  for (const code of stale) writes[`accessCode/${code}`] = null;
+
+  // Luu thiet dat ma khong dong den so giam dinh la truong hop THUONG GAP
+  // nhat. Khong doi gi thi khong ghi gi — truoc day cho nay van ghi lai dung
+  // cai gia tri cu, mot luot ghi Firebase cho moi lan bam luu.
+  if (!Object.keys(writes).length) {
+    return {
+      created: 0, kept: positions.length, removed: 0,
+      maxRetries: retries, poolPressure: false, prefix,
+    };
   }
 
-  // Doc CA NODE chu khong moi `tKey`: doi thi quyen 5 -> 3 thi ma o GD3 van
-  // dung giai nhung khong con la ma hai mon nua, phai ghi lai chu khong giu.
-  //
-  // Doc SONG SONG. Cac vi tri khong biet gi ve nhau, ma xep hang tung cai thi
-  // moi cai an tron mot vong di-ve — tao giai o vung xa la ngoi cho vai giay
-  // cho mot viec von chi ton mot vong.
-  //
-  // Loi doc thi de no vang ra: doc hong ma coi nhu "chua co" la ghi de len ma
-  // cua giai khac.
-  const existing = await Promise.all(
-    positions.map((pos) =>
-      get(child(ref(database), `accessCode/${sharedCodeFor(prefix!, pos.a, pos.r)}`))
-        .then((snap) => snap.val() as AccessCode | null)
-    )
-  );
-
-  const todo = positions.filter(
-    (pos, i) => !(existing[i]?.tKey === String(t) && matchesKinds(existing[i]!, pos.kinds))
-  );
-  const kept = positions.length - todo.length;
-  const created = todo.length;
-
-  if (todo.length) {
-    const batch: Record<string, unknown> = {};
-    for (const pos of todo) {
-      Object.assign(batch, sharedCodeWrites(prefix, pos, ownerUid, plan.tournamentName));
-    }
-    try {
-      // Mot lan di ve cho ca bo ma, thay vi 3 lan moi vi tri
-      await update(ref(database), batch);
-    } catch {
-      // Ghi gop la mot khoi: mot o hong thi ca khoi truot. Quay ve ghi tung o
-      // de bo ma van len duoc gan het, con hon la khong len o nao.
-      for (const pos of todo) {
-        await createSharedCode(prefix, pos, ownerUid, plan.tournamentName);
-      }
+  try {
+    await update(ref(database), writes);
+  } catch {
+    // Ghi gop la mot khoi: mot o hong thi ca khoi truot. Quay ve ghi tung o
+    // de bo ma van len duoc gan het, con hon la khong len o nao.
+    for (const [path, value] of Object.entries(writes)) {
+      if (value === null) await remove(ref(database, path)).catch(() => undefined);
+      else await set(ref(database, path), value).catch(() => undefined);
     }
   }
 
-  const removed = await pruneStaleCodes(t, keep);
-
-  await setCodeMeta(t, { prefix });
   return {
-    created, kept, removed, maxRetries: retries,
+    created,
+    kept: positions.length - created,
+    removed: stale.length,
+    maxRetries: retries,
     poolPressure: retries >= CODE_PRESSURE_WARN,
-    prefix, migrated: false,
+    prefix,
   };
 }
 
@@ -642,14 +568,13 @@ export async function reissueTournamentCodes(
   ownerUid: string,
   prefix: string
 ): Promise<EnsureCodesResult> {
-  const current = await resolveCodeMeta(t);
-  if (prefix !== current.prefix && !(await isPrefixFree(prefix))) {
+  const current = await resolvePrefix(t);
+  if (prefix !== current && !(await isPrefixFree(prefix))) {
     throw new PrefixTakenError(prefix);
   }
 
   await revokeTournamentCodes(t);
-  await writePrefixHolder(prefix, t, ownerUid, plan.tournamentName);
-  return ensureSharedCodes(t, plan, ownerUid, prefix);
+  return syncTournamentCodes(t, plan, ownerUid, prefix);
 }
 
 /**
@@ -657,79 +582,47 @@ export async function reissueTournamentCodes(
  *
  * Vi ma la kho dung chung co tran, "xong giai la bam Dong giai" khong con la
  * chuyen gon gang ma la **bat buoc**: khong dong thi ma nam giu cho mai.
+ *
+ * Xoa theo ban thiet ke doc tu chinh node 2 so cua giai, nen khong bo sot o
+ * nao va cung khong ra lenh xoa nham o khong co that.
  */
 export async function revokeTournamentCodes(t: TournamentId): Promise<number> {
-  const codes = await codesOfTournament(t);
-
-  let prefix: string | undefined;
-  try {
-    prefix = (await getCodeMeta(t))?.prefix;
-  } catch {
-    /* khong doc duoc meta thi van xoa duoc ma theo chi muc */
+  const prefix = await resolvePrefix(t);
+  if (!prefix) {
+    // Khong con dau vet nao cua 2 so — van don not cho cu de khong de lai rac
+    await remove(ref(database, `tournamentCodeIndex/${t}`)).catch(() => undefined);
+    await remove(ref(database, `${PREFIX_PATH}/${t}`)).catch(() => undefined);
+    return 0;
   }
 
-  // 2 so dau cung chiem mot node trong kho ma — khong tra lai thi giai sau
-  // khong bao gio nhan duoc so ay nua
-  const target = prefix || prefixFromCodes(codes);
-  if (target) codes.push(target);
+  const holder = await get(child(ref(database), `accessCode/${prefix}`))
+    .then((s) => s.val() as AccessCode | null)
+    .catch(() => null);
 
-  let n = 0;
-  for (const code of codes) {
-    await remove(ref(database, `accessCode/${code}`));
+  const writes: Record<string, unknown> = {
+    // 2 so dau cung chiem mot node trong kho ma — khong tra lai thi giai sau
+    // khong bao gio nhan duoc so ay nua
+    [`accessCode/${prefix}`]: null,
+    [`${PREFIX_PATH}/${t}`]: null,
+    [`tournamentCodeIndex/${t}`]: null,
+  };
+  let n = 1;
+  for (const pos of sharedPositions(t, planOf(holder))) {
+    writes[`accessCode/${sharedCodeFor(prefix, pos.a, pos.r)}`] = null;
     n++;
   }
-  await remove(ref(database, `tournamentCodeIndex/${t}`));
+
+  try {
+    await update(ref(database), writes);
+  } catch {
+    for (const path of Object.keys(writes)) {
+      await remove(ref(database, path)).catch(() => undefined);
+    }
+  }
   return n;
 }
 
-export async function getCodeForSlot(slot: CodeSlot): Promise<string | null> {
-  const snap = await get(
-    child(ref(database), `tournamentCodeIndex/${slot.t}/${arenaKey(slot.kind, slot.a)}/${slot.r}`)
-  );
-  return snap.val();
-}
-
-// ==================== Doc bang ma ====================
-
-export type CodeIndex = Record<string, Record<string, string>>;
-
-/**
- * Chu giai: bang ma CA GIAI.
- *
- * Giam sat KHONG dung ham nay duoc — rules chi cho ho doc dung nhanh san minh
- * (`tournamentCodeIndex/{t}/{sanKey}`), doc ca `{t}` se bi tu choi.
- * Man giam sat phai dung `subscribeArenaCodeIndex`.
- */
-export function subscribeCodeIndex(
-  t: TournamentId,
-  cb: (index: CodeIndex) => void,
-  onError?: (err: Error) => void
-): () => void {
-  const r = ref(database, `tournamentCodeIndex/${t}`);
-  onValue(
-    r,
-    (snap) => {
-      // `meta` (kieu danh so + 2 so dau) nam chung nhanh nhung khong phai san —
-      // loc ngay tai day de moi noi dung bang ma khoi phai nho ma tranh no
-      const { [META_KEY]: _meta, ...arenas } = (snap.val() || {}) as Record<string, unknown>;
-      cb(arenas as CodeIndex);
-    },
-    (err) => onError?.(err)
-  );
-  return () => off(r);
-}
-
-/** Giam sat: chi doc duoc dung san minh duoc phan cong */
-export function subscribeArenaCodeIndex(
-  t: TournamentId,
-  sanKey: string,
-  cb: (byReferee: Record<string, string>) => void,
-  onError?: (err: Error) => void
-): () => void {
-  const r = ref(database, `tournamentCodeIndex/${t}/${sanKey}`);
-  onValue(r, (snap) => cb(snap.val() || {}), (err) => onError?.(err));
-  return () => off(r);
-}
+// ==================== Doc kho ma ====================
 
 export async function getCode(code: string): Promise<AccessCode | null> {
   const snap = await get(child(ref(database), `accessCode/${code}`));
@@ -751,13 +644,6 @@ export function subscribeCode(code: string, cb: (data: AccessCode | null) => voi
 
 // ==================== Tu so cua giai ra o cham diem ====================
 
-/**
- * Tran cua ma dung chung: `sharedCodeFor` danh cho san va vi tri moi ben DUNG
- * MOT chu so, nen khong bao gio co san thu 3 hay giam dinh thu 6.
- */
-export const MAX_ARENAS = 2;
-export const MAX_REFEREES = 5;
-
 /** Mot o cham diem chon duoc tu man hinh, sau khi go 2 so cua giai */
 export interface OpenPosition {
   a: number;
@@ -769,43 +655,37 @@ export interface OpenPosition {
   claimedUid?: string;
 }
 
+/** O cham diem cua mot vi tri, dung tu ban thiet ke — chua biet ai dang cam */
+function openPositionOf(prefix: string, pos: SharedPosition): OpenPosition {
+  return {
+    a: pos.a,
+    r: pos.r,
+    code: sharedCodeFor(prefix, pos.a, pos.r),
+    slots: pos.kinds.map((kind) => ({ t: pos.t, kind, a: pos.a, r: pos.r })),
+  };
+}
+
+/** Bo o cua mot giai, dung thang tu node 2 so cua giai — khong ton vong doc nao */
+export function positionsOfHolder(prefix: string, holder: AccessCode): OpenPosition[] {
+  return sharedPositions(holder.tKey, planOf(holder)).map((pos) => openPositionOf(prefix, pos));
+}
+
 /**
- * Giai co nhung o cham diem nao — do thang tu kho ma.
+ * Giai co nhung o cham diem nao, va o nao dang co may cam.
  *
- * Giam dinh chi go 2 SO CUA GIAI; san va vi tri thi ho **cham vao man hinh**
- * chu khong go. De bay ra dung nhung o co that, man hinh phai biet giai nay co
- * may san, may giam dinh — ma `tournamentCodeIndex` thi chi chu giai doc duoc,
- * con `tournament/{t}/setting` la mot cay nang.
+ * Bo o thi **tinh ra** tu ba con so nam san tren node 2 so cua giai — truoc
+ * day cho nay do cung ca luoi 2x5 = 10 to hop, nen giai mot san ba giam dinh
+ * ton 7 vong di-ve chi de nghe tra loi "khong co".
  *
- * Nen doc nguoc tu chinh cac node ma: ma la `so giai + san + vi tri` nen thu
- * het 2 x 5 to hop la ra dung bo o cua giai — kem luon "o nay co ai cam chua"
- * va "o nay cham duoc mon gi". Khong them mot ban sao thiet dat nao de lech.
- *
- * `t` de chan mot truong hop hiem ma dat: giai cu dong chua sach ma, giai moi
- * nhan trung 2 so — o do se tro ve giai da chet.
+ * Con phai doc that la trang thai "o nay ai dang cam" — thu duy nhat khong
+ * tinh ra duoc. Doc mot vong song song cho dung nhung o co that.
  */
-export async function positionsForPrefix(prefix: string, t: TournamentId): Promise<OpenPosition[]> {
-  const wanted: { a: number; r: number; code: string }[] = [];
-  for (let a = 0; a < MAX_ARENAS; a++) {
-    for (let r = 0; r < MAX_REFEREES; r++) {
-      wanted.push({ a, r, code: sharedCodeFor(prefix, a, r) });
-    }
-  }
-
-  const found = await Promise.all(wanted.map(async (w): Promise<OpenPosition | null> => {
-    let data: AccessCode | null = null;
-    try {
-      data = await getCode(w.code);
-    } catch {
-      return null;
-    }
-    if (!data || data.reserved || data.tKey !== String(t)) return null;
-    const slots = availableSlots(data);
-    if (!slots.length) return null;
-    return { ...w, slots, claimedUid: data.claimedUid };
-  }));
-
-  return found.filter((p): p is OpenPosition => p !== null);
+export async function positionsForPrefix(prefix: string, holder: AccessCode): Promise<OpenPosition[]> {
+  const positions = positionsOfHolder(prefix, holder);
+  const claims = await Promise.all(positions.map((p) =>
+    getCode(p.code).then((d) => d?.claimedUid).catch(() => undefined)
+  ));
+  return positions.map((p, i) => (claims[i] ? { ...p, claimedUid: claims[i] } : p));
 }
 
 /**
@@ -843,7 +723,7 @@ export class CodeError extends Error {
 export async function claimCode(
   code: string,
   uid: string,
-  /** Kieu dung chung: mon giam dinh vua chon. Ma chi mo duoc mot o thi bo trong. */
+  /** Mon giam dinh vua chon. Ma chi mo duoc mot o thi bo trong. */
   chosen?: CodeSlot
 ): Promise<AccessCode> {
   const data = await getCode(code);
@@ -851,8 +731,8 @@ export async function claimCode(
     throw new CodeError('not-found', 'Số không đúng. Kiểm tra lại giúp — số do giám sát đọc cho.');
   }
 
-  // Ma dung chung mo duoc 2 o (doi khang / thi quyen). Khong tu chon ho: vao
-  // nham mon la ca ban diem do vao lam khac, khong ai nhin ra ngay duoc.
+  // Ma mo duoc 2 o (doi khang / thi quyen). Khong tu chon ho: vao nham mon la
+  // ca ban diem do vao lam khac, khong ai nhin ra ngay duoc.
   const options = availableSlots(data);
   const target = chosen ? options.find((s) => slotString(s) === slotString(chosen)) : options[0];
   if (!target || (options.length > 1 && !chosen)) {
@@ -867,17 +747,7 @@ export async function claimCode(
   }
 
   if (data.claimedUid !== uid) {
-    try {
-      await update(ref(database, `accessCode/${code}`), {
-        claimedUid: uid,
-        claimedAt: Date.now(),
-      });
-    } catch {
-      // `claimedAt` chi de xem cho biet. Rules bat buoc phai cho ghi
-      // `claimedUid` — con `claimedAt` thi khong duoc phep chan duong vao ban
-      // cham cua giam dinh giua tran.
-      await set(ref(database, `accessCode/${code}/claimedUid`), uid);
-    }
+    await set(ref(database, `accessCode/${code}/claimedUid`), uid);
   }
 
   await set(ref(database, `codeSession/${uid}`), { code, slot: slotString(target) });
@@ -892,10 +762,7 @@ export async function claimCode(
  * dung ma cu.
  */
 export async function unlockCode(code: string): Promise<void> {
-  await update(ref(database, `accessCode/${code}`), {
-    claimedUid: null,
-    claimedAt: null,
-  });
+  await remove(ref(database, `accessCode/${code}/claimedUid`));
 }
 
 export function subscribeSession(uid: string, cb: (s: CodeSession | null) => void): () => void {

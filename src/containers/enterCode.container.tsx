@@ -4,10 +4,10 @@ import logo from '../assets/img/logo.png';
 import { Button, NumericKeypad, Toast } from '../components/ui';
 import { ensureAnonymous } from '../services/authService';
 import {
-  AccessCode, CodeError, CodeSlot, OpenPosition, PREFIX_LENGTH,
-  arenaName, availableSlots, cacheSession, claimCode, getCachedSession, getCode, kindName,
-  positionLabel, refreshPosition, resolveRefereeSession, slotLabel, slotString, spacedCode,
-  positionsForPrefix,
+  CodeError, CodeSlot, OpenPosition, PREFIX_LENGTH,
+  arenaName, cacheSession, claimCode, getCachedSession, getCode, kindName,
+  positionLabel, positionsForPrefix, refreshPosition, resolveRefereeSession,
+  slotString, spacedCode,
 } from '../services/accessCodeService';
 import { getData } from '../services/firebaseService';
 import type { TournamentId } from '../types';
@@ -18,7 +18,7 @@ interface EnterCodeContainerProps {
   history?: { push: (path: string) => void };
 }
 
-type Phase = 'signing-in' | 'auth-failed' | 'keypad' | 'pick' | 'confirm' | 'entering';
+type Phase = 'signing-in' | 'auth-failed' | 'keypad' | 'pick' | 'entering';
 
 /** Giai tim thay tu 2 so — dang cho giam dinh chon cho ngoi cua minh */
 interface Picking {
@@ -34,21 +34,12 @@ interface Picking {
   blocked: string;
 }
 
-/** Ma kieu cu: mot ma la mot o cham diem, go xong vao thang */
-interface Found {
-  code: string;
-  data: AccessCode;
-  options: CodeSlot[];
-  tournamentName: string;
-}
-
 interface EnterCodeContainerState {
   phase: Phase;
   uid: string;
   value: string;
   error: string;
   picking: Picking | null;
-  found: Found | null;
   /** Trinh duyet o che do rieng tu: uid an danh sinh lai moi lan mo */
   privateModeWarning: boolean;
   busy: boolean;
@@ -83,7 +74,6 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
     value: '',
     error: '',
     picking: null,
-    found: null,
     privateModeWarning: false,
     busy: false,
   };
@@ -151,12 +141,18 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
     return (await getData<string>(`tournament/${t}/setting/tournamentName`)) || 'Giải chưa đặt tên';
   }
 
-  /** 2 so vua go: so cua giai (ra bang chon) hay ca mot ma kieu cu (vao thang) */
+  /**
+   * 2 so vua go la SO CUA GIAI — bay ra dung nhung ban cham co that de ho cham.
+   *
+   * Bo o thi doc thang tu node so cua giai: no mang san so san va so giam
+   * dinh, nen dung lai duoc ca bang ma khong ton them vong doc nao. Chi con
+   * phai hoi that mot thu la "o nay may nao dang cam".
+   */
   async lookup(code: string) {
     this.setState({ busy: true });
     try {
-      const data = await getCode(code);
-      if (!data) {
+      const holder = await getCode(code);
+      if (!holder || !holder.reserved) {
         this.setState({
           busy: false,
           error: 'Không có số này. Kiểm tra lại số giám sát đọc cho.',
@@ -164,54 +160,34 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
         return;
       }
 
-      const tournamentName = await this.tournamentName(data.t);
+      const [tournamentName, positions] = await Promise.all([
+        this.tournamentName(holder.tKey),
+        positionsForPrefix(code, holder),
+      ]);
 
-      // So cua giai: bay ra dung nhung ban cham co that de ho cham vao
-      if (data.reserved) {
-        const positions = await positionsForPrefix(code, data.t);
-        if (!positions.length) {
-          this.setState({
-            busy: false,
-            error: 'Giải này chưa mở bàn chấm nào. Nhờ giám sát kiểm tra lại giúp.',
-          });
-          return;
-        }
-        const arenas = [...new Set(positions.map((p) => p.a))];
+      if (!positions.length) {
         this.setState({
-          phase: 'pick',
           busy: false,
-          error: '',
-          picking: {
-            prefix: code,
-            t: data.t,
-            tournamentName,
-            positions,
-            arena: arenas.length === 1 ? arenas[0] : null,
-            chosen: null,
-            blocked: '',
-          },
+          error: 'Giải này chưa mở bàn chấm nào. Nhờ giám sát kiểm tra lại giúp.',
         });
         return;
       }
 
-      // Giai cu: chinh 2 so nay la ca mot ma
-      const options = availableSlots(data);
-      if (!options.length) {
-        this.setState({ error: 'Mã hỏng — nhờ giám sát cấp lại mã mới.', busy: false });
-        return;
-      }
-      if (data.claimedUid && data.claimedUid !== this.state.uid) {
-        this.setState({
-          error: 'Mã này đã có người dùng. Nhờ giám sát bấm “Mở khoá” rồi gõ lại đúng số này.',
-          busy: false,
-        });
-        return;
-      }
-
+      const arenas = [...new Set(positions.map((p) => p.a))];
       this.setState({
-        phase: 'confirm',
-        found: { code, data, options, tournamentName },
+        phase: 'pick',
         busy: false,
+        error: '',
+        picking: {
+          prefix: code,
+          t: holder.tKey,
+          tournamentName,
+          positions,
+          // Giai mot san thi dat san luon, khong hoi thua mot cau
+          arena: arenas.length === 1 ? arenas[0] : null,
+          chosen: null,
+          blocked: '',
+        },
       });
     } catch {
       this.setState({ error: 'Không đọc được — kiểm tra kết nối mạng rồi thử lại.', busy: false });
@@ -285,12 +261,7 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
     this.setState({ phase: 'entering', busy: true });
     try {
       await claimCode(code, uid, slot);
-      cacheSession({
-        code,
-        slot: slotString(slot),
-        label: slotLabel(slot),
-        tournamentName,
-      });
+      cacheSession({ code, slot: slotString(slot), tournamentName });
       this.go(slot.kind === 'combat' ? '/giam-dinh-doi-khang' : '/giam-dinh-thi-quyen');
     } catch (err: any) {
       const message =
@@ -319,7 +290,7 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
         return;
       }
 
-      this.setState({ phase: 'keypad', found: null, value: '', error: message, busy: false });
+      this.setState({ phase: 'keypad', value: '', error: message, busy: false });
     }
   }
 
@@ -337,7 +308,7 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
   };
 
   retype = () =>
-    this.setState({ phase: 'keypad', picking: null, found: null, value: '', error: '' });
+    this.setState({ phase: 'keypad', picking: null, value: '', error: '' });
 
   // ==================== Ve ====================
 
@@ -479,78 +450,8 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
     );
   }
 
-  /** Ma kieu cu: mot ma la mot o, chi con hoi lai cho chac */
-  renderConfirm(found: Found) {
-    const { busy } = this.state;
-    const many = found.options.length > 1;
-    const one = found.options[0];
-
-    return this.shell(
-      <div className="bg-white rounded-card shadow-card border border-slate-100 overflow-hidden">
-        <div className="bg-emerald-600 px-5 py-3">
-          <p className="m-0 text-white/80 text-xs uppercase tracking-wide font-semibold">
-            Mã {spacedCode(found.code)} — đúng chưa?
-          </p>
-        </div>
-
-        <div className="p-5 text-center">
-          {/* Ten giai to nhat: day la thu DUY NHAT phan biet duoc GD2 San B
-              cua giai minh voi GD2 San B cua giai nguoi khac */}
-          <p className="m-0 mb-1 text-xs text-slate-400 uppercase tracking-wide">Giải</p>
-          <p className="m-0 mb-5 text-xl font-bold text-slate-800 whitespace-pre-line leading-snug">
-            {found.tournamentName}
-          </p>
-
-          <p className="m-0 mb-5 text-lg font-semibold text-accent-700">
-            {many ? positionLabel(one.a, one.r) : slotLabel(one)}
-          </p>
-
-          {many ? (
-            <>
-              <p className="m-0 mb-3 text-sm font-semibold text-slate-600">
-                Hôm nay bạn chấm gì?
-              </p>
-              <div className="flex gap-3">
-                {found.options.map((slot) => {
-                  const combat = slot.kind === 'combat';
-                  return (
-                    <button
-                      key={slot.kind}
-                      type="button"
-                      disabled={busy}
-                      onClick={() => void this.enter(found.code, slot, found.tournamentName)}
-                      className={`flex-1 rounded-card px-4 py-5 text-white shadow-card transition-transform
-                        active:scale-95 disabled:opacity-40
-                        ${combat ? 'bg-rose-600 hover:bg-rose-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}
-                    >
-                      <i className={`fa-solid ${combat ? 'fa-hand-back-fist' : 'fa-hand-fist'} text-2xl block mb-2`}
-                        aria-hidden="true" />
-                      <span className="block text-lg font-bold uppercase tracking-wide">
-                        {kindName(slot.kind)}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          ) : (
-            <Button variant="success" size="lg" block icon="fa-solid fa-check"
-              disabled={busy} onClick={() => void this.enter(found.code, one, found.tournamentName)}>
-              Đúng rồi — vào chấm
-            </Button>
-          )}
-
-          <Button variant="secondary" size="lg" block className="mt-2.5"
-            icon="fa-solid fa-arrow-left" onClick={this.retype}>
-            Không đúng — gõ lại
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   render() {
-    const { phase, value, error, picking, found, privateModeWarning, busy } = this.state;
+    const { phase, value, error, picking, privateModeWarning, busy } = this.state;
 
     if (phase === 'signing-in' || phase === 'entering') {
       return this.shell(
@@ -581,7 +482,6 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
     }
 
     if (phase === 'pick' && picking) return this.renderPick(picking);
-    if (phase === 'confirm' && found) return this.renderConfirm(found);
 
     return this.shell(
       <>

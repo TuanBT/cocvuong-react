@@ -29,14 +29,18 @@
     "test:e2e:parallel:live": "tsx tests/e2e/run.ts --live --only=song-song",
     "test:e2e:thiquyen": "./tests/e2e/with-emulator.sh --only=thi-quyen",
     "test:e2e:phanquyen": "./tests/e2e/with-emulator.sh --only=phan-quyen",
+    "test:e2e:ma": "./tests/e2e/with-emulator.sh --only=ma",
     "test:e2e:data": "./tests/e2e/with-emulator.sh --only=het-data",
     "test:e2e:thiquyen:live": "tsx tests/e2e/run.ts --live --only=thi-quyen",
     "test:e2e:data:live": "tsx tests/e2e/run.ts --live --only=het-data",
+    "test:e2e:ma:live": "tsx tests/e2e/run.ts --live --only=ma",
     "test:e2e:keep": "./tests/e2e/with-emulator.sh --keep",
     "test:e2e:keep:live": "tsx tests/e2e/run.ts --live --keep",
     "test:e2e:data:keep:live": "tsx tests/e2e/run.ts --live --keep --only=het-data",
     "test:e2e:clean": "tsx tests/e2e/clean.ts",
-    "test:e2e:clean:live": "tsx tests/e2e/clean.ts --live"
+    "test:e2e:clean:live": "tsx tests/e2e/clean.ts --live",
+    "test:e2e:khoma": "tsx tests/e2e/kho-ma.ts",
+    "test:e2e:khoma:live": "tsx tests/e2e/kho-ma.ts --live"
   },
   "browserslist": {
     "production": [
