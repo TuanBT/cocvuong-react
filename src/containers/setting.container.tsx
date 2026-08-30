@@ -15,13 +15,29 @@ import StaffApprovalPanel from '../components/tournament/StaffApprovalPanel';
 import { DEFAULT_SETTING } from '../constants/settings';
 import { AppUser } from '../services/authService';
 import {
-  TournamentSummary, closeTournament, demoFirst, isLegacy, listTournaments,
-  openTournament, reopenTournament, setOpenAccess, claimTournament, syncTournamentIndex,
+  TournamentSummary, canPurge, closeTournament, demoFirst, isLegacy, listTournaments,
+  openTournament, purgeTournament, reopenTournament, setOpenAccess, claimTournament,
+  syncTournamentIndex,
 } from '../services/tournamentService';
+import type { TournamentId } from '../types';
 import {
   CodeMeta, PREFIX_LENGTH, TournamentCodePlan,
   isPrefixFree, reissueTournamentCodes, resolveCodeMeta, spacedCode, syncTournamentCodes,
 } from '../services/accessCodeService';
+import { isAdmin } from '../services/adminService';
+
+/**
+ * `?giai=<khoa>` — duong tat tu trang quan tri: mo thang thiet dat cua giai do.
+ *
+ * Doc thang tu URL: trang nay duoc dung trong `render={() => ...}` cua router
+ * nen khong co `location` truyen xuong.
+ *
+ * Khoa giai la CHUOI mo nen khong kiem duoc gi ngoai "co rong khong" — sai
+ * khoa thi khong khop giai nao trong danh sach, va trang roi ve giai mac dinh.
+ */
+function requestedId(): TournamentId | null {
+  return new URLSearchParams(window.location.search).get('giai') || null;
+}
 
 interface SettingContainerProps {
   user: AppUser;
@@ -36,12 +52,13 @@ interface SettingContainerState {
   timeBreak: number;
   timeExtra: number;
   timeExtraBreak: number;
-  flexSwitchCountryFlagCombat: boolean;
+  /** Co quoc gia va so giam dinh la mot thiet dat chung cho ca hai noi dung */
+  showCountryFlag: boolean;
+  useFiveReferees: boolean;
   showCautionBoxCombat: boolean;
-  quantityRefereeCombat: boolean;
   prioritizeUnitNameCombat: boolean;
-  flexSwitchCountryFlagMartial: boolean;
-  quantityRefereeMartial: boolean;
+  /** Thiet dat tu luu, nen phai co cho bao cho chu giai biet da luu chua */
+  saveState: 'idle' | 'saving' | 'saved' | 'error';
   /** Hop thoai xac nhan cho cac hanh dong khong hoan tac duoc */
   confirm: { title: string; message: string; label?: string; action: () => void } | null;
   regenerating: boolean;
@@ -64,11 +81,51 @@ interface SettingContainerState {
  *  - O "Mat khau" cu doi thanh **"Bang ma giam dinh"** — dung cho nguoi dung
  *    dang quen bam vao, khong phai hoc lai duong di moi.
  */
+/**
+ * Chi bao "da luu chua" — thay cho nut Luu cu. Khong co no thi thiet dat tu
+ * luu thanh ra im lang, chu giai khong biet bam xong da an chua.
+ */
+const SaveState: React.FC<{ state: SettingContainerState['saveState'] }> = ({ state }) => {
+  if (state === 'idle') return null;
+  const look = {
+    saving: { icon: 'fa-solid fa-arrows-rotate fa-spin', text: 'Đang lưu…', tone: 'text-white/70' },
+    saved: { icon: 'fa-solid fa-check', text: 'Đã lưu', tone: 'text-white/80' },
+    error: { icon: 'fa-solid fa-triangle-exclamation', text: 'Chưa lưu', tone: 'text-amber-200' },
+  }[state];
+  return (
+    <span className={`flex items-center gap-1.5 text-xs font-medium flex-shrink-0 ${look.tone}`}>
+      <i className={look.icon} aria-hidden="true" />
+      {look.text}
+    </span>
+  );
+};
+
+/** Go chu thi doi go xong hang ghi, khong thi moi phim la mot luot ghi Firebase */
+const SAVE_DEBOUNCE_MS = 700;
+
 class SettingContainer extends Component<SettingContainerProps, SettingContainerState> {
+  /**
+   * Admin thay MOI giai chu khong chi giai cua minh.
+   *
+   * Rules da cho admin toan quyen tren `tournament/{t}` tu truoc; loc theo
+   * `ownerUid` o day chi la loc hien thi, va no chan dung luc can nhat —
+   * chu giai mat tai khoan giua giai thi khong ai vao sua thiet dat duoc.
+   */
+  isAdmin = false;
   firebaseListeners: DatabaseReference[] = [];
   db: Database;
   settingObj: any = null;
   settingConst: any;
+  /** Hen gio cua luot ghi dang cho */
+  saveTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Co thay doi chua ghi — o go so nam o day mai den luc roi o moi ghi */
+  dirty = false;
+  /** Giai ma luot ghi dang cho se ghi vao — doi giai giua chung phai ghi not truoc */
+  pendingIndex: TournamentId = '';
+  /** Doi ten giai thi chi muc cong khai phai chay theo */
+  needIndexSync = false;
+  /** Doi so giam dinh thi bo ma phai cap lai */
+  needCodeSync = false;
 
   constructor(props: SettingContainerProps) {
     super(props);
@@ -83,12 +140,11 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
       timeBreak: 60,
       timeExtra: 60,
       timeExtraBreak: 30,
-      flexSwitchCountryFlagCombat: false,
+      showCountryFlag: false,
+      useFiveReferees: false,
       showCautionBoxCombat: false,
-      quantityRefereeCombat: false,
       prioritizeUnitNameCombat: false,
-      flexSwitchCountryFlagMartial: false,
-      quantityRefereeMartial: false,
+      saveState: 'idle',
       confirm: null,
       regenerating: false,
       codeMeta: null,
@@ -106,12 +162,13 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
   }
 
   componentWillUnmount() {
+    if (this.dirty) void this.flushSave();
     this.firebaseListeners.forEach((listenerRef) => off(listenerRef));
     this.firebaseListeners = [];
   }
 
-  get index(): number {
-    return this.state.selected?.index ?? 0;
+  get index(): TournamentId {
+    return this.state.selected?.id ?? '';
   }
 
   /**
@@ -124,12 +181,20 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     const { user } = this.props;
     this.setState({ loading: true });
     try {
+      this.isAdmin = await isAdmin(user.uid).catch(() => false);
+
       const all = await listTournaments();
-      const mine = all.filter((t) => t.ownerUid === user.uid || isLegacy(t)).sort(demoFirst);
+      const mine = all.filter((t) => this.visible(t)).sort(demoFirst);
       this.setState({ tournaments: mine, loading: false });
-      // Ban cham nhanh dung dau bang, nhung con tro dat vao giai that cua minh:
-      // vao trang nay phan lon la de chinh giai sap to chuc
-      const first = mine.find((t) => !t.demo) || mine[0];
+
+      // `?giai=N` tu trang quan tri thang len truoc. Khong co thi: ban cham
+      // nhanh dung dau bang, nhung con tro dat vao giai that cua minh — vao
+      // trang nay phan lon la de chinh giai sap to chuc
+      const wanted = requestedId();
+      const first =
+        (wanted === null ? undefined : mine.find((t) => t.id === wanted)) ||
+        mine.find((t) => !t.demo) ||
+        mine[0];
       if (first) this.selectTournament(first);
     } catch {
       this.setState({ loading: false });
@@ -137,13 +202,20 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     }
   }
 
+  /** Giai nay co hien trong bang chon khong */
+  visible = (t: TournamentSummary): boolean =>
+    this.isAdmin || t.ownerUid === this.props.user.uid || isLegacy(t);
+
   selectTournament = (t: TournamentSummary) => {
+    // Ghi not thay doi cua giai cu TRUOC khi state doi sang giai moi, khong thi
+    // thiet dat cua giai nay se de len giai kia
+    if (this.dirty) void this.flushSave();
     this.setState({ selected: t, codeMeta: null, prefixOpen: false, prefixDraft: '', prefixState: 'idle' });
-    this.loadSetting(t.index);
-    void this.loadCodeMeta(t.index);
+    this.loadSetting(t.id);
+    void this.loadCodeMeta(t.id);
   };
 
-  async loadCodeMeta(index: number) {
+  async loadCodeMeta(index: TournamentId) {
     try {
       const meta = await resolveCodeMeta(index);
       if (this.index === index) this.setState({ codeMeta: meta });
@@ -152,22 +224,26 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     }
   }
 
-  loadSetting(index: number) {
+  loadSetting(index: TournamentId) {
     get(ref(this.db, 'tournament/' + index + '/setting')).then((snapshot) => {
       this.settingObj = snapshot.val();
       if (!this.settingObj) return;
+      // Cac o sap bi ghi de bang gia tri duoi DB, nen thay doi go dở (neu con)
+      // khong con nghia gi de ghi len nua
+      this.dirty = false;
       this.setState({
         timeRound: this.settingObj.combat.timeRound,
         timeBreak: this.settingObj.combat.timeBreak,
         timeExtra: this.settingObj.combat.timeExtra,
         timeExtraBreak: this.settingObj.combat.timeExtraBreak,
         tournamentName: this.settingObj.tournamentName,
-        flexSwitchCountryFlagCombat: this.settingObj.combat.isShowCountryFlag,
+        // Giai cu co the dang luu lech nhau giua combat/martial; gop lai thi
+        // ben nao dang bat se thang, de khong tat mat thu chu giai da bat
+        showCountryFlag: !!(this.settingObj.combat.isShowCountryFlag || this.settingObj.martial.isShowCountryFlag),
+        useFiveReferees: !!(this.settingObj.combat.isShowFiveReferee || this.settingObj.martial.isShowFiveReferee),
         showCautionBoxCombat: this.settingObj.combat.isShowCautionBox,
-        quantityRefereeCombat: this.settingObj.combat.isShowFiveReferee,
         prioritizeUnitNameCombat: this.settingObj.combat.isPrioritizeUnitName || false,
-        flexSwitchCountryFlagMartial: this.settingObj.martial.isShowCountryFlag,
-        quantityRefereeMartial: this.settingObj.martial.isShowFiveReferee,
+        saveState: 'idle',
       });
     });
   }
@@ -175,10 +251,8 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
   /** Doc lai dong tom tat sau khi doi trang thai / cong tac */
   async refreshSummary() {
     const all = await listTournaments();
-    const mine = all
-      .filter((t) => t.ownerUid === this.props.user.uid || isLegacy(t))
-      .sort(demoFirst);
-    const fresh = mine.find((t) => t.index === this.index) || null;
+    const mine = all.filter((t) => this.visible(t)).sort(demoFirst);
+    const fresh = mine.find((t) => t.id === this.index) || null;
     this.setState({ tournaments: mine, selected: fresh });
   }
 
@@ -233,6 +307,53 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
   };
 
   /**
+   * Giai nay xoa han duoc khong.
+   *
+   * Ban cham nhanh thi khong — no tu dung lai o lan vao sau nen mot nut xoa chi
+   * la cai bay: bam nham la mat bo ma dang doc do cho giam dinh. Admin xoa duoc
+   * moi giai (rules cho ghi), nguoi thuong chi giai cua minh va giai cu chua co
+   * chu — dung dieu kien cua `canPurge`.
+   */
+  get canPurgeSelected(): boolean {
+    const { selected } = this.state;
+    if (!selected || selected.demo) return false;
+    return this.isAdmin || canPurge(selected, this.props.user.uid);
+  }
+
+  confirmPurge = () => {
+    const { selected } = this.state;
+    if (!selected) return;
+    this.askConfirm(
+      'Xoá giải vĩnh viễn',
+      `Giải "${selected.name.replace(/\n/g, ' ')}" cùng toàn bộ danh sách vận động viên, `
+      + 'lịch thi đấu, điểm số, mã giám định và danh sách nhân sự sẽ bị xoá khỏi database. '
+      + 'Không hoàn tác được — trong app không có bản sao lưu nào.',
+      this.handlePurge,
+      'Xoá vĩnh viễn'
+    );
+  };
+
+  handlePurge = async () => {
+    const { selected } = this.state;
+    if (!selected) return;
+
+    // Thay doi chua ghi thuoc ve giai sap bien mat — bo di, khong thi
+    // `flushSave` sau do se dung lai mot manh `setting` cua giai da xoa
+    this.dirty = false;
+    if (this.saveTimer) clearTimeout(this.saveTimer);
+    this.saveTimer = null;
+
+    try {
+      await purgeTournament(selected.id);
+      toast.success('Đã xoá giải vĩnh viễn.');
+      this.setState({ selected: null, codeMeta: null });
+      await this.loadTournaments();
+    } catch {
+      toast.error('Không xoá được giải này.');
+    }
+  };
+
+  /**
    * Cong tac "Mo tu do". Mac dinh TAT cho moi giai — muon giam sat thi phai
    * xin duyet, khong co ngoai le mac dinh. Bat len la bo han buoc duyet nen
    * phai hoi lai mot lan.
@@ -266,8 +387,8 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
   /** Bo ma cua giai nay gom nhung o nao — dung chung cho ca cap them lan cap lai */
   get codePlan(): TournamentCodePlan {
     return {
-      combatReferees: this.state.quantityRefereeCombat ? 5 : 3,
-      martialReferees: this.state.quantityRefereeMartial ? 5 : 3,
+      combatReferees: this.state.useFiveReferees ? 5 : 3,
+      martialReferees: this.state.useFiveReferees ? 5 : 3,
       useArenaB: this.settingObj?.combat?.isShowArenaB !== false,
       tournamentName: this.state.selected?.name || '',
     };
@@ -289,7 +410,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     if (!selected) return;
 
     try {
-      const result = await syncTournamentCodes(selected.index, plan, user.uid);
+      const result = await syncTournamentCodes(selected.id, plan, user.uid);
       if (result.skipped) return;
 
       this.setState({ codeMeta: { prefix: result.prefix } });
@@ -324,7 +445,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
 
     this.setState({ regenerating: true });
     try {
-      const result = await reissueTournamentCodes(selected.index, this.codePlan, user.uid, prefix);
+      const result = await reissueTournamentCodes(selected.id, this.codePlan, user.uid, prefix);
       this.setState({
         codeMeta: { prefix: result.prefix },
         prefixOpen: false,
@@ -448,42 +569,108 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     });
   }
 
-  updateSetting = () => {
+  /** Toan bo o thiet dat, gom lai thanh mot luot ghi */
+  get settingPayload() {
     const { timeRound, timeBreak, timeExtra, timeExtraBreak, tournamentName,
-            flexSwitchCountryFlagCombat, showCautionBoxCombat, quantityRefereeCombat, prioritizeUnitNameCombat,
-            flexSwitchCountryFlagMartial, quantityRefereeMartial } = this.state;
+            showCountryFlag, useFiveReferees,
+            showCautionBoxCombat, prioritizeUnitNameCombat } = this.state;
 
-    const payload = {
+    return {
       "combat/timeRound": timeRound,
       "combat/timeBreak": timeBreak,
       "combat/timeExtra": timeExtra,
       "combat/timeExtraBreak": timeExtraBreak,
       "tournamentName": tournamentName,
-      "combat/isShowCountryFlag": flexSwitchCountryFlagCombat,
       "combat/isShowCautionBox": showCautionBoxCombat,
-      "combat/isShowFiveReferee": quantityRefereeCombat,
       "combat/isPrioritizeUnitName": prioritizeUnitNameCombat,
-      "martial/isShowCountryFlag": flexSwitchCountryFlagMartial,
-      "martial/isShowFiveReferee": quantityRefereeMartial,
+      // Mot cong tac tren UI, nhung duoi DB van ghi ca hai nhanh de cac man
+      // hinh doi khang / thi quyen khong phai doi cach doc
+      "combat/isShowCountryFlag": showCountryFlag,
+      "martial/isShowCountryFlag": showCountryFlag,
+      "combat/isShowFiveReferee": useFiveReferees,
+      "martial/isShowFiveReferee": useFiveReferees,
     };
-    update(ref(this.db, 'tournament/' + this.index + '/setting'), payload).then(async () => {
-      await syncTournamentIndex(this.index);
-      void this.refreshSummary();
-      await this.syncCodes();
-      toast.success("Cập nhập thông tin giải đấu thành công!");
-    });
   }
+
+  /**
+   * Hen mot luot ghi. Cong tac bam phat an ngay nen ghi luon; o go chu / go so
+   * thi doi go xong hang, khong thi moi phim la mot luot ghi Firebase.
+   */
+  /** Danh dau co thay doi chua ghi, va nho no thuoc giai nao */
+  markDirty() {
+    this.dirty = true;
+    this.pendingIndex = this.index;
+  }
+
+  queueSave(immediate: boolean) {
+    this.markDirty();
+    if (this.saveTimer) clearTimeout(this.saveTimer);
+    this.setState({ saveState: 'saving' });
+    if (immediate) {
+      this.saveTimer = null;
+      void this.flushSave();
+      return;
+    }
+    this.saveTimer = setTimeout(() => void this.flushSave(), SAVE_DEBOUNCE_MS);
+  }
+
+  /** Ghi that. Goi truc tiep khi can ghi not truoc luc doi giai / roi trang. */
+  flushSave = async () => {
+    if (this.saveTimer) clearTimeout(this.saveTimer);
+    this.saveTimer = null;
+    if (!this.dirty) return;
+    this.dirty = false;
+
+    const index = this.pendingIndex;
+    const { needIndexSync, needCodeSync } = this;
+    this.needIndexSync = false;
+    this.needCodeSync = false;
+
+    try {
+      await update(ref(this.db, 'tournament/' + index + '/setting'), this.settingPayload);
+      // Doi ten thi trang cong khai phai chay theo; doi so giam dinh thi bo ma
+      // phai cap lai. Bam mot cong tac hien thi thi khong dinh gi den hai viec do.
+      if (needIndexSync) {
+        await syncTournamentIndex(index);
+        void this.refreshSummary();
+      }
+      if (needCodeSync) await this.syncCodes();
+      // Co luot go moi chen vao giua thi de no bao trang thai, dung de len
+      if (!this.saveTimer) this.setState({ saveState: 'saved' });
+    } catch {
+      this.dirty = true;
+      this.needIndexSync = needIndexSync;
+      this.needCodeSync = needCodeSync;
+      this.setState({ saveState: 'error' });
+      toast.error('Chưa lưu được thiết đặt — kiểm tra mạng rồi thử lại.');
+    }
+  };
 
   handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const target = e.target as HTMLInputElement;
     const { name, value, type } = target;
-    if (type === 'checkbox') {
-      this.setState({ [name]: target.checked } as any);
-    } else if (type === 'number') {
-      this.setState({ [name]: parseInt(value) || 0 } as any);
-    } else {
-      this.setState({ [name]: value } as any);
-    }
+    const next = type === 'checkbox' ? target.checked
+      : type === 'number' ? (parseInt(value) || 0)
+      : value;
+
+    if (name === 'tournamentName') this.needIndexSync = true;
+    if (name === 'useFiveReferees') this.needCodeSync = true;
+
+    this.setState({ [name]: next } as any, () => {
+      // O go so (cac moc thoi gian): dang go dở thi con la so vo nghia — "12"
+      // tren duong go "120" — nen doi roi o moi ghi, xem `saveOnBlur`
+      if (type === 'number') {
+        this.markDirty();
+        this.setState({ saveState: 'idle' });
+        return;
+      }
+      this.queueSave(type === 'checkbox');
+    });
+  }
+
+  /** O go so ghi luc roi o. Khong co gi doi thi khong ghi. */
+  saveOnBlur = () => {
+    if (this.dirty && !this.saveTimer) this.queueSave(true);
   }
 
   askConfirm = (title: string, message: string, action: () => void, label?: string) => {
@@ -572,6 +759,15 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
             <i className="fa-solid fa-lock-open mr-1" aria-hidden="true" />
             ĐANG MỞ TỰ DO
           </span>
+        )}
+
+        {/* Day cuoi hang va tach mau han: xoa giai la viec khong hoan tac duoc,
+            khong duoc phep nam ngang hang voi "Mo giai" de bam nham */}
+        {this.canPurgeSelected && (
+          <Button size="sm" variant="ghost" className="ml-auto text-red-600 hover:bg-red-50"
+            icon="fa-solid fa-trash-can" onClick={this.confirmPurge}>
+            Xoá giải
+          </Button>
         )}
       </div>
     );
@@ -679,9 +875,8 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
     const {
       tournaments, selected, loading, tournamentName,
       timeRound, timeBreak, timeExtra, timeExtraBreak,
-      flexSwitchCountryFlagCombat, showCautionBoxCombat, quantityRefereeCombat, prioritizeUnitNameCombat,
-      flexSwitchCountryFlagMartial, quantityRefereeMartial,
-      confirm,
+      showCountryFlag, useFiveReferees, showCautionBoxCombat, prioritizeUnitNameCombat,
+      saveState, confirm,
     } = this.state;
     const { user } = this.props;
 
@@ -703,10 +898,10 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                 {tournaments.map((t) => (
                   <label
-                    key={t.index}
+                    key={t.id}
                     className={`flex items-center gap-3 p-3.5 border-2 rounded-control cursor-pointer transition-colors
                       ${t.demo ? 'md:col-span-2' : ''}
-                      ${selected?.index === t.index
+                      ${selected?.id === t.id
                         ? t.demo
                           ? 'border-emerald-500 bg-emerald-50'
                           : 'border-accent-500 bg-accent-50'
@@ -717,7 +912,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
                     <input
                       type="radio"
                       name="tournamentRadio"
-                      checked={selected?.index === t.index}
+                      checked={selected?.id === t.id}
                       onChange={() => this.selectTournament(t)}
                       className="w-4 h-4 flex-shrink-0"
                     />
@@ -737,7 +932,10 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
             <p className="text-xs text-slate-500 m-0 mt-4 bg-slate-50 border border-slate-200
               rounded-control px-3 py-2.5">
               <i className="fa-solid fa-circle-info mr-1.5 text-slate-400" aria-hidden="true" />
-              Chỉ hiện giải của bạn. Thêm giải mới hoặc nhập danh sách vận động viên ở trang{' '}
+              {this.isAdmin
+                ? 'Bạn là quản trị viên nên bảng này hiện MỌI giải, kể cả giải của người khác. '
+                : 'Chỉ hiện giải của bạn. '}
+              Thêm giải mới hoặc nhập danh sách vận động viên ở trang{' '}
               <NavLink to="/tao-giai" className="text-accent-700 font-medium underline">Tạo giải</NavLink>.
             </p>
           </SectionCard>
@@ -752,7 +950,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
               {this.renderPrefix()}
 
               <CodeBoard
-                tournamentIndex={selected.index}
+                tournamentIndex={selected.id}
                 tournamentName={selected.name}
                 canManage
               />
@@ -762,8 +960,8 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
           {selected && !isLegacy(selected) && (
             <SectionCard title="Giám sát của giải" icon="fa-solid fa-user-shield">
               <StaffApprovalPanel
-                tournamentIndex={selected.index}
-                ownerUid={user.uid}
+                tournamentIndex={selected.id}
+                approvedBy={user.uid}
                 tournamentStatus={selected.status}
               />
 
@@ -786,7 +984,8 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
             </SectionCard>
           )}
 
-          <SectionCard title="Thông tin giải đấu" icon="fa-solid fa-sliders">
+          <SectionCard title="Thông tin giải đấu" icon="fa-solid fa-sliders"
+            action={<SaveState state={saveState} />}>
             <div className="space-y-6">
               <div>
                 <label htmlFor="field-tournamentName" className="block text-sm font-semibold text-slate-600 mb-2">
@@ -808,6 +1007,15 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
                 </p>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                <Toggle name="showCountryFlag" checked={showCountryFlag}
+                  onChange={this.handleInputChange} label="Hiển thị cờ quốc gia"
+                  hint="Áp dụng cho cả đối kháng và thi quyền" />
+                <Toggle name="useFiveReferees" checked={useFiveReferees}
+                  onChange={this.handleInputChange} label="Dùng 5 giám định"
+                  hint="Tắt để dùng 3 — áp dụng cho đối kháng và thi quyền" />
+              </div>
+
               <fieldset className="border border-emerald-200 bg-emerald-50/50 rounded-card p-4 sm:p-5 m-0">
                 <legend className="px-2 font-bold text-emerald-700 flex items-center gap-2 text-sm">
                   <i className="fa-solid fa-hand-back-fist" aria-hidden="true" />
@@ -815,13 +1023,8 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
                 </legend>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                  <Toggle name="flexSwitchCountryFlagCombat" checked={flexSwitchCountryFlagCombat}
-                    onChange={this.handleInputChange} label="Hiển thị cờ quốc gia" />
                   <Toggle name="showCautionBoxCombat" checked={showCautionBoxCombat}
                     onChange={this.handleInputChange} label="Hiển thị bảng nhắc nhở" />
-                  <Toggle name="quantityRefereeCombat" checked={quantityRefereeCombat}
-                    onChange={this.handleInputChange} label="Dùng 5 giám định"
-                    hint="Tắt để dùng 3 giám định" />
                   <Toggle name="prioritizeUnitNameCombat" checked={prioritizeUnitNameCombat}
                     onChange={this.handleInputChange} label="Ưu tiên hiển thị đơn vị"
                     hint="Tên đơn vị to hơn tên vận động viên" />
@@ -829,35 +1032,17 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
                   <NumberField name="timeRound" label="Thời gian hiệp" value={timeRound}
-                    onChange={this.handleInputChange} unit="giây" />
+                    onChange={this.handleInputChange} onBlur={this.saveOnBlur} unit="giây" />
                   <NumberField name="timeBreak" label="Nghỉ giữa hiệp" value={timeBreak}
-                    onChange={this.handleInputChange} unit="giây" />
+                    onChange={this.handleInputChange} onBlur={this.saveOnBlur} unit="giây" />
                   <NumberField name="timeExtra" label="Thời gian hiệp phụ" value={timeExtra}
-                    onChange={this.handleInputChange} unit="giây" />
+                    onChange={this.handleInputChange} onBlur={this.saveOnBlur} unit="giây" />
                   <NumberField name="timeExtraBreak" label="Nghỉ hiệp phụ" value={timeExtraBreak}
-                    onChange={this.handleInputChange} unit="giây" />
-                </div>
-              </fieldset>
-
-              <fieldset className="border border-amber-200 bg-amber-50/50 rounded-card p-4 sm:p-5 m-0">
-                <legend className="px-2 font-bold text-amber-700 flex items-center gap-2 text-sm">
-                  <i className="fa-solid fa-hand-fist" aria-hidden="true" />
-                  Thi quyền
-                </legend>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                  <Toggle name="flexSwitchCountryFlagMartial" checked={flexSwitchCountryFlagMartial}
-                    onChange={this.handleInputChange} label="Hiển thị cờ quốc gia" />
-                  <Toggle name="quantityRefereeMartial" checked={quantityRefereeMartial}
-                    onChange={this.handleInputChange} label="Dùng 5 giám định"
-                    hint="Bỏ điểm cao nhất và thấp nhất" />
+                    onChange={this.handleInputChange} onBlur={this.saveOnBlur} unit="giây" />
                 </div>
               </fieldset>
 
               <div className="flex flex-wrap gap-2.5 pt-4 border-t border-slate-100">
-                <Button variant="primary" icon="fa-solid fa-floppy-disk" onClick={this.updateSetting}>
-                  Lưu thiết đặt
-                </Button>
                 <Button variant="secondary" icon="fa-solid fa-rotate-left" onClick={this.confirmResetSetting}>
                   Cài lại thiết đặt
                 </Button>

@@ -5,10 +5,11 @@
  */
 
 import { ref, update, onValue, off } from 'firebase/database';
+import type { TournamentId } from '../types';
 
 export interface ScoreSyncConfig {
   db: any; // Firebase Database
-  tournamentNoIndex: number;
+  tournamentNoIndex: TournamentId;
   combatArenaNoIndex: number;
   refereeIndex: number;
   arena: string;
@@ -16,7 +17,7 @@ export interface ScoreSyncConfig {
 
 export interface ScoreSubscribeConfig {
   db: any; // Firebase Database
-  tournamentNoIndex: number;
+  tournamentNoIndex: TournamentId;
   combatArenaNoIndex: number;
   arena?: string;
 }

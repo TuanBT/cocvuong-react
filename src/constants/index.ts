@@ -1,4 +1,6 @@
 // Re-export all constants
+export { BOOTSTRAP_ADMIN_EMAIL } from './admin';
+
 export { COLORS } from './colors';
 export type { ColorPalette } from './colors';
 

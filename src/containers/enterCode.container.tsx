@@ -10,6 +10,7 @@ import {
   positionsForPrefix,
 } from '../services/accessCodeService';
 import { getData } from '../services/firebaseService';
+import type { TournamentId } from '../types';
 
 const LAST_UID_KEY = 'cocvuong_last_anon_uid';
 
@@ -22,7 +23,7 @@ type Phase = 'signing-in' | 'auth-failed' | 'keypad' | 'pick' | 'confirm' | 'ent
 /** Giai tim thay tu 2 so — dang cho giam dinh chon cho ngoi cua minh */
 interface Picking {
   prefix: string;
-  t: number;
+  t: TournamentId;
   tournamentName: string;
   positions: OpenPosition[];
   /** Giai mot san thi dat san luon, khong hoi thua mot cau */
@@ -145,9 +146,9 @@ class EnterCodeContainer extends Component<EnterCodeContainerProps, EnterCodeCon
     if (value.length === PREFIX_LENGTH) void this.lookup(value);
   };
 
-  async tournamentName(t: number | undefined): Promise<string> {
-    if (t === undefined) return '';
-    return (await getData<string>(`tournament/${t}/setting/tournamentName`)) || `Giải ${t + 1}`;
+  async tournamentName(t: TournamentId | undefined): Promise<string> {
+    if (!t) return '';
+    return (await getData<string>(`tournament/${t}/setting/tournamentName`)) || 'Giải chưa đặt tên';
   }
 
   /** 2 so vua go: so cua giai (ra bang chon) hay ca mot ma kieu cu (vao thang) */

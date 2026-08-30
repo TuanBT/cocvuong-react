@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import logo from '../assets/img/logo.png';
 import { AppFooter, Toast } from '../components/ui';
 import { AppUser, onAuthChanged, signOut } from '../services/authService';
+import { subscribeIsAdmin } from '../services/adminService';
 
 interface HomeContainerProps {
   history?: { push: (path: string) => void };
@@ -10,6 +11,8 @@ interface HomeContainerProps {
 
 interface HomeContainerState {
   user: AppUser | null;
+  /** Cua vao trang quan tri chi hien cho admin — nguoi khac bam vao cung bi chan */
+  isAdmin: boolean;
 }
 
 interface MenuItem {
@@ -95,7 +98,8 @@ const MENU_GROUPS: MenuGroup[] = [
  */
 class HomeContainer extends Component<HomeContainerProps, HomeContainerState> {
   unsubscribe: (() => void) | null = null;
-  state: HomeContainerState = { user: null };
+  unsubAdmin: (() => void) | null = null;
+  state: HomeContainerState = { user: null, isAdmin: false };
 
   constructor(props: HomeContainerProps) {
     super(props);
@@ -103,13 +107,25 @@ class HomeContainer extends Component<HomeContainerProps, HomeContainerState> {
   }
 
   componentDidMount() {
-    this.unsubscribe = onAuthChanged((user) =>
-      this.setState({ user: user && !user.isAnonymous ? user : null })
-    );
+    this.unsubscribe = onAuthChanged((user) => {
+      const real = user && !user.isAnonymous ? user : null;
+      this.setState({ user: real });
+
+      this.unsubAdmin?.();
+      this.unsubAdmin = null;
+      if (!real) {
+        this.setState({ isAdmin: false });
+        return;
+      }
+      // Nghe thay vi doc mot lan: cap quyen admin trong Console phai an ngay
+      // o tab dang mo, khong bat nguoi ta tai lai trang moi thay cua vao
+      this.unsubAdmin = subscribeIsAdmin(real.uid, (v) => this.setState({ isAdmin: v }));
+    });
   }
 
   componentWillUnmount() {
     this.unsubscribe?.();
+    this.unsubAdmin?.();
   }
 
   go(path: string) {
@@ -118,7 +134,7 @@ class HomeContainer extends Component<HomeContainerProps, HomeContainerState> {
   }
 
   render() {
-    const { user } = this.state;
+    const { user, isAdmin } = this.state;
     let cardIndex = 0;
 
     return (
@@ -213,6 +229,15 @@ class HomeContainer extends Component<HomeContainerProps, HomeContainerState> {
                   <button type="button"
                     onClick={() => signOut().then(() => window.location.reload())}
                     className="text-red-600 hover:underline">Đăng xuất</button>
+                  {isAdmin && (
+                    <>
+                      {' '}·{' '}
+                      <NavLink to="/quan-tri" className="text-accent-700 font-medium hover:underline">
+                        <i className="fa-solid fa-shield-halved mr-1" aria-hidden="true" />
+                        Quản trị
+                      </NavLink>
+                    </>
+                  )}
                 </p>
               ) : (
                 <p className="m-0 text-slate-500">

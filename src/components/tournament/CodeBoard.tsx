@@ -9,9 +9,10 @@ import {
 } from '../../services/accessCodeService';
 import { ArenaAssignmentKey, parseArenaKey } from '../../services/staffService';
 import { subscribeSlotPresence } from '../../services/firebaseService';
+import type { TournamentId } from '../../types';
 
 interface CodeBoardProps {
-  tournamentIndex: number;
+  tournamentIndex: TournamentId;
   tournamentName: string;
   /** Chi hien nhung san nay. Bo trong = ca giai (chu giai). */
   arenaKeys?: ArenaAssignmentKey[];
@@ -365,7 +366,7 @@ const CodeBoard: React.FC<CodeBoardProps> = ({
 
                       {bothKinds(cell) && (
                         <span className="text-[10px] text-slate-400 uppercase tracking-wide">
-                          cả 2 môn
+                          đối kháng và thi quyền
                         </span>
                       )}
 

@@ -62,7 +62,7 @@ export function onNetworkChange(callback: (online: boolean) => void): () => void
 /**
  * Lưu data giải đấu vào cache
  */
-export function cacheTournament(tournamentId: number, data: CachedTournament): void {
+export function cacheTournament(tournamentId: TournamentId, data: CachedTournament): void {
   try {
     const key = `${CACHE_PREFIX}tournament_${tournamentId}`;
     data.cachedAt = Date.now();
@@ -78,7 +78,7 @@ export function cacheTournament(tournamentId: number, data: CachedTournament): v
 /**
  * Đọc data giải đấu từ cache
  */
-export function getCachedTournament(tournamentId: number): CachedTournament | null {
+export function getCachedTournament(tournamentId: TournamentId): CachedTournament | null {
   try {
     const key = `${CACHE_PREFIX}tournament_${tournamentId}`;
     const cached = localStorage.getItem(key);
@@ -128,7 +128,7 @@ export function getCachedTournamentList(): { id: number; name: string; cachedAt:
 /**
  * Xóa cache của giải đấu
  */
-export function clearTournamentCache(tournamentId: number): void {
+export function clearTournamentCache(tournamentId: TournamentId): void {
   const key = `${CACHE_PREFIX}tournament_${tournamentId}`;
   localStorage.removeItem(key);
   console.log(`[Offline] Cleared cache for tournament ${tournamentId}`);
@@ -233,6 +233,7 @@ export function getPendingWritesCount(): number {
 // =============================================================================
 
 import { ref, set, update, Database } from 'firebase/database';
+import type { TournamentId } from '../types';
 
 /**
  * Sync tất cả pending writes lên Firebase
@@ -321,7 +322,7 @@ function notifyRejected(count: number): void {
  * Cache thông tin sân thi đấu
  */
 export interface CachedCombatArena {
-  tournamentId: number;
+  tournamentId: TournamentId;
   arenaIndex: number;
   arenaName: string;
   combat: any[]; // Danh sách trận đấu
@@ -333,7 +334,7 @@ export interface CachedCombatArena {
 /**
  * Lưu cache sân thi đấu
  */
-export function cacheCombatArena(tournamentId: number, arenaIndex: number, data: Partial<CachedCombatArena>): void {
+export function cacheCombatArena(tournamentId: TournamentId, arenaIndex: number, data: Partial<CachedCombatArena>): void {
   const key = `${CACHE_PREFIX}arena_${tournamentId}_${arenaIndex}`;
   const existingData: Partial<CachedCombatArena> = getCachedCombatArena(tournamentId, arenaIndex) || {};
   
@@ -358,7 +359,7 @@ export function cacheCombatArena(tournamentId: number, arenaIndex: number, data:
 /**
  * Đọc cache sân thi đấu
  */
-export function getCachedCombatArena(tournamentId: number, arenaIndex: number): CachedCombatArena | null {
+export function getCachedCombatArena(tournamentId: TournamentId, arenaIndex: number): CachedCombatArena | null {
   const key = `${CACHE_PREFIX}arena_${tournamentId}_${arenaIndex}`;
   
   try {
@@ -382,7 +383,7 @@ export function getCachedCombatArena(tournamentId: number, arenaIndex: number): 
 /**
  * Cập nhật lastMatch trong cache
  */
-export function updateCachedLastMatch(tournamentId: number, arenaIndex: number, lastMatch: number): void {
+export function updateCachedLastMatch(tournamentId: TournamentId, arenaIndex: number, lastMatch: number): void {
   const cached = getCachedCombatArena(tournamentId, arenaIndex);
   if (cached) {
     cacheCombatArena(tournamentId, arenaIndex, { ...cached, lastMatch });
@@ -455,7 +456,7 @@ export function smartUpdate(
  * Cache thông tin sân thi quyền
  */
 export interface CachedMartialArena {
-  tournamentId: number;
+  tournamentId: TournamentId;
   arenaIndex: number | string;
   arenaName: string;
   martial: any[]; // Danh sách bài quyền
@@ -470,7 +471,7 @@ export interface CachedMartialArena {
 /**
  * Lưu cache sân thi quyền
  */
-export function cacheMartialArena(tournamentId: number, arenaIndex: number | string, data: Partial<CachedMartialArena>): void {
+export function cacheMartialArena(tournamentId: TournamentId, arenaIndex: number | string, data: Partial<CachedMartialArena>): void {
   const key = `${CACHE_PREFIX}martial_${tournamentId}_${arenaIndex}`;
   const existingData: Partial<CachedMartialArena> = getCachedMartialArena(tournamentId, arenaIndex) || {};
   
@@ -495,7 +496,7 @@ export function cacheMartialArena(tournamentId: number, arenaIndex: number | str
 /**
  * Đọc cache sân thi quyền
  */
-export function getCachedMartialArena(tournamentId: number, arenaIndex: number | string): CachedMartialArena | null {
+export function getCachedMartialArena(tournamentId: TournamentId, arenaIndex: number | string): CachedMartialArena | null {
   const key = `${CACHE_PREFIX}martial_${tournamentId}_${arenaIndex}`;
   
   try {

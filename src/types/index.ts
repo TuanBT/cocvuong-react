@@ -1,5 +1,15 @@
 // Type definitions for Cóc Vương application
 
+/**
+ * Khoá của một giải. Chuỗi MỜ — không đọc ra thứ tự, không làm toán trên nó.
+ *
+ * Giải cũ là "0".."N" (di tích của thời `tournament` còn là mảng dày đặc),
+ * giải mới là `push` key của Realtime Database. Cả hai đều chỉ là khoá; không
+ * chỗ nào được phép `Number()` nó nữa — làm thế là quay lại đúng cái ràng buộc
+ * "chỉ xoá được giải cuối".
+ */
+export type TournamentId = string;
+
 // Firebase types
 export interface Tournament {
   setting: TournamentSetting;

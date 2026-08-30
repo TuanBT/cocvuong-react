@@ -5,6 +5,7 @@ import { PageShell, PageHeader, ChipGroup, DataTable, AppFooter, Button } from '
 import type { Column } from '../components/ui';
 import PublicTournamentPicker from '../components/tournament/PublicTournamentPicker';
 import { TournamentSummary, listPublicTournaments } from '../services/tournamentService';
+import type { TournamentId } from '../types';
 
 interface InformationTqContainerProps {}
 
@@ -15,7 +16,7 @@ interface InformationTqContainerState {
   tournamentName: string;
   isShowFiveReferee: boolean;
   /** `null` = dang o man chon giai, chua doc du lieu giai nao */
-  selectedTournament: number | null;
+  selectedTournament: TournamentId | null;
   selectedCategory: string;
   loadingList: boolean;
   loadingDetail: boolean;
@@ -84,7 +85,7 @@ class InformationTqContainer extends Component<InformationTqContainerProps, Info
       // Phai doi state ve cho thi `chooseTournament` moi tra ra duoc ten giai
       this.setState({ tournaments, loadingList: false }, () => {
         // Chi co dung mot giai thi bat nguoi ta bam them mot cai la vo ly
-        if (tournaments.length === 1) this.chooseTournament(tournaments[0].index);
+        if (tournaments.length === 1) this.chooseTournament(tournaments[0].id);
       });
     } catch {
       this.setState({ loadingList: false });
@@ -92,8 +93,8 @@ class InformationTqContainer extends Component<InformationTqContainerProps, Info
   }
 
   /** Du lieu that cua mot giai chi tai o day — luc nguoi ta thuc su muon xem no */
-  chooseTournament = (tournamentNoIndex: number) => {
-    const picked = this.state.tournaments.find((t) => t.index === tournamentNoIndex);
+  chooseTournament = (tournamentNoIndex: TournamentId) => {
+    const picked = this.state.tournaments.find((t) => t.id === tournamentNoIndex);
     this.martialObj = null;
     this.setState({
       selectedTournament: tournamentNoIndex,

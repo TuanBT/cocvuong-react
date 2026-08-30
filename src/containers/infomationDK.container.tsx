@@ -13,6 +13,7 @@ import {
   countUniqueFighters,
   CombatInfo 
 } from '../utils/bracketUtils';
+import type { TournamentId } from '../types';
 
 interface InformationDkContainerProps {}
 
@@ -23,7 +24,7 @@ interface InformationDkContainerState {
   tournamentName: string;
   bracketHtml: string;
   /** `null` = dang o man chon giai, chua doc du lieu giai nao */
-  selectedTournament: number | null;
+  selectedTournament: TournamentId | null;
   selectedCategory: string;
   loadingList: boolean;
   loadingDetail: boolean;
@@ -111,7 +112,7 @@ class InformationDkContainer extends Component<InformationDkContainerProps, Info
       // Phai doi state ve cho thi `chooseTournament` moi tra ra duoc ten giai
       this.setState({ tournaments, loadingList: false }, () => {
         // Chi co dung mot giai thi bat nguoi ta bam them mot cai la vo ly
-        if (tournaments.length === 1) this.chooseTournament(tournaments[0].index);
+        if (tournaments.length === 1) this.chooseTournament(tournaments[0].id);
       });
     } catch {
       this.setState({ loadingList: false });
@@ -119,8 +120,8 @@ class InformationDkContainer extends Component<InformationDkContainerProps, Info
   }
 
   /** Du lieu that cua mot giai chi tai o day — luc nguoi ta thuc su muon xem no */
-  chooseTournament = (tournamentNoIndex: number) => {
-    const picked = this.state.tournaments.find((t) => t.index === tournamentNoIndex);
+  chooseTournament = (tournamentNoIndex: TournamentId) => {
+    const picked = this.state.tournaments.find((t) => t.id === tournamentNoIndex);
     this.combatObj = null;
     this.setState({
       selectedTournament: tournamentNoIndex,

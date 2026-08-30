@@ -13,25 +13,25 @@
 import { Database } from 'firebase/database';
 import { getModes } from '../utils/helpers';
 import { smartSet, smartUpdate } from './offlineService';
-import { CombatMatch, Fighter, RefereeScore } from '../types';
+import { CombatMatch, Fighter, RefereeScore, TournamentId } from '../types';
 
 // ==================== Context ====================
 
 export interface CombatWriteContext {
   db: Database;
-  /** Index giải đấu (tournament/{tournamentIndex}) */
-  tournamentIndex: number;
+  /** Khoá giải (tournament/{tournamentIndex}) — chuỗi mờ, xem `TournamentId` */
+  tournamentIndex: TournamentId;
   /** Index sân: 0 = Sân A, 1 = Sân B */
   arenaIndex: number;
 }
 
 // ==================== Đường dẫn Firebase ====================
 
-export const combatPath = (t: number, i: number) => `tournament/${t}/combat/${i}`;
-export const fightersPath = (t: number, i: number) => `tournament/${t}/combat/${i}/fighters`;
-export const matchWinPath = (t: number, i: number) => `tournament/${t}/combat/${i}/match/win`;
-export const refereePath = (t: number, a: number) => `tournament/${t}/combatArena/${a}/referee`;
-export const lastMatchPath = (t: number, a: number) => `tournament/${t}/combatArena/${a}/lastMatch/no`;
+export const combatPath = (t: TournamentId, i: number) => `tournament/${t}/combat/${i}`;
+export const fightersPath = (t: TournamentId, i: number) => `tournament/${t}/combat/${i}/fighters`;
+export const matchWinPath = (t: TournamentId, i: number) => `tournament/${t}/combat/${i}/match/win`;
+export const refereePath = (t: TournamentId, a: number) => `tournament/${t}/combatArena/${a}/referee`;
+export const lastMatchPath = (t: TournamentId, a: number) => `tournament/${t}/combatArena/${a}/lastMatch/no`;
 
 // ==================== Hàm thuần (không đụng Firebase) ====================
 

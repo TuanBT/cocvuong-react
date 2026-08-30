@@ -14,6 +14,8 @@ import {
   TournamentSummary, getTournamentSummary, listTournaments, subscribeTournamentSummary,
 } from '../../services/tournamentService';
 import { ensureMyDemoTournament, topUpDemo } from '../../services/demoService';
+import { isAdmin } from '../../services/adminService';
+import type { TournamentId } from '../../types';
 
 export interface SupervisorAccess {
   tournament: TournamentSummary;
@@ -41,7 +43,7 @@ interface RequestAccessPanelState {
   phase: Phase;
   tournaments: TournamentSummary[];
   /** Giai da la nhan su hoac chu — hien nhom rieng, vao thang duoc */
-  myTournaments: Set<number>;
+  myTournaments: Set<TournamentId>;
   selected: TournamentSummary | null;
   staff: StaffMember | null;
   want: Assignments;
@@ -52,6 +54,20 @@ interface RequestAccessPanelState {
 }
 
 const ARENA_INDEXES = [0, 1];
+
+/**
+ * `?giai=<khoa>` — duong tat tu trang quan tri: vao thang giai do, bo qua bang chon.
+ *
+ * Doc thang tu URL chu khong nhan qua props: cong nay duoc dung trong
+ * `render={() => ...}` cua router nen khong co `location` truyen xuong, va them
+ * mot tang props chi de mang mot khoa thi khong dang.
+ *
+ * Khoa giai la CHUOI mo nen khong kiem duoc gi ngoai "co rong khong" — khoa
+ * sai thi khong khop giai nao va bang chon hien ra nhu binh thuong.
+ */
+function requestedId(): TournamentId | null {
+  return new URLSearchParams(window.location.search).get('giai') || null;
+}
 
 /**
  * Cong vao cua giam sat: chon giai -> xin quyen -> cho duyet -> vao thang san.
@@ -66,6 +82,14 @@ const ARENA_INDEXES = [0, 1];
  * TAI KHOAN chu khong theo may: doi laptop, muon may khac van dung san.
  */
 class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAccessPanelState> {
+  /**
+   * Admin di thang, khong qua buoc xin quyen.
+   *
+   * Giu o instance field chu khong o state: `pick` chay ngay sau luot doc nay
+   * trong cung mot ham async, ma state luc do chua chac da kip cap nhat — doc
+   * nham mot cai la admin lai roi vao man "Xin quyen giam sat" cua chinh minh.
+   */
+  isAdmin = false;
   unsubStaff: (() => void) | null = null;
   unsubRequest: (() => void) | null = null;
   unsubSummary: (() => void) | null = null;
@@ -108,8 +132,12 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
    *
    * Danh sach giai da doc xong tu truoc khi bang chon hien ra, nen duong
    * thuong khong doc them gi ca: vao thang bang dong tom tat dang cam tren tay,
-   * con viec vat (ten cu, ma giam dinh thieu) tra ve chay nen. Chi khi CHUA co
+   * con viec vat (ten cu, san B con thieu) tra ve chay nen. Chi khi CHUA co
    * ban nao moi phai dung — luc do mo cho la dung, vi khong the vao truoc.
+   *
+   * **Khong cap ma giam dinh o day.** Ma chi sinh khi giam sat mo bang ma ra
+   * doc cho giam dinh — xem `ensureDemoCodesOnDemand`. Cap san cho moi tai
+   * khoan la moi nguoi bam thu an vinh vien mot trong 99 dau so cua kho ma.
    */
   enterDemo = async () => {
     const { user } = this.props;
@@ -117,7 +145,7 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
 
     const known = this.myDemo();
     if (known) {
-      topUpDemo(known.index, owner, known.name);
+      topUpDemo(known.id, known.name);
       this.setState({ arenaIndex: 0, error: '' });
       await this.pick(known);
       return;
@@ -125,8 +153,8 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
 
     this.setState({ busy: true, error: '' });
     try {
-      const index = await ensureMyDemoTournament(owner);
-      const summary = await getTournamentSummary(index);
+      const id = await ensureMyDemoTournament(owner);
+      const summary = await getTournamentSummary(id);
       if (!summary) throw new Error('no summary');
       this.setState({ arenaIndex: 0, busy: false });
       await this.pick(summary);
@@ -143,24 +171,36 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
     const { user } = this.props;
 
     try {
+      this.isAdmin = await isAdmin(user.uid).catch(() => false);
+
       const all = await listTournaments();
       // Giai da dong khong hien trong bang chon nua
       const usable = all.filter((t) => t.status !== 'closed');
 
       // Doc quyen truc cua tat ca giai MOT LUOT: xep hang tung giai mot thi
-      // bang chon hien ra cham dan theo so giai trong he thong
+      // bang chon hien ra cham dan theo so giai trong he thong.
+      // Admin thi khoi doc: rules cho ho ghi moi giai, hoi tung cai chi cham them.
       const checked = await Promise.all(
         usable.map(async (t) => {
           if (t.demo) return null; // co khoi rieng, khong xep vao nhom nao
-          if (t.ownerUid === user.uid) return t.index;
-          const staff = await getStaff(t.index, user.uid).catch(() => null);
-          return staff ? t.index : null;
+          if (this.isAdmin || t.ownerUid === user.uid) return t.id;
+          const staff = await getStaff(t.id, user.uid).catch(() => null);
+          return staff ? t.id : null;
         })
       );
-      const mine = new Set<number>(checked.filter((i): i is number => i !== null));
+      const mine = new Set<TournamentId>(checked.filter((i): i is TournamentId => i !== null));
+
+      // `?giai=<khoa>` tu trang quan tri — vao thang giai duoc chi dinh
+      const wanted = requestedId();
+      const direct = wanted === null ? undefined : usable.find((t) => t.id === wanted);
+      if (direct) {
+        await this.pick(direct);
+        this.setState({ tournaments: usable, myTournaments: mine });
+        return;
+      }
 
       // Dung mot giai dung duoc thi vao thang, khong bat chon
-      const candidates = usable.filter((t) => mine.has(t.index));
+      const candidates = usable.filter((t) => mine.has(t.id));
       if (candidates.length === 1) {
         await this.pick(candidates[0]);
         this.setState({ tournaments: usable, myTournaments: mine });
@@ -178,14 +218,14 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
     this.detach();
     this.setState({ selected: t, error: '' });
 
-    this.unsubSummary = subscribeTournamentSummary(t.index, (fresh) => {
+    this.unsubSummary = subscribeTournamentSummary(t.id, (fresh) => {
       if (fresh) this.setState({ selected: fresh });
     });
 
-    // Chu giai / giai mo tu do / giai cu chua co chu: bo han buoc duyet
-    const freePass = t.ownerUid === user.uid || t.openAccess || !t.ownerUid;
+    // Chu giai / admin / giai mo tu do / giai cu chua co chu: bo han buoc duyet
+    const freePass = this.isAdmin || t.ownerUid === user.uid || t.openAccess || !t.ownerUid;
 
-    this.unsubStaff = subscribeMyAccess(t.index, user.uid, (staff) => {
+    this.unsubStaff = subscribeMyAccess(t.id, user.uid, (staff) => {
       const hadAccess = this.state.phase === 'ready' || this.state.phase === 'pick-arena';
 
       if (!staff && !freePass) {
@@ -204,7 +244,7 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
   watchRequest(t: TournamentSummary) {
     const { user } = this.props;
     this.unsubRequest?.();
-    this.unsubRequest = subscribeMyRequest(t.index, user.uid, (req) => {
+    this.unsubRequest = subscribeMyRequest(t.id, user.uid, (req) => {
       if (!req) {
         this.setState({ phase: 'request' });
       } else if (req.rejectedAt) {
@@ -269,7 +309,7 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
     this.setState({ arenaIndex: a, phase: 'ready' });
     if (selected) {
       // Nho theo tai khoan -> doi may van vao dung san
-      await setLastArena(selected.index, user.uid, `${kind}${a}` as ArenaAssignmentKey).catch(
+      await setLastArena(selected.id, user.uid, `${kind}${a}` as ArenaAssignmentKey).catch(
         () => undefined
       );
     }
@@ -287,7 +327,7 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
 
     this.setState({ busy: true, error: '' });
     try {
-      await requestAccess(selected.index, user, want, note);
+      await requestAccess(selected.id, user, want, note);
       this.setState({ phase: 'waiting' });
       this.watchRequest(selected);
     } catch (err: any) {
@@ -305,7 +345,7 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
   cancelRequest = async () => {
     const { selected } = this.state;
     if (!selected) return;
-    await withdrawRequest(selected.index, this.props.user.uid).catch(() => undefined);
+    await withdrawRequest(selected.id, this.props.user.uid).catch(() => undefined);
     this.setState({ phase: 'request' });
   };
 
@@ -539,12 +579,12 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
     // no khong gan voi danh sach VDV nao ca — xep chung vao "vao thang duoc"
     // thi nguoi ta tuong day la mot giai da duoc duyet
     const real = tournaments.filter((t) => !t.demo);
-    const mine = real.filter((t) => myTournaments.has(t.index));
-    const others = real.filter((t) => !myTournaments.has(t.index));
+    const mine = real.filter((t) => myTournaments.has(t.id));
+    const others = real.filter((t) => !myTournaments.has(t.id));
 
     const row = (t: TournamentSummary, ready: boolean) => (
       <button
-        key={t.index}
+        key={t.id}
         type="button"
         disabled={busy}
         onClick={() => this.pick(t)}
@@ -558,7 +598,9 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
           <span className="block font-medium text-slate-800 whitespace-pre-line">{t.name}</span>
           <span className="block text-xs text-slate-500 mt-0.5">
             {ready
-              ? (t.ownerUid === user.uid ? 'Giải của bạn — vào thẳng' : 'Đã được duyệt — vào thẳng')
+              ? t.ownerUid === user.uid ? 'Giải của bạn — vào thẳng'
+                : this.isAdmin ? 'Quản trị viên — vào thẳng'
+                : 'Đã được duyệt — vào thẳng'
               : t.status === 'open' ? 'Đang mở · cần xin quyền'
               : !t.ownerUid ? 'Giải cũ chưa có chủ · vào được'
               : 'Chưa mở'}

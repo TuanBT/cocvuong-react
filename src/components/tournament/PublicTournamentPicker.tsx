@@ -2,11 +2,12 @@ import React, { useMemo, useState } from 'react';
 import EmptyState from '../ui/EmptyState';
 import Button from '../ui/Button';
 import { TournamentSummary } from '../../services/tournamentService';
+import type { TournamentId } from '../../types';
 
 interface PublicTournamentPickerProps {
   tournaments: TournamentSummary[];
   loading: boolean;
-  onSelect: (index: number) => void;
+  onSelect: (id: TournamentId) => void;
   /** "trận đấu" / "bảng điểm" — chỉ để viết câu hướng dẫn cho đúng trang */
   what: string;
 }
@@ -93,9 +94,9 @@ const PublicTournamentPicker: React.FC<PublicTournamentPickerProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
           {shown.map((t) => (
             <button
-              key={t.index}
+              key={t.id}
               type="button"
-              onClick={() => onSelect(t.index)}
+              onClick={() => onSelect(t.id)}
               className="text-left bg-white border-2 border-slate-200 rounded-card p-3.5
                 hover:border-accent-400 hover:shadow-card transition-all"
             >

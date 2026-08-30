@@ -60,6 +60,7 @@ import {
     CombatArena,
     RefereeScore,
     Fighter,
+    TournamentId,
 } from '../types';
 
 // Props interface
@@ -226,7 +227,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
     tournamentObj: Tournament[] | null = null;
     tournaments: TournamentInfo[] = [];
     combatArenaNoIndex: number;
-    tournamentNoIndex: number;
+    tournamentNoIndex: TournamentId;
     arenaNo: string = 'A';
 
     // Fighter country
@@ -364,7 +365,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         this.countryRed = "red";
         this.countryBlue = "blue";
         this.combatArenaNoIndex = 0;
-        this.tournamentNoIndex = 0;
+        this.tournamentNoIndex = '0';
         this.isHumanPauseTimer = false;
 
         // Use constants for default objects
@@ -403,7 +404,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
         // Giai va san da duoc cong RequestAccessPanel quyet dinh xong — vao thang,
         // khong hoi mat khau, khong hien modal chon san lan nao nua.
         const { access } = this.props;
-        this.tournamentNoIndex = access.tournament.index;
+        this.tournamentNoIndex = access.tournament.id;
         this.combatArenaNoIndex = access.arenaIndex;
         this.arenaNo = access.arenaIndex === 0 ? 'A' : 'B';
         this.main();
@@ -1403,7 +1404,7 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
     resetDemo = async (): Promise<void> => {
         try {
             const { tournament, arenaIndex } = this.props.access;
-            await resetDemoTournament(tournament.index, arenaIndex);
+            await resetDemoTournament(tournament.id, arenaIndex);
             // Diem, canh cao, co thang deu chay ve qua `onValue` cua `combat`.
             // Chi con dong ho / hiep / bo dem giam dinh la nam trong may nay —
             // dung dung `restoreMatch` cua nut chuyen tran, khong tai lai trang
@@ -1925,8 +1926,8 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                 <CodeBoardModal
                     isOpen={showCodeBoard}
                     onClose={() => this.setState({ showCodeBoard: false })}
-                    tournamentIndex={access.tournament.index}
-                    tournamentName={access.tournament.name}
+                    tournament={access.tournament}
+                    viewerUid={this.props.user.uid}
                     arenaKeys={[access.arenaKey]}
                 />
 

@@ -5,13 +5,15 @@ interface NumberFieldProps {
   label: string;
   value: number;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  /** Goi khi roi o - de trang thiet dat luu luc go xong thay vi tung phim */
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
   /** Don vi hien mo ben trong o nhap, vi du "giây" */
   unit?: string;
   min?: number;
 }
 
 /** O nhap so co nhan va don vi - dung cho cac moc thoi gian trong thiet dat. */
-const NumberField: React.FC<NumberFieldProps> = ({ name, label, value, onChange, unit, min = 0 }) => (
+const NumberField: React.FC<NumberFieldProps> = ({ name, label, value, onChange, onBlur, unit, min = 0 }) => (
   <div>
     <label htmlFor={`field-${name}`} className="block text-xs font-medium text-slate-500 mb-1">
       {label}
@@ -25,6 +27,7 @@ const NumberField: React.FC<NumberFieldProps> = ({ name, label, value, onChange,
         min={min}
         value={value}
         onChange={onChange}
+        onBlur={onBlur}
         className={`w-full px-3 py-2.5 border border-slate-200 rounded-control text-center
           text-slate-800 bg-white tabular-nums
           focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent transition-shadow

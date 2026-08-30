@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import GoogleSignInCard from './GoogleSignInCard';
 import { AppUser, ensureAnonymous, onAuthChanged } from '../../services/authService';
+import { ensureBootstrapAdmin } from '../../services/adminService';
 
 interface AuthGateProps {
   title?: string;
@@ -48,6 +49,13 @@ class AuthGate extends Component<AuthGateProps, AuthGateState> {
       // Che do dung thu: chua co phien nao thi ky ngam, khong hoi gi nguoi dung
       if (!user && this.props.allowAnonymous) {
         void ensureAnonymous().catch(() => undefined);
+      }
+
+      // Dat o day chu khong o `signInWithGoogle`: phan lon lan mo app la khoi
+      // phuc phien tu localStorage, khong di qua nut dang nhap lan nao ca.
+      // Voi moi email khac, ham nay tra ve ngay, khong mot luot doc nao.
+      if (user && !user.isAnonymous) {
+        void ensureBootstrapAdmin(user).catch(() => undefined);
       }
     });
   }

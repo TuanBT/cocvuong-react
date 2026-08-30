@@ -206,13 +206,27 @@
       }
     },
 
-    // Quyền admin CHỈ sửa được trong Firebase Console. Cố ý không có đường cấp
-    // quyền admin từ trong app: không có server thì mọi đường cấp quyền trong
-    // app đều là đường để người khác leo lên.
+    // Quyền admin. KHÔNG có đường cấp quyền cho NGƯỜI KHÁC từ trong app —
+    // không có server thì mọi đường như thế đều là đường để người ta leo lên.
+    // Chỉ hai cách đặt được `appAdmin/{uid} = true`:
+    //
+    //   1. Đặt tay trong Firebase Console — dành cho mọi admin về sau.
+    //   2. ĐÚNG MỘT email ghi cứng ngay dưới đây, và chỉ tự đặt cho chính mình.
+    //
+    // Vế (2) an toàn vì `auth.token.email` là claim nằm trong ID token do
+    // Firebase KÝ: client không bịa được, khác hẳn với việc app tự kiểm email.
+    // Bốn điều kiện siết cùng lúc: đúng ô của chính mình · đúng email đó ·
+    // email đã xác thực · và chỉ ghi được đúng giá trị `true`.
+    //
+    // Vế `=== true` chặn luôn việc XOÁ (xoá thì `newData` không tồn tại nên
+    // `.val()` là null): gỡ quyền admin vẫn phải vào Console.
+    //
+    // Email này phải khớp TỪNG KÝ TỰ với `BOOTSTRAP_ADMIN_EMAIL` trong
+    // src/constants/admin.ts. Lệch một ký tự thì app ghi mà rules từ chối.
     "appAdmin": {
       "$uid": {
         ".read": "auth.uid === $uid",
-        ".write": false
+        ".write": "auth.uid === $uid && newData.val() === true && auth.token.email_verified === true && auth.token.email === 'bttvn.4t@gmail.com'"
       }
     },
 

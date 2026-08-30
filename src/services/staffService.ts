@@ -8,6 +8,7 @@
  */
 import { ref, get, set, update, remove, child, onValue, off } from 'firebase/database';
 import { database } from '../firebase';
+import type { TournamentId } from '../types';
 import { ArenaKind, arenaKey, arenaName, kindName } from './accessCodeService';
 
 /** Bon san co the phan cong: doi khang A/B, thi quyen A/B */
@@ -35,7 +36,7 @@ export interface AccessRequest {
   photo: string;
   note?: string;
   want: Assignments;
-  createdAt: number;
+  createdAt: TournamentId;
   rejectedAt?: number;
 }
 
@@ -72,7 +73,7 @@ export function hasAssignment(a: Assignments | undefined, kind: ArenaKind, arena
  * duoc. Bi tu choi roi thi rules chan nop lai (con `rejectedAt`).
  */
 export async function requestAccess(
-  t: number,
+  t: TournamentId,
   user: { uid: string; email: string; name: string; photo: string },
   want: Assignments = allArenas(),
   note = ''
@@ -87,13 +88,13 @@ export async function requestAccess(
   });
 }
 
-export async function withdrawRequest(t: number, uid: string): Promise<void> {
+export async function withdrawRequest(t: TournamentId, uid: string): Promise<void> {
   await remove(ref(database, `tournamentRequest/${t}/${uid}`));
 }
 
 /** Chu giai: don dang cho. Realtime — cham do + tieng chuong dua vao day. */
 export function subscribeRequests(
-  t: number,
+  t: TournamentId,
   cb: (list: AccessRequest[]) => void,
   onError?: (err: Error) => void
 ): () => void {
@@ -123,7 +124,7 @@ export function subscribeRequests(
 
 /** Chinh nguoi nop theo doi don cua minh — duyet cai la vao thang, khong phai tai trang. */
 export function subscribeMyRequest(
-  t: number,
+  t: TournamentId,
   uid: string,
   cb: (req: AccessRequest | null) => void
 ): () => void {
@@ -142,7 +143,7 @@ export function subscribeMyRequest(
 // ==================== Duyet / thu hoi ====================
 
 export async function approveRequest(
-  t: number,
+  t: TournamentId,
   req: AccessRequest,
   assignments: Assignments,
   approvedBy: string
@@ -159,30 +160,85 @@ export async function approveRequest(
 }
 
 /** Tu choi: giu lai don co dau `rejectedAt` de rules chan nop lai. */
-export async function rejectRequest(t: number, uid: string): Promise<void> {
+export async function rejectRequest(t: TournamentId, uid: string): Promise<void> {
   await update(ref(database, `tournamentRequest/${t}/${uid}`), { rejectedAt: Date.now() });
 }
 
 /** Chu giai lo tu choi nham — xoa dau la nguoi kia nop lai duoc. */
-export async function undoReject(t: number, uid: string): Promise<void> {
+export async function undoReject(t: TournamentId, uid: string): Promise<void> {
   await remove(ref(database, `tournamentRequest/${t}/${uid}/rejectedAt`));
 }
 
-export async function revokeStaff(t: number, uid: string): Promise<void> {
+export async function revokeStaff(t: TournamentId, uid: string): Promise<void> {
   await remove(ref(database, `tournamentStaff/${t}/${uid}`));
 }
 
 /** Thu hep phan cong giua giai, khong phai thu hoi roi duyet lai tu dau. */
 export async function updateAssignments(
-  t: number,
+  t: TournamentId,
   uid: string,
   assignments: Assignments
 ): Promise<void> {
   await set(ref(database, `tournamentStaff/${t}/${uid}/assignments`), assignments);
 }
 
+/**
+ * Chi dinh THANG mot nguoi vao truc san, khong qua buoc nop don.
+ *
+ * Duong nay danh cho chu giai / admin dang dung ngay tai san: nguoi kia chua
+ * kip mo app de nop don ma tran thi sap bat dau. Ghi vao dung cai node ma
+ * `approveRequest` ghi, nen may cua ho tu vao thang, khong phai tai lai trang.
+ *
+ * Don cu (ke ca don da bi tu choi) bi don luon: de lai thi bang duyet hien mot
+ * nguoi o ca hai muc, va dau `rejectedAt` con lai se chan ho nop lai sau nay.
+ */
+export async function grantStaff(
+  t: TournamentId,
+  person: { uid: string; email: string; name: string; photo?: string },
+  assignments: Assignments,
+  approvedBy: string
+): Promise<void> {
+  await set(ref(database, `tournamentStaff/${t}/${person.uid}`), {
+    email: person.email,
+    name: person.name,
+    photo: person.photo || '',
+    assignments,
+    approvedAt: Date.now(),
+    approvedBy,
+  });
+  await remove(ref(database, `tournamentRequest/${t}/${person.uid}`)).catch(() => undefined);
+}
+
+/**
+ * Thay nguoi trong san: nguoi moi nhan DUNG nhung san nguoi cu dang giu.
+ *
+ * Cap quyen cho nguoi moi TRUOC roi moi go nguoi cu. Lam nguoc lai thi giua
+ * hai lenh co mot khoang khong ai giu san — dung luc do giam sat bam la ghi
+ * hong. Trung nhau vai giay thi khong sao: hai nguoi cung san chi la canh bao
+ * quen thuoc cua app.
+ *
+ * San cua nguoi moi (neu ho da truc san khac roi) duoc GIU LAI chu khong bi
+ * de len: goi ham nay la de them viec cho ho, khong phai de chuyen viec.
+ */
+export async function replaceStaff(
+  t: TournamentId,
+  outgoing: StaffMember,
+  incoming: { uid: string; email: string; name: string; photo?: string },
+  approvedBy: string
+): Promise<Assignments> {
+  if (incoming.uid === outgoing.uid) return outgoing.assignments || {};
+
+  const existing = await getStaff(t, incoming.uid).catch(() => null);
+  const merged: Assignments = { ...(existing?.assignments || {}) };
+  for (const key of assignedKeys(outgoing.assignments)) merged[key] = true;
+
+  await grantStaff(t, incoming, merged, approvedBy);
+  await revokeStaff(t, outgoing.uid);
+  return merged;
+}
+
 export function subscribeStaff(
-  t: number,
+  t: TournamentId,
   cb: (list: StaffMember[]) => void,
   onError?: (err: Error) => void
 ): () => void {
@@ -208,7 +264,7 @@ export function subscribeStaff(
   return () => off(r);
 }
 
-export async function getStaff(t: number, uid: string): Promise<StaffMember | null> {
+export async function getStaff(t: TournamentId, uid: string): Promise<StaffMember | null> {
   const snap = await get(child(ref(database), `tournamentStaff/${t}/${uid}`));
   const v = snap.val();
   return v ? { uid, ...v, assignments: v.assignments || {} } : null;
@@ -221,7 +277,7 @@ export async function getStaff(t: number, uid: string): Promise<StaffMember | nu
  * khong roi loi am tham. Mat nhanh nay la phai hien man "Quyen da bi thu hoi".
  */
 export function subscribeMyAccess(
-  t: number,
+  t: TournamentId,
   uid: string,
   cb: (staff: StaffMember | null) => void
 ): () => void {
@@ -239,7 +295,7 @@ export function subscribeMyAccess(
 
 /** Ghi san vao lan gan nhat -> lan sau vao thang, doi may van dung. */
 export async function setLastArena(
-  t: number,
+  t: TournamentId,
   uid: string,
   key: ArenaAssignmentKey
 ): Promise<void> {

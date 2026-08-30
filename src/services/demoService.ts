@@ -13,15 +13,17 @@
  * rule nao: chu ghi duoc ca cay giai cua minh, giam dinh ghi diem bang nhanh
  * `codeSession` von khong dinh gi toi quyen so huu.
  *
- * Cai gia: moi tai khoan an mot o trong mang `tournament` (khong xoa duoc phan
- * tu giua mang) va **mot trong 99 dau so** cua kho ma. Xong viec bam "Đóng
- * giải" o trang Thiet dat la tra dau so ve kho.
+ * Cai gia: **mot trong 99 dau so** cua kho ma — nhung chi tra khi that su can.
+ * Xem `ensureDemoCodesOnDemand`.
  */
-import { ref, get, set, update, child } from 'firebase/database';
+import { ref, get, set, update, child, push } from 'firebase/database';
 import { database } from '../firebase';
 import { DEFAULT_SETTING } from '../constants/settings';
+import type { TournamentId } from '../types';
 import { ensureTournamentCodes } from './accessCodeService';
-import { listTournaments, reopenTournament, syncTournamentIndex } from './tournamentService';
+import {
+  TournamentSummary, listTournaments, reopenTournament, syncTournamentIndex,
+} from './tournamentService';
 
 /** Ten luu trong DB — chi de nguoi quan tri phan biet trong danh sach giai. */
 export const DEMO_NAME = 'CHẤM NHANH';
@@ -140,14 +142,13 @@ export interface DemoOwner {
  * tren mang 4G, ma khong viec nao can xong truoc khi man cham diem hien ra.
  * Goi kieu ban-va-quen ngay luc vao ban.
  */
-export function topUpDemo(index: number, owner: DemoOwner, currentName?: string): void {
+export function topUpDemo(id: TournamentId, currentName?: string): void {
   if (currentName !== undefined && currentName !== DEMO_NAME) {
-    void set(ref(database, `tournament/${index}/setting/tournamentName`), DEMO_NAME)
-      .then(() => syncTournamentIndex(index))
+    void set(ref(database, `tournament/${id}/setting/tournamentName`), DEMO_NAME)
+      .then(() => syncTournamentIndex(id))
       .catch(() => undefined);
   }
-  void addArenaB(index);
-  void ensureDemoCodes(index, owner);
+  void addArenaB(id);
 }
 
 /**
@@ -155,13 +156,13 @@ export function topUpDemo(index: number, owner: DemoOwner, currentName?: string)
  * mot san trong. Chi ghi nhung nhanh CON THIEU: tran 1, luot 1 va diem dang
  * cham o San A khong duoc dung toi.
  */
-async function addArenaB(index: number): Promise<void> {
+async function addArenaB(id: TournamentId): Promise<void> {
   try {
-    const snap = await get(child(ref(database), `tournament/${index}/combatArena/1`));
+    const snap = await get(child(ref(database), `tournament/${id}/combatArena/1`));
     if (snap.exists()) return;
 
     const p = demoPayload();
-    await update(ref(database, `tournament/${index}`), {
+    await update(ref(database, `tournament/${id}`), {
       'combat/1': p.combat[1],
       'combatArena/1': p.combatArena[1],
       'martial/0/team/1': p.martial[0].team[1],
@@ -187,58 +188,72 @@ async function addArenaB(index: number): Promise<void> {
  *      nhan lam ban cua nguoi vao dau tien, GIU nguyen diem dang cham.
  *   3. Chua co gi thi dung ban moi o cuoi mang.
  */
-export async function ensureMyDemoTournament(owner: DemoOwner): Promise<number> {
+export async function ensureMyDemoTournament(owner: DemoOwner): Promise<TournamentId> {
   const all = await listTournaments();
 
   const mine = all.find((t) => t.demo && t.ownerUid === owner.uid);
   if (mine) {
-    if (mine.status === 'closed') await reopenTournament(mine.index);
-    await addArenaB(mine.index);
-    await ensureDemoCodes(mine.index, owner);
-    return mine.index;
+    if (mine.status === 'closed') await reopenTournament(mine.id);
+    await addArenaB(mine.id);
+    return mine.id;
   }
 
   const orphan = all.find((t) => t.demo && !t.ownerUid);
   if (orphan) {
     // Chi dat chu, KHONG ghi de tran: rat co the dang co nguoi cham do dang
     // tren chinh ban nay ngay luc doi doi
-    await update(ref(database, `tournament/${orphan.index}/setting`), {
+    await update(ref(database, `tournament/${orphan.id}/setting`), {
       ownerUid: owner.uid,
       ownerEmail: owner.email,
       openAccess: false,
     });
-    await syncTournamentIndex(orphan.index);
-    await addArenaB(orphan.index);
-    await ensureDemoCodes(orphan.index, owner);
-    return orphan.index;
+    await syncTournamentIndex(orphan.id);
+    await addArenaB(orphan.id);
+    return orphan.id;
   }
 
-  const snap = await get(child(ref(database), 'tournament'));
-  const raw = snap.val();
-  const keys = raw ? Object.keys(raw).map(Number).filter((n) => !Number.isNaN(n)) : [];
-  const index = keys.length ? Math.max(...keys) + 1 : 0;
+  const id = push(child(ref(database), 'tournament')).key;
+  if (!id) throw new Error('Không mở được bàn chấm nhanh.');
 
-  await set(ref(database, `tournament/${index}`), demoPayload(owner));
-  await syncTournamentIndex(index);
-  await ensureDemoCodes(index, owner);
-  return index;
+  await set(ref(database, `tournament/${id}`), demoPayload(owner));
+  await syncTournamentIndex(id);
+  return id;
 }
 
-/** Ban cham nhanh: 1 san x 2 mon x 3 giam dinh. Tinh vao tran kho ma. */
-async function ensureDemoCodes(index: number, owner: DemoOwner): Promise<void> {
+/**
+ * Cap ma cho ban cham nhanh — **chi khi that su can den**.
+ *
+ * Kho ma chi co 99 dau so, va mot dau so chi tra ve kho luc Dong giai. Ban
+ * cham nhanh thi khong bao gio dong: no duoc `reopenTournament` moi lan chu no
+ * quay lai. Cap ma ngay luc mo ban, nhu ban cu, nghia la **moi tai khoan tung
+ * bam "Chấm nhanh" an vinh vien mot trong 99 dau so** — tran that su cua he
+ * thong tut xuong thanh so NGUOI DUNG, chu khong phai so giai dang mo.
+ *
+ * Ma cua ban cham nhanh chi den tay giam dinh qua duy nhat mot duong: giam sat
+ * mo bang ma ra doc cho ho. Nen cho cap dung o do. Ai chi mo ban ra cham mot
+ * minh — phan lon nguoi bam thu — khong dung den mot dau so nao.
+ *
+ * Khong phai ban cham nhanh, hoac khong phai chu no, thi khong lam gi: giai
+ * that da co ma tu luc tao.
+ */
+export async function ensureDemoCodesOnDemand(
+  t: TournamentSummary | null | undefined,
+  uid: string
+): Promise<void> {
+  if (!t?.demo || t.ownerUid !== uid) return;
   try {
     await ensureTournamentCodes(
-      index,
+      t.id,
       {
         combatReferees: 3,
         martialReferees: 3,
         useArenaB: true,
         tournamentName: 'Chấm nhanh',
       },
-      owner.uid
+      uid
     );
   } catch {
-    /* kho ma day thi giai thu van xem duoc, chi la khong co ma giam dinh */
+    /* kho ma day thi ban thu van cham duoc, chi la khong co ma giam dinh */
   }
 }
 
@@ -249,10 +264,10 @@ async function ensureDemoCodes(index: number, owner: DemoOwner): Promise<void> {
  * do se mat diem ma khong hieu vi sao. Moi san co dung mot tran doi khang va
  * mot luot thi quyen nen "cham lai san" = ghi de lai dung hai cho do.
  */
-export async function resetDemoTournament(index: number, arena: number): Promise<void> {
+export async function resetDemoTournament(id: TournamentId, arena: number): Promise<void> {
   const p = demoPayload();
   const a = arena === 1 ? 1 : 0;
-  await update(ref(database, `tournament/${index}`), {
+  await update(ref(database, `tournament/${id}`), {
     [`combat/${a}`]: p.combat[a],
     [`combatArena/${a}`]: p.combatArena[a],
     [`martial/0/team/${a}`]: p.martial[0].team[a],

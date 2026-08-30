@@ -20,6 +20,7 @@ import {
   ShortcutModal,
   ScoreKey,
 } from '../components/referee';
+import type { TournamentId } from '../types';
 
 interface GiamDinhDoiKhangContainerProps {
   history?: { push: (path: string) => void };
@@ -69,7 +70,7 @@ class GiamDinhDoiKhangContainer extends Component<GiamDinhDoiKhangContainerProps
   referreIndex: number = -1;
   path: string = "";
   combatArenaNoIndex: number = 0;
-  tournamentNoIndex: number = 0;
+  tournamentNoIndex: TournamentId = '0';
 
   presenceCleanup: (() => void) | null = null;
   unsubCode: (() => void) | null = null;

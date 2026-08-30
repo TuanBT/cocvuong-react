@@ -13,23 +13,24 @@
 import { Database, ref, get, update } from 'firebase/database';
 import { smartUpdate, smartSet } from './offlineService';
 import { emptyRefereeMartial, type MartialContent, type MartialTeamEntry } from '../utils/martialBuilder';
+import type { TournamentId } from '../types';
 
 // ==================== Context ====================
 
 export interface MartialWriteContext {
   db: Database;
-  tournamentIndex: number;
+  tournamentIndex: TournamentId;
   /** 0 = Sân A, 1 = Sân B */
   arenaIndex: number;
 }
 
 // ==================== Đường dẫn Firebase ====================
 
-export const martialTeamPath = (t: number, matchIdx: number, teamIdx: number) =>
+export const martialTeamPath = (t: TournamentId, matchIdx: number, teamIdx: number) =>
   `tournament/${t}/martial/${matchIdx}/team/${teamIdx}`;
-export const martialRefereePath = (t: number, matchIdx: number, teamIdx: number, refIdx: number) =>
+export const martialRefereePath = (t: TournamentId, matchIdx: number, teamIdx: number, refIdx: number) =>
   `${martialTeamPath(t, matchIdx, teamIdx)}/refereeMartial/${refIdx}`;
-export const lastMatchMartialPath = (t: number, a: number) =>
+export const lastMatchMartialPath = (t: TournamentId, a: number) =>
   `tournament/${t}/martialArena/${a}/lastMatchMartial`;
 
 // ==================== Hàm thuần ====================

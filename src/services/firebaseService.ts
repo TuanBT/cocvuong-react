@@ -18,7 +18,7 @@ import {
   DatabaseReference,
   DataSnapshot
 } from "firebase/database";
-import { Tournament, TournamentSetting, CombatMatch, CombatArena, RefereeScore } from '../types';
+import { Tournament, TournamentSetting, CombatMatch, CombatArena, RefereeScore, TournamentId } from '../types';
 
 // Singleton instance
 let dbInstance: Database | null = null;
@@ -128,14 +128,14 @@ export const subscribeToConnectionStatus = (callback: (connected: boolean) => vo
 /**
  * Lấy cài đặt giải đấu
  */
-export const getTournamentSetting = async (tournamentIndex: number = 0): Promise<TournamentSetting | null> => {
+export const getTournamentSetting = async (tournamentIndex: TournamentId = '0'): Promise<TournamentSetting | null> => {
   return getData<TournamentSetting>(`tournament/${tournamentIndex}/setting`);
 };
 
 /**
  * Lấy thông tin trận đấu đối kháng
  */
-export const getCombatMatch = async (tournamentIndex: number, combatIndex: number): Promise<CombatMatch | null> => {
+export const getCombatMatch = async (tournamentIndex: TournamentId, combatIndex: number): Promise<CombatMatch | null> => {
   return getData<CombatMatch>(`tournament/${tournamentIndex}/combat/${combatIndex}`);
 };
 
@@ -143,7 +143,7 @@ export const getCombatMatch = async (tournamentIndex: number, combatIndex: numbe
  * Cập nhật thông tin trận đấu
  */
 export const updateCombatMatch = async (
-  tournamentIndex: number, 
+  tournamentIndex: TournamentId, 
   combatIndex: number, 
   matchData: Partial<CombatMatch>
 ): Promise<void> => {
@@ -153,7 +153,7 @@ export const updateCombatMatch = async (
 /**
  * Lấy thông tin sân thi đấu
  */
-export const getCombatArena = async (tournamentIndex: number, arenaIndex: number): Promise<CombatArena | null> => {
+export const getCombatArena = async (tournamentIndex: TournamentId, arenaIndex: number): Promise<CombatArena | null> => {
   return getData<CombatArena>(`tournament/${tournamentIndex}/combatArena/${arenaIndex}`);
 };
 
@@ -161,7 +161,7 @@ export const getCombatArena = async (tournamentIndex: number, arenaIndex: number
  * Subscribe vào trận đấu hiện tại
  */
 export const subscribeToLastMatch = (
-  tournamentIndex: number, 
+  tournamentIndex: TournamentId, 
   arenaIndex: number, 
   callback: (data: { no: number } | null, snapshot: DataSnapshot) => void
 ): () => void => {
@@ -175,7 +175,7 @@ export const subscribeToLastMatch = (
  * Subscribe vào điểm của giám định
  */
 export const subscribeToRefereeScores = (
-  tournamentIndex: number, 
+  tournamentIndex: TournamentId, 
   arenaIndex: number, 
   callback: (data: RefereeScore[] | null, snapshot: DataSnapshot) => void
 ): () => void => {
@@ -189,7 +189,7 @@ export const subscribeToRefereeScores = (
  * Cập nhật điểm giám định
  */
 export const updateRefereeScore = async (
-  tournamentIndex: number, 
+  tournamentIndex: TournamentId, 
   arenaIndex: number, 
   refereeIndex: number, 
   scores: RefereeScore
@@ -206,7 +206,7 @@ export interface PresenceData {
   online: boolean;
   name: string;
   arena: string;
-  tournament: number;
+  tournament: TournamentId;
   refereeIndex: number;
   lastSeen: number;
 }
@@ -217,7 +217,7 @@ export interface PresenceData {
  */
 export const setGiamDinhPresence = async (
   arena: string,
-  tournament: number,
+  tournament: TournamentId,
   refereeIndex: number,
   name: string
 ): Promise<() => void> => {
@@ -252,7 +252,7 @@ export const setGiamDinhPresence = async (
  */
 export const removeGiamDinhPresence = async (
   arena: string,
-  tournament: number,
+  tournament: TournamentId,
   refereeIndex: number
 ): Promise<void> => {
   const db = getFirebaseDb();
@@ -265,7 +265,7 @@ export const removeGiamDinhPresence = async (
  */
 export const subscribeToGiamDinhPresence = (
   arena: string,
-  tournament: number,
+  tournament: TournamentId,
   callback: (presenceList: PresenceData[]) => void
 ): () => void => {
   const db = getFirebaseDb();

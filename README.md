@@ -20,11 +20,12 @@ Một giải gồm hai loại nội dung, cả hai đều chấm được cùng 
 
 | Nhóm | Chi tiết |
 |---|---|
-| **Sắp giải** | Nhập Excel danh sách VĐV thô → tự bốc thăm, chia cặp, sinh nhánh đấu (22 schema từ 2 đến 32 VĐV) → xuất file kết quả |
+| **Sắp giải** | Wizard 5 bước: chọn giải (hoặc tạo mới) → kiểu nhập liệu → Excel danh sách VĐV → bốc thăm, chia cặp, sinh nhánh đấu (22 schema từ 2 đến 32 VĐV) → xác nhận |
 | **Chấm đối kháng** | 3/5 giám định, quá bán ghi điểm, cho phép cùng lúc cả đỏ lẫn xanh, chấm lại trận khi kết quả chưa dùng ở trận sau |
 | **Chấm thi quyền** | Điểm từng giám định, tính tổng theo luật 3/5, Giám Sát ghi đè được điểm tổng |
 | **Hai sân song song** | Sân A và sân B chấm đồng thời, kết quả đồng bộ về cùng một giải |
 | **Phân quyền** | Đăng nhập Google, chủ giải duyệt người trực sân; giám định vào bằng 2 số của giải |
+| **Quản trị** | Bảng điều khiển mọi giải và mọi người: xoá giải, đổi chủ, chỉ định/thay người chấm, rà soát lỗi toàn hệ thống |
 | **Hiển thị** | Cờ quốc gia (11 nước Đông Nam Á), chữ in đậm để nhìn từ xa, màn hình thông tin công khai cho khán giả |
 | **Ngoại tuyến** | Hàng đợi ghi khi mất mạng, tự gửi lại khi có lại kết nối |
 | **Xuất dữ liệu** | Excel (`xlsx`) cho lịch thi đấu và kết quả |
@@ -68,6 +69,39 @@ quyết định cho ghi ở đâu — không tự bịa `slot` được.
 
 Thêm `?demo=1` vào màn giám sát để dùng thử: phiên ẩn danh, giải thử, không cần
 Google và không cần duyệt.
+
+### Quản trị (`/quan-tri`)
+
+Mệnh đề `appAdmin/{uid} === true` nằm sẵn trong **mọi** rule của chủ giải, nên
+admin ghi được ở đâu chủ giải ghi được ở đó. Trang `/quan-tri` là chỗ để dùng
+những quyền ấy, chia làm ba tab:
+
+| Tab | Làm được gì |
+|---|---|
+| **Giải đấu** | Mở / đóng / mở lại · đổi tên · bật-tắt “Mở tự do” · đổi chủ giải (chọn từ danh sách, không phải dán uid) · **xoá giải** · duyệt hộ đơn xin quyền · **chỉ định thẳng** người trực sân · **thay người trực sân** · bảng mã + mở khoá mã · vào chấm hộ |
+| **Người dùng** | Tìm theo tên / email / uid · xem một người làm chủ giải nào, trực sân nào, đang chờ duyệt ở đâu · chỉ định vào một giải · **gỡ khỏi mọi giải** |
+| **Chẩn đoán** | Rà soát toàn hệ thống (giải mở mà chưa cấp mã, giải đóng mà mã còn sống, hai giám sát cùng một sân, giải chưa có chủ, giải mở mà chưa có lịch…) · **dựng lại chỉ mục giải** · bảng máy giám định đang mở, realtime |
+
+Admin còn đi thẳng vào `/thiet-dat` và màn giám sát của **mọi** giải mà không
+phải xin quyền — dùng khi phải thay người ngay giữa trận. Đường tắt là
+`?giai=<khoá giải>` (trang quản trị tự gắn sẵn).
+
+**Ba giới hạn nói thẳng, không code vòng qua được:**
+
+1. **Không khoá / không xoá được tài khoản Google.** Việc đó cần Admin SDK mà
+   app không có server. “Gỡ khỏi mọi giải” cắt sạch đường ghi điểm trong app,
+   nhưng người đó vẫn đăng nhập được.
+2. **Chỉ mục giải không tự phát hiện được thiếu sót.** Danh sách giải ở khắp
+   nơi đọc từ `tournamentIndex` — bản sao nhẹ của `tournament/{t}/setting`, vì
+   đọc cả cây thật là vài MB mỗi lần. Chỉ mục được vá ở đường **ghi** (mọi chỗ
+   đổi `setting` đều gọi `syncTournamentIndex`), nhưng một lượt ghi hỏng giữa
+   chừng vẫn làm thiếu một dòng, và giải đó biến mất khỏi mọi danh sách. Không
+   có phép kiểm tự động nào bắt được — vá bằng nút **“Dựng lại chỉ mục”** ở tab
+   Rà soát của trang quản trị.
+3. **Không có bảng “ai đang là admin”.** Rules chỉ mở `.read` của
+   `appAdmin/{uid}` cho chính chủ, nên không liệt kê ngược ra được — kể cả khi
+   bạn là admin. Cấp quyền admin vẫn đặt tay trong Firebase Console: không có
+   server thì mọi đường cấp quyền trong app đều là đường để người khác leo lên.
 
 ## Bắt đầu
 
@@ -119,7 +153,7 @@ src/
   index.tsx          định tuyến + ba tầng cổng quyền
   firebase.ts        khởi tạo Firebase, giữ phiên qua reload
   containers/        mỗi màn hình một container (giám sát, giám định, thiết đặt…)
-  components/        ui/ · auth/ · referee/ · combat/ · tournament/ · common/
+  components/        ui/ · auth/ · admin/ · referee/ · combat/ · tournament/ · common/
   services/          mọi thao tác ghi Firebase đi qua đây
     combatWriteService.ts    ghi trận, điền VĐV, chốt điểm đối kháng
     martialWriteService.ts   chấm điểm, tính tổng, xếp hạng thi quyền
@@ -134,6 +168,23 @@ src/
 database.rules.json  security rules — tầng chặn thật sự
 tests/e2e/           bộ test đầu-cuối headless
 ```
+
+**Tạo giải và quản lý giải là hai việc khác nhau, ở hai trang khác nhau.**
+`/tao-giai` chỉ lo một luồng: chọn giải → nhập VĐV → sinh lịch. `/thiet-dat` lo
+mọi thứ về một giải đã có: mở / đóng / mở lại · đổi tên · nhận giải cũ về tài
+khoản · **xoá giải** · bảng mã · duyệt giám sát · thời gian hiệp, số giám định.
+Đừng đặt cùng một hành động ở cả hai nơi — không trang nào hiện đủ trạng thái
+của trang kia, nên người dùng sẽ đóng giải ở đây rồi đi tìm lý do vì sao trang
+kia vẫn báo đang mở.
+
+**Khoá giải là chuỗi mờ.** `tournament/{t}` từng là mảng dày đặc `0..N`; hệ quả
+là xoá một giải ở giữa thủng một lỗ, mà lỗ đó làm chỉ mục mất tin cậy và **mọi**
+lần liệt kê giải rơi về đọc cả cây — nên chỉ giải cuối mảng mới xoá hẳn được, và
+xoá mềm sinh ra chỉ để giữ mảng liền mạch. Giờ giải mới lấy `push` key, giải cũ
+giữ nguyên khoá `"0".."N"` (Realtime Database không có mảng thật, nên **không
+phải migrate gì cả**). Đừng `Number()` khoá giải ở bất cứ đâu — làm thế là quay
+lại đúng ràng buộc cũ. Xoá mềm nay đúng vai trò của nó: cái thùng rác, khôi phục
+lại được.
 
 **Quy ước quan trọng:** logic không được nằm trong container. Mọi thứ test cần
 gọi đều phải ở `services/` hoặc `utils/` — nhờ vậy bộ e2e gọi được **code thật**

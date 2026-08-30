@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { toast } from 'react-toastify';
 import Button from '../ui/Button';
+import { TournamentStatus } from '../../services/tournamentService';
 import EmptyState from '../ui/EmptyState';
 import ConfirmModal from '../ui/ConfirmModal';
 import bellSound from '../../assets/sound/Reg.mp3';
@@ -9,12 +10,14 @@ import {
   allArenas, approveRequest, arenaKeyLabel, assignedKeys, rejectRequest,
   revokeStaff, subscribeRequests, subscribeStaff, undoReject, updateAssignments,
 } from '../../services/staffService';
+import type { TournamentId } from '../../types';
 
 interface StaffApprovalPanelProps {
-  tournamentIndex: number;
-  ownerUid: string;
+  tournamentIndex: TournamentId;
+  /** uid ghi vao `approvedBy` — chu giai, hoac admin duyet ho */
+  approvedBy: string;
   /** Don chi duoc nhan khi giai dang mo — hien loi nhac neu chua mo */
-  tournamentStatus: 'draft' | 'open' | 'closed';
+  tournamentStatus: TournamentStatus;
 }
 
 interface StaffApprovalPanelState {
@@ -153,7 +156,7 @@ class StaffApprovalPanel extends Component<StaffApprovalPanelProps, StaffApprova
     }
 
     try {
-      await approveRequest(this.props.tournamentIndex, req, assignments, this.props.ownerUid);
+      await approveRequest(this.props.tournamentIndex, req, assignments, this.props.approvedBy);
       toast.success(`Đã duyệt ${req.name} — ${picked.map(arenaKeyLabel).join(', ')}`);
     } catch {
       toast.error('Không duyệt được. Kiểm tra lại: giải này có phải của bạn không?');
@@ -255,6 +258,8 @@ class StaffApprovalPanel extends Component<StaffApprovalPanelProps, StaffApprova
             <i className="fa-solid fa-circle-info mr-1.5" aria-hidden="true" />
             {tournamentStatus === 'closed'
               ? 'Giải đã đóng — không nhận đơn xin quyền nữa.'
+              : tournamentStatus === 'deleted'
+              ? 'Giải đã xoá — danh sách này giữ lại để tra ai từng trực sân nào.'
               : 'Giải chưa mở nên chưa nhận được đơn. Bấm “Mở giải” ở trên.'}
           </p>
         )}

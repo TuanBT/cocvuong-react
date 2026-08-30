@@ -18,6 +18,7 @@ import {
   ref, get, set, update, remove, child, onValue, off,
 } from 'firebase/database';
 import { database } from '../firebase';
+import type { TournamentId } from '../types';
 
 /**
  * Ma la **4 so**: `[2 so cua giai][san][vi tri giam dinh]`.
@@ -53,8 +54,8 @@ const SESSION_CACHE_KEY = 'cocvuong_code_session';
 export type ArenaKind = 'combat' | 'martial';
 
 export interface CodeSlot {
-  /** Index giai trong mang `tournament` */
-  t: number;
+  /** Khoa giai — CHUOI mo, xem `TournamentId` */
+  t: TournamentId;
   kind: ArenaKind;
   /** 0 = San A, 1 = San B */
   a: number;
@@ -68,7 +69,7 @@ export interface AccessCode {
    * duoc, chi de khong giai nao khac nhan trung 2 so ay.
    */
   slot?: string;
-  t: number;
+  t: TournamentId;
   kind?: ArenaKind;
   a?: number;
   r?: number;
@@ -141,10 +142,14 @@ export function parseSlot(raw: string | null | undefined): CodeSlot | null {
   const parts = String(raw).split(':');
   if (parts.length !== 5 || parts[2] !== 'gd') return null;
   const [t, kind, , a, r] = parts;
+  // `t` giu nguyen dang CHUOI. Khoa giai khong bao gio chua ':' — khoa cu la
+  // so, khoa moi la `push` key (chi chu, so, '-' va '_') — nen cat 5 doan van
+  // dung, va slot cu "5:combat:gd:0:1" van doc ra dung giai "5".
+  if (!t) return null;
   if (kind !== 'combat' && kind !== 'martial') return null;
-  const nums = [Number(t), Number(a), Number(r)];
+  const nums = [Number(a), Number(r)];
   if (nums.some((n) => Number.isNaN(n))) return null;
-  return { t: nums[0], kind, a: nums[1], r: nums[2] };
+  return { t, kind, a: nums[0], r: nums[1] };
 }
 
 /** "Thi quyền · Sân B · GĐ2" — dong chu giam dinh doc de xac nhan truoc khi vao */
@@ -217,7 +222,7 @@ export async function isPrefixFree(prefix: string): Promise<boolean> {
  */
 async function writePrefixHolder(
   prefix: string,
-  t: number,
+  t: TournamentId,
   ownerUid: string,
   tournamentName: string
 ): Promise<void> {
@@ -263,7 +268,7 @@ export interface TournamentCodePlan {
 
 /** Mot o cua bang ma: mot vi tri giam dinh, dung duoc cho 1-2 mon */
 export interface SharedPosition {
-  t: number;
+  t: TournamentId;
   a: number;
   r: number;
   /**
@@ -273,7 +278,7 @@ export interface SharedPosition {
   kinds: ArenaKind[];
 }
 
-export function sharedPositions(t: number, plan: TournamentCodePlan): SharedPosition[] {
+export function sharedPositions(t: TournamentId, plan: TournamentCodePlan): SharedPosition[] {
   const arenas = plan.useArenaB ? [0, 1] : [0];
   const most = Math.max(plan.combatReferees, plan.martialReferees);
   const out: SharedPosition[] = [];
@@ -302,19 +307,19 @@ const META_KEY = 'meta';
  * Chu giai doc duoc; giam sat thi KHONG (rules chi mo dung nhanh san ho truc).
  * Man giam sat khong can den: 2 so dau doc thang tu chinh ma dang hien.
  */
-export async function getCodeMeta(t: number): Promise<CodeMeta | null> {
+export async function getCodeMeta(t: TournamentId): Promise<CodeMeta | null> {
   const snap = await get(child(ref(database), `tournamentCodeIndex/${t}/${META_KEY}`));
   return snap.val();
 }
 
-async function setCodeMeta(t: number, meta: CodeMeta): Promise<void> {
+async function setCodeMeta(t: TournamentId, meta: CodeMeta): Promise<void> {
   const payload: CodeMeta = {};
   if (meta.prefix) payload.prefix = meta.prefix;
   await set(ref(database, `tournamentCodeIndex/${t}/${META_KEY}`), payload);
 }
 
 /** Moi ma dang co cua mot giai (bo qua node `meta`, bo trung) */
-async function codesOfTournament(t: number): Promise<string[]> {
+async function codesOfTournament(t: TournamentId): Promise<string[]> {
   const snap = await get(child(ref(database), `tournamentCodeIndex/${t}`));
   const index = snap.val() as Record<string, unknown> | null;
   if (!index) return [];
@@ -334,7 +339,7 @@ async function codesOfTournament(t: number): Promise<string[]> {
  * ma 2 so ngau nhien". Chua tu y doi so o day: doi la moi ma dang cam chet
  * ngay, phai do nguoi goi quyet dinh.
  */
-export async function resolveCodeMeta(t: number): Promise<CodeMeta> {
+export async function resolveCodeMeta(t: TournamentId): Promise<CodeMeta> {
   try {
     const meta = await getCodeMeta(t);
     if (meta?.prefix) return { prefix: meta.prefix };
@@ -381,7 +386,7 @@ export interface EnsureCodesResult {
  * thi nam giu cho trong kho toi luc dong giai.
  */
 export async function ensureTournamentCodes(
-  t: number,
+  t: TournamentId,
   plan: TournamentCodePlan,
   ownerUid: string
 ): Promise<EnsureCodesResult> {
@@ -409,7 +414,7 @@ export interface SyncCodesResult extends EnsureCodesResult {
  * sang kieu moi la moi ma dang cam chet ngay, viec do phai chu giai bam.
  */
 export async function syncTournamentCodes(
-  t: number,
+  t: TournamentId,
   plan: TournamentCodePlan,
   ownerUid: string
 ): Promise<SyncCodesResult> {
@@ -482,7 +487,7 @@ function matchesKinds(data: AccessCode, kinds: ArenaKind[]): boolean {
  *
  * `keep`: `{sanKey}/{vi tri}` -> ma dung cho o do.
  */
-async function pruneStaleCodes(t: number, keep: Map<string, string>): Promise<number> {
+async function pruneStaleCodes(t: TournamentId, keep: Map<string, string>): Promise<number> {
   const snap = await get(child(ref(database), `tournamentCodeIndex/${t}`));
   const index = snap.val() as Record<string, Record<string, string>> | null;
   if (!index) return 0;
@@ -506,7 +511,7 @@ async function pruneStaleCodes(t: number, keep: Map<string, string>): Promise<nu
 }
 
 async function ensureSharedCodes(
-  t: number,
+  t: TournamentId,
   plan: TournamentCodePlan,
   ownerUid: string,
   known?: string
@@ -575,7 +580,7 @@ async function ensureSharedCodes(
  * "Mã đã bị thu hồi" va phai go so moi. Chi dung truoc gio thi.
  */
 export async function reissueTournamentCodes(
-  t: number,
+  t: TournamentId,
   plan: TournamentCodePlan,
   ownerUid: string,
   prefix: string
@@ -596,7 +601,7 @@ export async function reissueTournamentCodes(
  * Vi ma la kho dung chung co tran, "xong giai la bam Dong giai" khong con la
  * chuyen gon gang ma la **bat buoc**: khong dong thi ma nam giu cho mai.
  */
-export async function revokeTournamentCodes(t: number): Promise<number> {
+export async function revokeTournamentCodes(t: TournamentId): Promise<number> {
   const codes = await codesOfTournament(t);
 
   let prefix: string | undefined;
@@ -639,7 +644,7 @@ export type CodeIndex = Record<string, Record<string, string>>;
  * Man giam sat phai dung `subscribeArenaCodeIndex`.
  */
 export function subscribeCodeIndex(
-  t: number,
+  t: TournamentId,
   cb: (index: CodeIndex) => void,
   onError?: (err: Error) => void
 ): () => void {
@@ -659,7 +664,7 @@ export function subscribeCodeIndex(
 
 /** Giam sat: chi doc duoc dung san minh duoc phan cong */
 export function subscribeArenaCodeIndex(
-  t: number,
+  t: TournamentId,
   sanKey: string,
   cb: (byReferee: Record<string, string>) => void,
   onError?: (err: Error) => void
@@ -722,7 +727,7 @@ export interface OpenPosition {
  * `t` de chan mot truong hop hiem ma dat: giai cu dong chua sach ma, giai moi
  * nhan trung 2 so — o do se tro ve giai da chet.
  */
-export async function positionsForPrefix(prefix: string, t: number): Promise<OpenPosition[]> {
+export async function positionsForPrefix(prefix: string, t: TournamentId): Promise<OpenPosition[]> {
   const wanted: { a: number; r: number; code: string }[] = [];
   for (let a = 0; a < MAX_ARENAS; a++) {
     for (let r = 0; r < MAX_REFEREES; r++) {

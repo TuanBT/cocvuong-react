@@ -20,6 +20,7 @@ import {
   ShortcutModal,
   ScoreKey,
 } from '../components/referee';
+import type { TournamentId } from '../types';
 
 /** 1..9 - hang 0 va hai phim chuc nang duoc dat rieng o cuoi ban phim */
 const NUMPAD_KEYS = [7, 8, 9, 4, 5, 6, 1, 2, 3];
@@ -74,7 +75,7 @@ class GiamDinhThiQuyenContainer extends Component<GiamDinhThiQuyenContainerProps
   matchNoCurrentIndex: number = 0;
   teamNoCurrentIndex: number = 0;
   martialArenaNoIndex: number = 0;
-  tournamentNoIndex: number = 0;
+  tournamentNoIndex: TournamentId = '0';
 
   constructor(props: GiamDinhThiQuyenContainerProps) {
     super(props);

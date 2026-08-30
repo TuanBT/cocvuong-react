@@ -42,6 +42,7 @@ import {
   cacheMartialArena,
   getCachedMartialArena
 } from '../services/offlineService';
+import type { TournamentId } from '../types';
 
 // Interfaces for martial data
 interface MartialFighterData {
@@ -204,7 +205,7 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
   theLastTeamOfMatch: boolean;
   refereeMartialScore: string;
   martialArenaNoIndex: number | string;
-  tournamentNoIndex: number;
+  tournamentNoIndex: TournamentId;
 
   // Connection tracking cleanup functions
   arenaNo: string;
@@ -295,7 +296,7 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     this.theLastTeamOfMatch = false;
     this.refereeMartialScore = '';
     this.martialArenaNoIndex = 0;
-    this.tournamentNoIndex = 0;
+    this.tournamentNoIndex = '0';
 
     // Connection tracking
     this.arenaNo = 'A';
@@ -398,7 +399,7 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     // Giai va san da duoc cong RequestAccessPanel quyet dinh xong — vao thang,
     // khong hoi mat khau, khong hien modal chon san lan nao nua.
     const { access } = this.props;
-    this.tournamentNoIndex = access.tournament.index;
+    this.tournamentNoIndex = access.tournament.id;
     this.martialArenaNoIndex = access.arenaIndex;
     this.arenaNo = access.arenaIndex === 0 ? 'A' : 'B';
     this.main();
@@ -706,7 +707,7 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
   private get martialWriteCtx(): MartialWriteContext {
     return {
       db: this.db,
-      tournamentIndex: Number(this.tournamentNoIndex),
+      tournamentIndex: this.tournamentNoIndex,
       arenaIndex: Number(this.martialArenaNoIndex),
     };
   }
@@ -715,7 +716,7 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
     if (parseInt(this.refereeMartialScore) > 999) {
       this.refereeMartialScore = "";
     }
-    this.pathMartial = martialTeamPath(Number(this.tournamentNoIndex), this.matchNoCurrentIndex, this.teamNoCurrentIndex);
+    this.pathMartial = martialTeamPath(this.tournamentNoIndex, this.matchNoCurrentIndex, this.teamNoCurrentIndex);
     overrideMartialFinalScore(
       this.martialWriteCtx,
       this.matchNoCurrentIndex,
@@ -822,7 +823,7 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
   resetDemo = async (): Promise<void> => {
     try {
       const { tournament, arenaIndex } = this.props.access;
-      await resetDemoTournament(tournament.index, arenaIndex);
+      await resetDemoTournament(tournament.id, arenaIndex);
       // `restoreMatch` doc lai `martial` va dung dong ho — du de sach bang,
       // khong phai tai lai ca trang
       this.matchMartialNoCurrent = 1;
@@ -1272,8 +1273,8 @@ class GiamSatThiQuyenContainer extends Component<GiamSatThiQuyenProps, GiamSatTh
         <CodeBoardModal
           isOpen={showCodeBoard}
           onClose={() => this.setState({ showCodeBoard: false })}
-          tournamentIndex={access.tournament.index}
-          tournamentName={access.tournament.name}
+          tournament={access.tournament}
+          viewerUid={this.props.user.uid}
           arenaKeys={[access.arenaKey]}
         />
 
