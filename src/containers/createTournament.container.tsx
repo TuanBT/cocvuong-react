@@ -7,7 +7,7 @@ import {
   PageShell, PageHeader, Button, ConfirmModal, EmptyState,
   LoadingOverlay, Toast, AppFooter, Pagination,
 } from '../components/ui';
-import { AccountChip } from '../components/auth';
+import HeaderAccount from '../components/ui/HeaderAccount';
 import { read, write, utils } from 'xlsx';
 import FileSaver from "file-saver";
 import { NavLink } from "react-router-dom";
@@ -2679,7 +2679,7 @@ class CreateTournamentContainer extends Component<CreateTournamentContainerProps
 
     return (
       <PageShell accent={wizardType === 'doikhang' ? 'combat' : 'martial'}>
-        <PageHeader title="Tạo giải đấu" icon="fa-solid fa-file-arrow-up" badge={tournamentName} action={<AccountChip user={user} />} />
+        <PageHeader title="Tạo giải đấu" icon="fa-solid fa-file-arrow-up" badge={tournamentName} action={<HeaderAccount user={user} />} />
 
         <main className="flex-1 w-full">
           {this.renderWizardMode()}

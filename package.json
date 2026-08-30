@@ -43,6 +43,7 @@
     "test:e2e:khoma": "tsx tests/e2e/kho-ma.ts",
     "test:e2e:khoma:live": "tsx tests/e2e/kho-ma.ts --live",
     "test:e2e:seed:live": "tsx tests/e2e/seed-batch.ts --live",
+    "test:e2e:quyen:live": "tsx tests/e2e/run.ts --live --only=xin-quyen",
     "test:e2e:realistic:live": "tsx tests/e2e/run.ts --live --only=realistic",
     "test:e2e:stress:live": "tsx tests/e2e/run.ts --live --only=stress"
   },

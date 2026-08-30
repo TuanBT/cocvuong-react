@@ -36,7 +36,8 @@ export interface AccessRequest {
   photo: string;
   note?: string;
   want: Assignments;
-  createdAt: TournamentId;
+  /** Moc thoi gian nop don (`Date.now()`) — de xep don moi len truoc */
+  createdAt: number;
   rejectedAt?: number;
 }
 
@@ -92,7 +93,7 @@ export async function withdrawRequest(t: TournamentId, uid: string): Promise<voi
   await remove(ref(database, `tournamentRequest/${t}/${uid}`));
 }
 
-/** Chu giai: don dang cho. Realtime — cham do + tieng chuong dua vao day. */
+/** Chu giai: don dang cho. Realtime — cham do tren chuong o thanh tieu de doc tu day. */
 export function subscribeRequests(
   t: TournamentId,
   cb: (list: AccessRequest[]) => void,
@@ -291,6 +292,71 @@ export function subscribeMyAccess(
     () => cb(null)
   );
   return () => off(r);
+}
+
+/**
+ * Trang thai quyen cua CHINH minh tren mot giai.
+ *
+ * `granted` mang theo ca `staff` de nguoi goi khoi phai doc lai phan cong.
+ */
+export type AccessState =
+  | { kind: 'none' }                       // chua nop don, hoac vua bi thu hoi
+  | { kind: 'pending' }                    // don dang cho chu giai duyet
+  | { kind: 'rejected' }
+  | { kind: 'granted'; staff: StaffMember };
+
+/**
+ * Gop hai nhanh `tournamentStaff` + `tournamentRequest` thanh MOT dong trang thai.
+ *
+ * **Vi sao phai gop chu khong nghe rieng hai cai.** `approveRequest` ghi nhan
+ * su TRUOC roi moi xoa don, nen may nguoi xin quyen nhan hai su kien roi rac
+ * theo dung thu tu do: "da co quyen", roi vai tram mili-giay sau la "don da
+ * bien mat". Hai tai nghe rieng thi su kien thu hai de len cai truoc — chu
+ * giai bam Dong y roi ma man hinh nguoi kia tut nguoc ve "Xin quyen giam sat",
+ * ho bam xin lai, va chu giai thay don ve them mot lan nua. Vong lap nay tung
+ * xay ra that giua giai.
+ *
+ * Quy tac gop chi co mot dong: **co nhan su thi thang** — don khong con noi gi
+ * duoc nua. Va khong doan bua khi chua du tin: chua biet nhanh nhan su thi im,
+ * de man hinh dung yen thay vi loe mot cai man sai.
+ */
+export function subscribeAccessState(
+  t: TournamentId,
+  uid: string,
+  cb: (state: AccessState) => void
+): () => void {
+  let staff: StaffMember | null = null;
+  let staffKnown = false;
+  let req: AccessRequest | null = null;
+  let reqKnown = false;
+
+  const emit = () => {
+    if (!staffKnown) return;
+    if (staff) {
+      cb({ kind: 'granted', staff });
+      return;
+    }
+    if (!reqKnown) return;
+    if (!req) cb({ kind: 'none' });
+    else if (req.rejectedAt) cb({ kind: 'rejected' });
+    else cb({ kind: 'pending' });
+  };
+
+  const offStaff = subscribeMyAccess(t, uid, (s) => {
+    staff = s;
+    staffKnown = true;
+    emit();
+  });
+  const offReq = subscribeMyRequest(t, uid, (r) => {
+    req = r;
+    reqKnown = true;
+    emit();
+  });
+
+  return () => {
+    offStaff();
+    offReq();
+  };
 }
 
 /** Ghi san vao lan gan nhat -> lan sau vao thang, doi may van dung. */

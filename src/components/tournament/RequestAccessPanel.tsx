@@ -1,17 +1,17 @@
 import React, { Component } from 'react';
 import { toast } from 'react-toastify';
 import { Link, Prompt, withRouter } from 'react-router-dom';
-import logo from '../../assets/img/logo.png';
 import Button from '../ui/Button';
 import Pagination from '../ui/Pagination';
+import AppTopBar from '../ui/AppTopBar';
 import { formatEventDate } from '../../utils/helpers';
 import { paginate } from '../../utils/pagination';
-import { AppUser, signOut } from '../../services/authService';
+import { AppUser } from '../../services/authService';
 import { ArenaKind, arenaName, kindName } from '../../services/accessCodeService';
 import {
   ARENA_KEYS, ArenaAssignmentKey, Assignments, StaffMember,
   allArenas, arenaKeyLabel, assignedKeys, getStaff, requestAccess,
-  setLastArena, subscribeMyAccess, subscribeMyRequest, withdrawRequest,
+  setLastArena, subscribeAccessState, withdrawRequest,
 } from '../../services/staffService';
 import {
   TournamentSummary, getTournamentSummary, listTournaments, subscribeTournamentSummary,
@@ -52,7 +52,11 @@ interface RouterProps {
 
 type RequestAccessPanelProps = RequestAccessPanelOwnProps & RouterProps;
 
-type Phase = 'loading' | 'pick-tournament' | 'request' | 'waiting' | 'pick-arena' | 'ready' | 'revoked';
+type Phase =
+  | 'loading' | 'pick-tournament' | 'request' | 'waiting'
+  | 'pick-arena' | 'ready' | 'revoked'
+  /** Da duoc duyet vao giai, nhung khong san nao thuoc noi dung cua trang nay */
+  | 'wrong-kind';
 
 interface RequestAccessPanelState {
   phase: Phase;
@@ -141,9 +145,18 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
    * nham mot cai la admin lai roi vao man "Xin quyen giam sat" cua chinh minh.
    */
   isAdmin = false;
-  unsubStaff: (() => void) | null = null;
-  unsubRequest: (() => void) | null = null;
+  unsubAccess: (() => void) | null = null;
   unsubSummary: (() => void) | null = null;
+
+  /**
+   * Da co quyen tren giai dang chon chua — de phan biet "bi thu hoi" voi
+   * "chua tung xin".
+   *
+   * Giu o instance field chu khong o state: `setState` khong an lien, ma su
+   * kien tiep theo co the ve ngay tich sau — doc `this.state.phase` de quyet
+   * dinh la doc phai anh cu.
+   */
+  granted = false;
 
   /**
    * Da de lai mot muc "bang chon giai" phia sau chua.
@@ -280,10 +293,10 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
   };
 
   detach() {
-    this.unsubStaff?.();
-    this.unsubRequest?.();
+    this.unsubAccess?.();
     this.unsubSummary?.();
-    this.unsubStaff = this.unsubRequest = this.unsubSummary = null;
+    this.unsubAccess = this.unsubSummary = null;
+    this.granted = false;
   }
 
   /** Ban cham nhanh cua chinh tai khoan nay — ban cua nguoi khac khong tinh. */
@@ -396,38 +409,41 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
     // Chu giai / admin / giai mo tu do / giai cu chua co chu: bo han buoc duyet
     const freePass = this.isAdmin || t.ownerUid === user.uid || t.openAccess || !t.ownerUid;
 
-    this.unsubStaff = subscribeMyAccess(t.id, user.uid, (staff) => {
-      const hadAccess = this.state.phase === 'ready' || this.state.phase === 'pick-arena';
+    // MOT tai nghe cho ca hai nhanh. Truoc day la hai cai rieng, va cai nghe
+    // don de len cai nghe nhan su dung luc vua duoc duyet — xem
+    // `subscribeAccessState` de biet vi sao thu tu su kien lam duoc chuyen do.
+    this.unsubAccess = subscribeAccessState(t.id, user.uid, (access) => {
+      const hadAccess = this.granted;
 
-      if (!staff && !freePass) {
-        if (hadAccess) {
-          this.setState({ phase: 'revoked', staff: null });
-        } else {
-          this.watchRequest(t);
-        }
+      if (access.kind === 'granted' || freePass) {
+        this.granted = true;
+        const staff = access.kind === 'granted' ? access.staff : null;
+        this.setState({ staff }, () => this.resolveArena(t, staff, freePass));
         return;
       }
 
-      this.setState({ staff }, () => this.resolveArena(t, staff, freePass));
-    });
-  };
+      this.granted = false;
 
-  watchRequest(t: TournamentSummary) {
-    const { user } = this.props;
-    this.unsubRequest?.();
-    this.unsubRequest = subscribeMyRequest(t.id, user.uid, (req) => {
-      if (!req) {
-        this.setState({ phase: 'request' });
-      } else if (req.rejectedAt) {
+      // Dang cham do thi bi rut quyen — phai bao, khong duoc lang le tra ve
+      // man xin quyen nhu chua tung co gi
+      if (hadAccess) {
+        this.setState({ phase: 'revoked', staff: null });
+        return;
+      }
+
+      if (access.kind === 'rejected') {
         this.setState({
           phase: 'request',
+          staff: null,
           error: 'Đơn của bạn đã bị từ chối. Liên hệ chủ giải để được mở lại.',
         });
+      } else if (access.kind === 'pending') {
+        this.setState({ phase: 'waiting', staff: null });
       } else {
-        this.setState({ phase: 'waiting' });
+        this.setState({ phase: 'request', staff: null });
       }
     });
-  }
+  };
 
   /**
    * Duoc duyet dung 1 san -> vao thang. Nhieu san -> chon dung mot lan dau,
@@ -451,8 +467,13 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
 
     const usable = available.length ? available : (freePass ? ARENA_INDEXES : []);
 
+    // Duoc duyet vao giai nhung chu giai chi mo san ben noi dung KIA.
+    //
+    // Ban cu tra ve man "Xin quyen giam sat" — mot cai bay: nguoi ta bam xin
+    // lai, chu giai duyet lai voi dung nhung san cu, va ca hai quay vong mai.
+    // Man rieng chi ro da duoc duyet cai gi, va co san loi sang trang dung.
     if (!usable.length) {
-      this.setState({ phase: 'request', error: `Bạn chưa được phân công sân nào cho ${kindName(kind).toLowerCase()}.` });
+      this.setState({ phase: 'wrong-kind', error: '' });
       return;
     }
 
@@ -505,8 +526,10 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
     this.setState({ busy: true, error: '' });
     try {
       await requestAccess(selected.id, user, want, note);
+      // `subscribeAccessState` dang nghe san nhanh don — no se tu dua man hinh
+      // sang 'waiting'. Dat truoc o day chi de khong co khoang trong giua luc
+      // bam nut va luc su kien ve.
       this.setState({ phase: 'waiting' });
-      this.watchRequest(selected);
     } catch (err: any) {
       this.setState({
         error:
@@ -546,35 +569,31 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
 
   // ==================== Khung chung ====================
 
+  /**
+   * Khung chung cua moi man cong: thanh tren cung + mot the o giua.
+   *
+   * Thanh tren cung khong chi de dep. Chu giai cua giai A rat hay dang dung o
+   * chinh may man nay cho giai B — va don xin quyen cua giai A thi ve bat cu
+   * luc nao. Cai chuong o day la duong duy nhat ho thay don ma khong phai roi
+   * man hinh dang mo.
+   */
   shell(title: string, subtitle: string, body: React.ReactNode) {
     const { user } = this.props;
     return (
-      <div data-accent="brand" className="min-h-screen flex flex-col items-center justify-center
-        p-4 select-text bg-gradient-to-b from-slate-50 via-white to-slate-100">
-        <div className="w-full max-w-lg">
-          <div className="text-center mb-6">
-            <Link to="/" title="Về trang chủ"
-              className="inline-flex bg-white p-3 rounded-card shadow-card mb-4
-                hover:shadow-lg transition-shadow">
-              <img src={logo} alt="Cóc Vương" className="h-11 w-auto" />
-            </Link>
-            <h1 className="text-xl font-bold text-slate-800 mb-1">{title}</h1>
-            <p className="text-sm text-slate-500 m-0">{subtitle}</p>
+      <div data-accent="brand" className="min-h-screen flex flex-col select-text
+        bg-gradient-to-b from-slate-50 via-white to-slate-100">
+        <AppTopBar user={user} />
+
+        <div className="flex-1 flex flex-col items-center justify-center p-4">
+          <div className="w-full max-w-lg">
+            {/* Logo da nam o thanh tren cung — o day chi con ten man hinh */}
+            <div className="text-center mb-6">
+              <h1 className="text-xl font-bold text-slate-800 mb-1">{title}</h1>
+              <p className="text-sm text-slate-500 m-0">{subtitle}</p>
+            </div>
+
+            <div className="bg-white rounded-card shadow-card border border-slate-100 p-5">{body}</div>
           </div>
-
-          <div className="bg-white rounded-card shadow-card border border-slate-100 p-5">{body}</div>
-
-          <div className="flex items-center justify-between mt-4 text-xs text-slate-500">
-            <span className="truncate">
-              <i className="fa-solid fa-user mr-1.5" aria-hidden="true" />
-              {user.email || 'Phiên ẩn danh'}
-            </span>
-            <button type="button" onClick={() => signOut().then(() => window.location.reload())}
-              className="text-red-600 hover:underline font-medium flex-shrink-0 ml-3">
-              Đăng xuất
-            </button>
-          </div>
-
         </div>
       </div>
     );
@@ -639,6 +658,46 @@ class RequestAccessPanel extends Component<RequestAccessPanelProps, RequestAcces
           </p>
           <Button variant="secondary" block onClick={this.backToList} icon="fa-solid fa-arrow-left">
             Về danh sách giải
+          </Button>
+        </>
+      );
+    }
+
+    if (phase === 'wrong-kind' && selected) {
+      const other: ArenaKind = kind === 'combat' ? 'martial' : 'combat';
+      const otherKeys = assignedKeys(staff?.assignments).filter((k) => k.startsWith(other));
+      const otherPath = other === 'combat' ? '/giam-sat-doi-khang' : '/giam-sat-thi-quyen';
+
+      return this.shell(
+        'Chưa có sân ở nội dung này',
+        selected.name.replace(/\n/g, ' '),
+        <>
+          <p className="m-0 mb-4 text-sm text-slate-600 leading-relaxed">
+            Chủ giải đã duyệt bạn vào giải này, nhưng chưa mở sân nào bên{' '}
+            <strong>{kindName(kind).toLowerCase()}</strong>. Nhờ chủ giải tick thêm sân
+            trong Thiết đặt — được tick là màn hình này tự vào thẳng.
+          </p>
+
+          {otherKeys.length > 0 && (
+            <Link
+              to={otherPath + searchFor(selected.id, null)}
+              className="flex items-center gap-3 mb-3 p-3.5 border border-accent-200 bg-accent-50
+                rounded-control hover:border-accent-500 transition-colors no-underline"
+            >
+              <i className="fa-solid fa-arrow-right-long text-accent-600" aria-hidden="true" />
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-slate-800">
+                  Bạn được trực {kindName(other).toLowerCase()}
+                </span>
+                <span className="block text-xs text-slate-500">
+                  {otherKeys.map(arenaKeyLabel).join(' · ')} — bấm để sang trang đó
+                </span>
+              </span>
+            </Link>
+          )}
+
+          <Button variant="secondary" block onClick={this.backToList} icon="fa-solid fa-arrow-left">
+            Chọn giải khác
           </Button>
         </>
       );

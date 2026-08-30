@@ -6,7 +6,7 @@ import {
   PageShell, PageHeader, SectionCard, Button, EmptyState,
   ConfirmModal, Modal, Toast, AppFooter, Pagination,
 } from '../components/ui';
-import { AccountChip } from '../components/auth';
+import HeaderAccount from '../components/ui/HeaderAccount';
 import CodeBoard from '../components/tournament/CodeBoard';
 import StaffApprovalPanel from '../components/tournament/StaffApprovalPanel';
 import {
@@ -1166,7 +1166,7 @@ class AdminContainer extends Component<AdminContainerProps, AdminContainerState>
 
     return (
       <PageShell accent="brand">
-        <PageHeader title="Quản trị" icon="fa-solid fa-shield-halved" action={<AccountChip user={user} />} />
+        <PageHeader title="Quản trị" icon="fa-solid fa-shield-halved" action={<HeaderAccount user={user} />} />
 
         <main className="flex-1 w-full max-w-4xl mx-auto px-3 sm:px-4 py-5 space-y-5">
           {this.renderTabs()}

@@ -4,7 +4,6 @@ import Button from '../ui/Button';
 import { TournamentStatus } from '../../services/tournamentService';
 import EmptyState from '../ui/EmptyState';
 import ConfirmModal from '../ui/ConfirmModal';
-import bellSound from '../../assets/sound/Reg.mp3';
 import {
   AccessRequest, Assignments, ARENA_KEYS, ArenaAssignmentKey, StaffMember,
   allArenas, approveRequest, arenaKeyLabel, assignedKeys, rejectRequest,
@@ -45,8 +44,6 @@ interface StaffApprovalPanelState {
 class StaffApprovalPanel extends Component<StaffApprovalPanelProps, StaffApprovalPanelState> {
   unsubRequests: (() => void) | null = null;
   unsubStaff: (() => void) | null = null;
-  /** So don lan truoc, de chi keu chuong khi co don MOI ve */
-  lastPendingCount = -1;
 
   state: StaffApprovalPanelState = {
     requests: [],
@@ -62,10 +59,7 @@ class StaffApprovalPanel extends Component<StaffApprovalPanelProps, StaffApprova
   }
 
   componentDidUpdate(prev: StaffApprovalPanelProps) {
-    if (prev.tournamentIndex !== this.props.tournamentIndex) {
-      this.lastPendingCount = -1;
-      this.subscribe();
-    }
+    if (prev.tournamentIndex !== this.props.tournamentIndex) this.subscribe();
   }
 
   componentWillUnmount() {
@@ -80,11 +74,6 @@ class StaffApprovalPanel extends Component<StaffApprovalPanelProps, StaffApprova
 
     this.unsubRequests = subscribeRequests(tournamentIndex, (requests) => {
       const pending = requests.filter((r) => !r.rejectedAt);
-
-      if (this.lastPendingCount >= 0 && pending.length > this.lastPendingCount) {
-        this.ring();
-      }
-      this.lastPendingCount = pending.length;
 
       this.setState((prev) => {
         const draft = { ...prev.draft };
@@ -103,17 +92,6 @@ class StaffApprovalPanel extends Component<StaffApprovalPanelProps, StaffApprova
       (staff) => this.setState({ staff }),
       () => toast.error('Không đọc được danh sách giám sát — giải này có phải của bạn không?')
     );
-  }
-
-  /** Chuong bao don moi. Trinh duyet chan phat tu dong thi bo qua. */
-  ring() {
-    try {
-      const audio = new Audio(bellSound);
-      audio.volume = 0.5;
-      void audio.play().catch(() => undefined);
-    } catch {
-      /* khong phat duoc am thanh thi cham do van con */
-    }
   }
 
   /** Ai dang truc san nay — de canh bao khi duyet nguoi thu hai vao cung san */

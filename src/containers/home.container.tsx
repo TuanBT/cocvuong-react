@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
 import { NavLink } from 'react-router-dom';
 import logo from '../assets/img/logo.png';
-import { AppFooter, Toast } from '../components/ui';
-import { AppUser, onAuthChanged, signOut } from '../services/authService';
+import { AppFooter, AppTopBar, Toast } from '../components/ui';
+import { AppUser, onAuthChanged } from '../services/authService';
 import { subscribeIsAdmin } from '../services/adminService';
 
 interface HomeContainerProps {
@@ -140,7 +140,12 @@ class HomeContainer extends Component<HomeContainerProps, HomeContainerState> {
     return (
       <div data-accent="brand" className="min-h-screen flex flex-col select-text
         bg-gradient-to-b from-slate-50 via-white to-slate-100">
-        <header className="px-4 pt-10 pb-8 text-center animate-fade-in">
+        {/* Chuong bao don xin quyen phai bam duoc o day: chu giai giua giai
+            ngoi o trang chu nhieu hon o trang Thiet dat. Bo logo — ngay duoi
+            da co mot cai to gap doi. */}
+        <AppTopBar user={user} showLogo={false} />
+
+        <div className="px-4 pt-10 pb-8 text-center animate-fade-in">
           <div className="inline-flex bg-white p-3.5 rounded-card shadow-card mb-5">
             <img src={logo} alt="Cóc Vương" className="h-14 w-auto" />
           </div>
@@ -148,7 +153,7 @@ class HomeContainer extends Component<HomeContainerProps, HomeContainerState> {
           <p className="text-slate-500 text-base sm:text-lg m-0">
             Hệ thống chấm điểm Vovinam
           </p>
-        </header>
+        </div>
 
         <main className="flex-1 px-4 pb-12">
           <div className="max-w-6xl mx-auto space-y-8">
@@ -220,34 +225,17 @@ class HomeContainer extends Component<HomeContainerProps, HomeContainerState> {
               </section>
             ))}
 
-            <section className="text-center text-sm">
-              {user ? (
-                <p className="m-0 text-slate-500">
-                  Đang đăng nhập:{' '}
-                  <strong className="text-slate-700">{user.email}</strong>{' '}
-                  ·{' '}
-                  <button type="button"
-                    onClick={() => signOut().then(() => window.location.reload())}
-                    className="text-red-600 hover:underline">Đăng xuất</button>
-                  {isAdmin && (
-                    <>
-                      {' '}·{' '}
-                      <NavLink to="/quan-tri" className="text-accent-700 font-medium hover:underline">
-                        <i className="fa-solid fa-shield-halved mr-1" aria-hidden="true" />
-                        Quản trị
-                      </NavLink>
-                    </>
-                  )}
-                </p>
-              ) : (
-                <p className="m-0 text-slate-500">
-                  Ban tổ chức và giám sát:{' '}
-                  <NavLink to="/login" className="text-accent-700 font-medium hover:underline">
-                    đăng nhập bằng Google
-                  </NavLink>
-                </p>
-              )}
-            </section>
+            {/* Ai dang dang nhap va nut Dang xuat da nam o thanh tren cung —
+                duoi day chi con cua vao trang quan tri, von khong co cho nao
+                khac de bay ra. */}
+            {isAdmin && (
+              <section className="text-center text-sm">
+                <NavLink to="/quan-tri" className="text-accent-700 font-medium hover:underline">
+                  <i className="fa-solid fa-shield-halved mr-1" aria-hidden="true" />
+                  Quản trị
+                </NavLink>
+              </section>
+            )}
           </div>
         </main>
 

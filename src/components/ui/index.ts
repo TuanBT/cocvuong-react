@@ -19,3 +19,5 @@ export { default as StatusDot } from './StatusDot';
 export { default as LoadingOverlay } from './LoadingOverlay';
 export { default as Toast } from './Toast';
 export { default as AppFooter } from './AppFooter';
+export { default as AppTopBar } from './AppTopBar';
+export { default as HeaderAccount } from './HeaderAccount';

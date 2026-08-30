@@ -313,6 +313,39 @@ export function subscribeTournamentSummary(
   return () => off(r);
 }
 
+/**
+ * Nghe song danh sach giai do `uid` lam chu.
+ *
+ * Doc tu chi muc chu khong tu cay that — day la duong chay lien tuc suot phien
+ * (chuong bao don o thanh tieu de), khong duoc phep keo vai MB moi lan co ai
+ * do doi mot chu trong ten giai.
+ *
+ * Giai da dong VAN TINH: don ve muon, chu giai mo lai giai roi duyet, la
+ * chuyen binh thuong giua dot. Chi giai da xoa mem la bien han.
+ *
+ * Huy dang ky dung ham `onValue` tra ve chu khong dung `off(ref)`: nhanh
+ * `tournamentIndex` co the co nhieu cho cung nghe, ma `off(ref)` go SACH moi
+ * tai nghe tren duong dan do.
+ */
+export function subscribeOwnedTournaments(
+  uid: string,
+  cb: (list: TournamentSummary[]) => void
+): () => void {
+  return onValue(
+    ref(database, INDEX_PATH),
+    (snap) => {
+      const raw = snap.val() as Record<string, any> | null;
+      cb(
+        idsOf(raw)
+          .map((id) => toSummary(id, raw![id]))
+          .filter((t) => t.ownerUid === uid && !isDeleted(t))
+          .sort(byCreated)
+      );
+    },
+    () => cb([])
+  );
+}
+
 /** Giai toi duoc phep dung: cua chinh minh, hoac giai cu chua co chu. */
 export function ownedBy(t: TournamentSummary, uid: string): boolean {
   return t.ownerUid === uid;

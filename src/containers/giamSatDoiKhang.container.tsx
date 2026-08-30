@@ -43,6 +43,7 @@ import { SupervisorAccess } from '../components/tournament/RequestAccessPanel';
 import CodeBoardModal from '../components/tournament/CodeBoardModal';
 import { displayTournamentName, resetDemoTournament } from '../services/demoService';
 import { AccountIdentityRow, AccountSignOutItem } from '../components/auth';
+import NotificationBell from '../components/tournament/NotificationBell';
 
 // Import Offline Service
 import {
@@ -1704,6 +1705,11 @@ class GiamSatDoiKhangContainer extends Component<GiamSatDoiKhangProps, GiamSatDo
                                 CHẤM NHANH
                             </span>
                         )}
+
+                        {/* Don xin quyen ve giua giai: nguoi duyet dang ngoi CHINH o day,
+                            khong phai o trang Thiet dat. Chuong tu an khi khong co don nao
+                            cho, nen khong an cho cua thanh von da chat nay. */}
+                        <NotificationBell user={user} />
 
                         {/* Quick Menu Button */}
                         <div className="relative">

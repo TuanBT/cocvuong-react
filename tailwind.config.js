@@ -50,10 +50,27 @@ module.exports = {
           from: { opacity: '0', transform: 'translateY(8px) scale(0.98)' },
           to: { opacity: '1', transform: 'translateY(0) scale(1)' },
         },
+        // Chuong bao don xin quyen: lac mot cai roi im 2 giay ruoi.
+        //
+        // Bao don MOI KHONG CO TIENG (chot 2026-08-30) — man giam sat da co
+        // tieng rieng cho luot thi va cho hiep dau, muon lai mot trong hai cho
+        // viec khac nghia hen la giua giai khong ai biet tieng vua roi nghia
+        // la gi. Nen cai nhip lac nay la tin hieu DUY NHAT, va vi the phai lap
+        // lai chu khong lac mot lan roi thoi.
+        //
+        // Nhung lac THUA thoi: lac lien tuc thi keo mat nguoi ta suot buoi, ma
+        // man giam sat con dang chieu len man hinh ca hoi truong nhin. Chuong
+        // tu an khi het don nen khong co chuyen no lac mai.
+        'bell-shake': {
+          '0%, 70%, 100%': { transform: 'rotate(0deg)' },
+          '75%, 85%': { transform: 'rotate(12deg)' },
+          '80%, 90%': { transform: 'rotate(-12deg)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 0.15s ease-out',
         'pop-in': 'pop-in 0.18s cubic-bezier(0.22, 1, 0.36, 1)',
+        'bell': 'bell-shake 3s ease-in-out infinite',
       },
     },
   },

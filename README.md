@@ -42,6 +42,35 @@ RequestAccessPanel  → phải được chủ giải duyệt, và đã biết tr
 Container           → vào thẳng trận, không hỏi gì thêm
 ```
 
+### Duyệt xong là vào thẳng
+
+Cổng `RequestAccessPanel` nghe **một** dòng trạng thái, `subscribeAccessState`,
+gộp sẵn từ hai nhánh `tournamentStaff/{t}/{uid}` và `tournamentRequest/{t}/{uid}`
+theo đúng một luật: **có nhân sự thì thắng**, đơn không nói gì được nữa.
+
+Không phải chuyện gọn code. `approveRequest` ghi nhân sự TRƯỚC rồi mới xoá đơn,
+nên máy người xin quyền nhận hai sự kiện rời rạc — "đã có quyền", rồi vài trăm
+mili-giây sau là "đơn đã biến mất". Nghe hai nhánh bằng hai tai nghe riêng thì
+sự kiện thứ hai đè lên cái trước, và màn hình tụt ngược từ "vào thẳng sân" về
+"Xin quyền giám sát" đúng lúc vừa được duyệt xong: người kia bấm xin lại, chủ
+giải thấy đơn về thêm lần nữa, cả hai quay vòng. Nhóm test `xin-quyen` khoá lại
+đúng chỗ đó — nó soi **cả dãy** trạng thái, không chỉ giá trị cuối.
+
+Chủ giải tick sân lệch nội dung (chỉ đối kháng, mà người kia đang mở trang thi
+quyền) thì ra màn riêng có lối sang trang đúng, **không** phải màn xin quyền —
+mời bấm xin lại ở đó chỉ dựng lại đúng cái vòng lặp trên.
+
+**Chuông báo đơn** (`NotificationBell`) nằm cạnh ảnh tài khoản trên mọi thanh
+tiêu đề, gom đơn của **mọi** giải mình làm chủ. Trước đây bảng duyệt chỉ có ở
+`/thiet-dat`, mà chủ giải giữa giải thì ngồi ở màn giám sát — đơn về không ai
+thấy. Chuông tự ẩn khi không có đơn nào chờ.
+
+**Báo bằng hình, không có tiếng.** Màn giám sát đã có tiếng riêng cho lượt thi
+(`Reg.mp3`) và cho hiệp đấu (`School_Bell.mp3`); mượn lại một trong hai cho
+việc khác nghĩa hẳn thì giữa giải không ai biết tiếng vừa rồi nghĩa là gì. Chấm
+đỏ + con số trên chuông là đủ. Không có server nên cũng không có push
+notification: không mở app thì không thấy đơn, và đó là giới hạn thật.
+
 **Giám định không đi qua tầng nào cả.** Ở `/gd` họ gõ **đúng 2 số của giải**,
 chạm chọn sân và số giám định của mình, rồi màn chấm điểm tự đọc phiên từ
 `codeSession`:

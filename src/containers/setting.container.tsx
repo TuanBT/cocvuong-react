@@ -8,7 +8,7 @@ import {
   PageShell, PageHeader, SectionCard, Button, Toggle, NumberField,
   ConfirmModal, Toast, AppFooter, Pagination,
 } from '../components/ui';
-import { AccountChip } from '../components/auth';
+import HeaderAccount from '../components/ui/HeaderAccount';
 import CodeBoard from '../components/tournament/CodeBoard';
 import StaffApprovalPanel from '../components/tournament/StaffApprovalPanel';
 
@@ -892,7 +892,7 @@ class SettingContainer extends Component<SettingContainerProps, SettingContainer
 
     return (
       <PageShell accent="tool">
-        <PageHeader title="Thiết đặt" icon="fa-solid fa-gear" badge={tournamentName} action={<AccountChip user={user} />} />
+        <PageHeader title="Thiết đặt" icon="fa-solid fa-gear" badge={tournamentName} action={<HeaderAccount user={user} />} />
 
         <main className="flex-1 w-full max-w-4xl mx-auto px-3 sm:px-4 py-5 space-y-5">
           <SectionCard title="Giải đang cấu hình" icon="fa-solid fa-trophy">
